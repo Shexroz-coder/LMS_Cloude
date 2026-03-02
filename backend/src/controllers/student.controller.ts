@@ -1,10 +1,10 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { hashPassword } from '../utils/password.utils';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 // ── Studentni include bilan olish ──────────────────
 const studentInclude = {

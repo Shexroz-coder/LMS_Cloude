@@ -1,8 +1,7 @@
+import prisma from '../lib/prisma';
 import { Server, Socket } from 'socket.io';
-import { PrismaClient } from '@prisma/client';
 import { verifyAccessToken } from '../utils/jwt.utils';
 
-const prisma = new PrismaClient();
 
 // Online foydalanuvchilar: userId → Set<socketId>
 const onlineUsers = new Map<number, Set<string>>();

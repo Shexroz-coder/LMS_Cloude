@@ -1,9 +1,8 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 // ══════════════════════════════════════════════
 // GET /expenses — Barcha xarajatlar (arxiv bilan)

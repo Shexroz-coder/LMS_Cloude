@@ -9,9 +9,9 @@ import { authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', authorize('ADMIN', 'TEACHER'), getGroups);
+router.get('/', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroups);
 router.post('/', authorize('ADMIN'), createGroup);
-router.get('/:id', authorize('ADMIN', 'TEACHER'), getGroupById);
+router.get('/:id', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroupById);
 router.put('/:id', authorize('ADMIN'), updateGroup);
 router.delete('/:id', authorize('ADMIN'), deleteGroup);
 router.get('/:id/stats', authorize('ADMIN', 'TEACHER'), getGroupStats);

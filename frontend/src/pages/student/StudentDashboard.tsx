@@ -56,6 +56,17 @@ const StudentDashboard = () => {
     return Array.isArray(raw) ? raw : raw?.groups || [];
   }, { enabled: !!studentId });
 
+  // Bugungi jadval (yangi endpoint)
+  const { data: todayScheduleData = [] } = useQuery<{
+    scheduleId: number; groupId: number; groupName: string;
+    courseName: string; teacherName: string;
+    startTime: string; endTime: string; room: string | null;
+    studentCount: number;
+  }[]>(['student-today-schedule'], async () => {
+    const r = await api.get('/dashboard/today-schedule');
+    return r.data?.data || [];
+  });
+
   // Grades
   const { data: gradesData } = useQuery(['student-grades-dash', studentId], async () => {
     if (!studentId) return null;
@@ -103,7 +114,7 @@ const StudentDashboard = () => {
     ? Math.round((attStats.presentCount / Math.max(attStats.totalLessons, 1)) * 100)
     : null;
 
-  // Today's schedule
+  // Guruhlar (Guruhlarim bo'limi uchun)
   const groups = groupsRaw as {
     id: number; name: string;
     course: { name: string };
@@ -111,13 +122,10 @@ const StudentDashboard = () => {
     schedules?: { id: number; daysOfWeek: number[]; startTime: string; endTime: string; room?: string }[];
   }[];
 
-  const todayLessons = groups.flatMap(g =>
-    (g.schedules || [])
-      .filter(sc => sc.daysOfWeek.includes(todayDay))
-      .map(sc => ({ ...sc, groupName: g.name, courseName: g.course?.name, teacherName: g.teacher?.user?.fullName }))
-  ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  // Bugungi darslar — yangi endpoint dan (aniq va to'g'ri)
+  const todayLessons = todayScheduleData;
 
-  // Tomorrow
+  // Ertangi darslar (groups + schedules dan)
   const tomorrowDay = (todayDay + 1) % 7;
   const tomorrowLessons = groups.flatMap(g =>
     (g.schedules || [])

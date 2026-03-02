@@ -1,9 +1,8 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 // ══════════════════════════════════════════════
 // GET /dashboard/stats — Admin dashboard
@@ -202,5 +201,64 @@ export const getTodayLessons = async (_req: AuthRequest, res: Response): Promise
   } catch (err) {
     console.error('getTodayLessons error:', err);
     sendError(res, 'Bugungi darslarni olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /dashboard/today-schedule — Bugungi dars jadvali (Schedule asosida)
+// Admin, Teacher, Student uchun
+// ══════════════════════════════════════════════
+export const getTodaySchedule = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const role = req.user!.role;
+    const todayDay = new Date().getDay(); // 0=Yakshanba, 1=Dushanba, ...
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = { status: 'ACTIVE' };
+
+    if (role === 'STUDENT') {
+      const student = await prisma.student.findUnique({ where: { userId } });
+      if (!student) { sendSuccess(res, []); return; }
+      where.groupStudents = { some: { studentId: student.id, status: 'ACTIVE' } };
+    } else if (role === 'TEACHER') {
+      const teacher = await prisma.teacher.findUnique({ where: { userId } });
+      if (!teacher) { sendSuccess(res, []); return; }
+      where.teacherId = teacher.id;
+    }
+    // ADMIN → barcha aktiv guruhlar
+
+    const groups = await prisma.group.findMany({
+      where,
+      include: {
+        course: { select: { name: true } },
+        teacher: { include: { user: { select: { fullName: true } } } },
+        schedules: true,
+        _count: { select: { groupStudents: { where: { status: 'ACTIVE' } } } },
+      },
+    });
+
+    const todaySchedules = groups
+      .flatMap((g) =>
+        (g.schedules || [])
+          .filter((sc) => sc.daysOfWeek.includes(todayDay))
+          .map((sc) => ({
+            scheduleId: sc.id,
+            groupId: g.id,
+            groupName: g.name,
+            courseName: g.course.name,
+            teacherName: g.teacher.user.fullName,
+            startTime: sc.startTime,
+            endTime: sc.endTime,
+            room: sc.room ?? null,
+            studentCount: g._count.groupStudents,
+          }))
+      )
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    sendSuccess(res, todaySchedules);
+  } catch (err) {
+    console.error('getTodaySchedule error:', err);
+    sendError(res, 'Bugungi jadvalda xato.', 500);
   }
 };

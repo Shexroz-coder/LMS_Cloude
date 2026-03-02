@@ -1,9 +1,9 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
+import { getIO } from '../services/io.service';
 
-const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────────────────
 // Foydalanuvchining barcha chatlari
@@ -75,6 +75,7 @@ export const getMyChats = async (req: AuthRequest, res: Response): Promise<void>
 
     sendSuccess(res, result);
   } catch (err) {
+    console.error('getMyChats error:', err);
     sendError(res, 'Chatlarni olishda xato', 500);
   }
 };
@@ -123,6 +124,7 @@ export const getChatMessages = async (req: AuthRequest, res: Response): Promise<
 
     sendSuccess(res, messages.reverse());
   } catch (err) {
+    console.error('getChatMessages error:', err);
     sendError(res, 'Xabarlarni olishda xato', 500);
   }
 };
@@ -140,11 +142,10 @@ export const getOrCreateDirectChat = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
-    // Mavjud direct chat bormi?
+    // Mavjud direct chat bormi? (faqat 2 kishi: userId va targetUserId)
     const existing = await prisma.chat.findFirst({
       where: {
         type: 'DIRECT',
-        participants: { every: { userId: { in: [userId, targetUserId] } } },
         AND: [
           { participants: { some: { userId } } },
           { participants: { some: { userId: targetUserId } } },
@@ -158,8 +159,11 @@ export const getOrCreateDirectChat = async (req: AuthRequest, res: Response): Pr
     });
 
     if (existing) {
-      sendSuccess(res, existing);
-      return;
+      // Verify exactly 2 participants (DIRECT chat)
+      if (existing.participants.length === 2) {
+        sendSuccess(res, existing);
+        return;
+      }
     }
 
     // Target user mavjudmi?
@@ -186,6 +190,7 @@ export const getOrCreateDirectChat = async (req: AuthRequest, res: Response): Pr
 
     sendSuccess(res, chat, undefined, 201);
   } catch (err) {
+    console.error('getOrCreateDirectChat error:', err);
     sendError(res, 'Chat yaratishda xato', 500);
   }
 };
@@ -207,7 +212,6 @@ export const getOrCreateGroupChat = async (req: AuthRequest, res: Response): Pro
             student: {
               include: {
                 user: { select: { id: true } },
-                parent: { select: { id: true } },
               },
             },
           },
@@ -221,8 +225,13 @@ export const getOrCreateGroupChat = async (req: AuthRequest, res: Response): Pro
       return;
     }
 
-    // Mavjud chatni qaytarish
+    // Mavjud chatni qaytarish — ustozni har doim ishtirokchi sifatida saqlash
     if (group.chat) {
+      await prisma.chatParticipant.upsert({
+        where: { chatId_userId: { chatId: group.chat.id, userId: group.teacher.userId } },
+        update: {},
+        create: { chatId: group.chat.id, userId: group.teacher.userId },
+      });
       sendSuccess(res, group.chat);
       return;
     }
@@ -232,7 +241,6 @@ export const getOrCreateGroupChat = async (req: AuthRequest, res: Response): Pro
     memberIds.add(group.teacher.userId);
     group.groupStudents.forEach((gs) => {
       memberIds.add(gs.student.userId);
-      if (gs.student.parentId) memberIds.add(gs.student.parentId);
     });
 
     const chat = await prisma.chat.create({
@@ -249,18 +257,19 @@ export const getOrCreateGroupChat = async (req: AuthRequest, res: Response): Pro
 
     sendSuccess(res, chat, undefined, 201);
   } catch (err) {
+    console.error('getOrCreateGroupChat error:', err);
     sendError(res, 'Guruh chati yaratishda xato', 500);
   }
 };
 
 // ─────────────────────────────────────────────────────────
-// Xabar yuborish (REST fallback — asosan socket ishlatiladi)
+// Xabar yuborish (REST — socket.io bilan bir xil ishlaydi)
 // ─────────────────────────────────────────────────────────
 export const sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const chatId = Number(req.params.chatId);
-    const { content, type = 'TEXT', fileUrl, fileName, fileSize, duration } = req.body;
+    const { content, type = 'TEXT', fileUrl, fileName, fileSize, duration, tempId } = req.body;
 
     const participant = await prisma.chatParticipant.findUnique({
       where: { chatId_userId: { chatId, userId } },
@@ -270,12 +279,14 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    const msgType = (type as 'TEXT' | 'IMAGE' | 'FILE' | 'VOICE');
+
     const message = await prisma.message.create({
       data: {
         chatId,
         senderId: userId,
         content,
-        type,
+        type: msgType,
         fileUrl,
         fileName,
         fileSize,
@@ -286,17 +297,35 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
       },
     });
 
-    // Chatni yangilash
+    // Chat lastMessage yangilash
+    const lastMsg =
+      msgType === 'TEXT' ? (content?.slice(0, 100) || '') :
+      msgType === 'IMAGE' ? '🖼 Rasm' :
+      msgType === 'VOICE' ? '🎤 Ovozli xabar' :
+      `📎 ${fileName || 'Fayl'}`;
+
     await prisma.chat.update({
       where: { id: chatId },
       data: {
-        lastMessage: type === 'TEXT' ? content : `[${type.toLowerCase()}]`,
+        lastMessage: lastMsg,
         lastMessageAt: new Date(),
       },
     });
 
+    // Socket orqali real-time broadcast
+    const io = getIO();
+    if (io) {
+      io.to(`chat_${chatId}`).emit('new_message', { ...message, tempId });
+      io.to(`chat_${chatId}`).emit('chat_updated', {
+        chatId,
+        lastMessage: lastMsg,
+        lastMessageAt: message.createdAt,
+      });
+    }
+
     sendSuccess(res, message, undefined, 201);
   } catch (err) {
+    console.error('sendMessage error:', err);
     sendError(res, 'Xabar yuborishda xato', 500);
   }
 };
@@ -321,6 +350,7 @@ export const uploadFile = async (req: AuthRequest, res: Response): Promise<void>
       mimeType: req.file.mimetype,
     });
   } catch (err) {
+    console.error('uploadFile error:', err);
     sendError(res, 'Fayl yuklashda xato', 500);
   }
 };
@@ -338,8 +368,15 @@ export const markAsRead = async (req: AuthRequest, res: Response): Promise<void>
       data: { lastReadAt: new Date() },
     });
 
+    // Socket orqali boshqa ishtirokchilarga xabar berish
+    const io = getIO();
+    if (io) {
+      io.to(`chat_${chatId}`).emit('messages_read', { chatId, userId });
+    }
+
     sendSuccess(res, { ok: true });
   } catch (err) {
+    console.error('markAsRead error:', err);
     sendError(res, 'Xato', 500);
   }
 };
@@ -355,7 +392,7 @@ export const autoCreateGroupChat = async (groupId: number): Promise<void> => {
         teacher: { include: { user: true } },
         groupStudents: {
           where: { status: 'ACTIVE' },
-          include: { student: { include: { user: true, parent: true } } },
+          include: { student: { include: { user: true } } },
         },
         chat: true,
       },
@@ -367,7 +404,6 @@ export const autoCreateGroupChat = async (groupId: number): Promise<void> => {
     memberIds.add(group.teacher.userId);
     group.groupStudents.forEach((gs) => {
       memberIds.add(gs.student.userId);
-      if (gs.student.parentId) memberIds.add(gs.student.parentId);
     });
 
     await prisma.chat.create({
@@ -439,7 +475,7 @@ export const getAvailableContacts = async (req: AuthRequest, res: Response): Pro
               where: { status: 'ACTIVE' },
               include: {
                 student: {
-                  include: { user: true, parent: true },
+                  include: { user: true },
                 },
               },
             },
@@ -450,7 +486,6 @@ export const getAvailableContacts = async (req: AuthRequest, res: Response): Pro
         groups.forEach((g) =>
           g.groupStudents.forEach((gs) => {
             ids.add(gs.student.userId);
-            if (gs.student.parentId) ids.add(gs.student.parentId);
           })
         );
 
@@ -468,20 +503,37 @@ export const getAvailableContacts = async (req: AuthRequest, res: Response): Pro
         });
       }
     } else if (user.role === 'STUDENT') {
-      // O'quvchi o'z ustozi, admin va ota-onasi bilan
+      // O'quvchi: o'z ustozi, guruhdoshlari va admin bilan
       const student = await prisma.student.findUnique({ where: { userId } });
       if (student) {
         const groups = await prisma.groupStudent.findMany({
           where: { studentId: student.id, status: 'ACTIVE' },
-          include: { group: { include: { teacher: { include: { user: true } } } } },
+          include: {
+            group: {
+              include: {
+                teacher: { include: { user: true } },
+                groupStudents: {
+                  where: { status: 'ACTIVE' },
+                  include: { student: { include: { user: true } } },
+                },
+              },
+            },
+          },
         });
+
         const teacherIds = groups.map((g) => g.group.teacher.userId);
-        const extra = student.parentId ? [student.parentId] : [];
+        const groupmateIds = groups.flatMap((g) =>
+          g.group.groupStudents
+            .map((gs) => gs.student.userId)
+            .filter((uid) => uid !== userId)
+        );
+
+        const allContactIds = [...new Set([...teacherIds, ...groupmateIds])];
 
         contacts = await prisma.user.findMany({
           where: {
             OR: [
-              { id: { in: [...teacherIds, ...extra] } },
+              { id: { in: allContactIds } },
               { role: 'ADMIN' },
             ],
             id: { not: userId },
@@ -527,6 +579,79 @@ export const getAvailableContacts = async (req: AuthRequest, res: Response): Pro
 
     sendSuccess(res, contacts);
   } catch (err) {
+    console.error('getAvailableContacts error:', err);
     sendError(res, 'Kontaktlarni olishda xato', 500);
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// O'quvchi/ustoz uchun guruhlar ro'yxati (guruh chati bilan)
+// ─────────────────────────────────────────────────────────
+export const getMyGroups = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) { sendError(res, 'Topilmadi', 404); return; }
+
+    type GroupInfo = {
+      id: number;
+      name: string;
+      teacherName: string;
+      chatId: number | null;
+      memberCount: number;
+    };
+
+    let groups: GroupInfo[] = [];
+
+    if (user.role === 'STUDENT') {
+      const student = await prisma.student.findUnique({ where: { userId } });
+      if (!student) { sendSuccess(res, []); return; }
+
+      const groupStudents = await prisma.groupStudent.findMany({
+        where: { studentId: student.id, status: 'ACTIVE' },
+        include: {
+          group: {
+            include: {
+              teacher: { include: { user: { select: { id: true, fullName: true } } } },
+              chat: { select: { id: true } },
+              _count: { select: { groupStudents: { where: { status: 'ACTIVE' } } } },
+            },
+          },
+        },
+      });
+
+      groups = groupStudents.map((gs) => ({
+        id: gs.group.id,
+        name: gs.group.name,
+        teacherName: gs.group.teacher.user.fullName,
+        chatId: gs.group.chat?.id ?? null,
+        memberCount: gs.group._count.groupStudents,
+      }));
+
+    } else if (user.role === 'TEACHER') {
+      const teacher = await prisma.teacher.findUnique({ where: { userId } });
+      if (!teacher) { sendSuccess(res, []); return; }
+
+      const teacherGroups = await prisma.group.findMany({
+        where: { teacherId: teacher.id, status: 'ACTIVE' },
+        include: {
+          chat: { select: { id: true } },
+          _count: { select: { groupStudents: { where: { status: 'ACTIVE' } } } },
+        },
+      });
+
+      groups = teacherGroups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        teacherName: user.fullName,
+        chatId: g.chat?.id ?? null,
+        memberCount: g._count.groupStudents,
+      }));
+    }
+
+    sendSuccess(res, groups);
+  } catch (err) {
+    console.error('getMyGroups error:', err);
+    sendError(res, 'Guruhlarni olishda xato', 500);
   }
 };

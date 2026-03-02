@@ -11,6 +11,7 @@ import {
   uploadFile,
   markAsRead,
   getAvailableContacts,
+  getMyGroups,
 } from '../controllers/chat.controller';
 
 const router = Router();
@@ -58,6 +59,7 @@ const upload = multer({
 // ── Routes ─────────────────────────────────────────────
 router.get('/', getMyChats);
 router.get('/contacts', getAvailableContacts);
+router.get('/my-groups', getMyGroups);
 router.get('/:chatId/messages', getChatMessages);
 router.post('/:chatId/messages', sendMessage);
 router.post('/:chatId/read', markAsRead);

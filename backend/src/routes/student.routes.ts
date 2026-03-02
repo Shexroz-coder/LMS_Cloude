@@ -31,6 +31,6 @@ router.patch('/:id/groups/:groupId/joined-at', authorize('ADMIN'), updateGroupJo
 router.delete('/:id/groups/:groupId', authorize('ADMIN'), removeFromGroup);
 
 // Statistika
-router.get('/:id/attendance-stats', authorize('ADMIN', 'TEACHER'), getAttendanceStats);
+router.get('/:id/attendance-stats', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getAttendanceStats);
 
 export default router;

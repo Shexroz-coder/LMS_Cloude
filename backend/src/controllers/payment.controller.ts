@@ -1,9 +1,8 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 // ══════════════════════════════════════════════
 // GET /payments — Barcha to'lovlar
@@ -443,6 +442,8 @@ export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<
 
 // ══════════════════════════════════════════════
 // POST /payments/online/initiate — Payme/Uzum to'lov boshlash
+// MUHIM: Bu yerda Payment yozilmaydi!
+// Payment faqat PayMe tomonidan PerformTransaction chaqirilganda yoziladi.
 // ══════════════════════════════════════════════
 export const initiateOnlinePayment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -461,48 +462,34 @@ export const initiateOnlinePayment = async (req: AuthRequest, res: Response): Pr
     if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
 
     const amountTiyin = Math.round(parseFloat(amount) * 100); // tiyin
-    const orderId = `LMS-${Date.now()}-${studentId}`;
-    const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+    // orderId formatida barcha kerakli ma'lumotlar kodlangan:
+    // LMS-{studentId}-{amountTiyin}-{monthYYYYMM}-{timestamp}
+    const now = new Date();
+    const monthDate = month
+      ? new Date(month + '-01T00:00:00.000Z')
+      : new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    const monthStr = `${monthDate.getUTCFullYear()}${String(monthDate.getUTCMonth() + 1).padStart(2, '0')}`;
+    const orderId = `LMS-${studentId}-${amountTiyin}-${monthStr}-${Date.now()}`;
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     let paymentUrl = '';
 
     if (provider === 'PAYME') {
-      // Payme Merchant ID
       const merchantId = process.env.PAYME_MERCHANT_ID || '';
-      // Base64 encode: account object
-      const account = Buffer.from(
-        JSON.stringify({ order_id: orderId, student_id: studentId })
-      ).toString('base64');
+      // PayMe checkout URL formati
       paymentUrl = `https://checkout.paycom.uz/${Buffer.from(
         `m=${merchantId};ac.order_id=${orderId};ac.student_id=${studentId};a=${amountTiyin};c=${frontendUrl}/payment/success`
       ).toString('base64')}`;
 
     } else if (provider === 'UZUM') {
-      // Uzum (Apelsin) merchant
       const merchantId = process.env.UZUM_MERCHANT_ID || '';
       paymentUrl = `https://uzum.uz/payment?merchant_id=${merchantId}&order_id=${orderId}&amount=${amountTiyin}&return_url=${encodeURIComponent(frontendUrl + '/payment/success')}`;
     }
 
-    // Pending payment record yaratish
-    const monthDate = month
-      ? new Date(month + '-01T00:00:00.000Z')
-      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-
-    const payment = await prisma.payment.create({
-      data: {
-        studentId: parseInt(studentId),
-        amount: parseFloat(amount),
-        month: monthDate,
-        paymentMethod: 'ONLINE',
-        status: 'PENDING',
-        provider: provider.toUpperCase(),
-        providerOrderId: orderId,
-        note: `${provider} orqali to'lov`,
-      },
-    });
-
-    sendSuccess(res, { paymentUrl, orderId, paymentId: payment.id });
+    // Payment yozuv bu yerda YARATILMAYDI.
+    // PayMe webhook (PerformTransaction) chaqirilganda avtomatik yaratiladi.
+    sendSuccess(res, { paymentUrl, orderId });
   } catch (err) {
     console.error('initiateOnlinePayment error:', err);
     sendError(res, 'To\'lov boshlashda xato.', 500);
@@ -750,44 +737,9 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
 };
 
 // ══════════════════════════════════════════════
-// POST /payments/online/callback — Payme/Uzum callback (webhook)
+// POST /payments/online/callback — Eski webhook (deprecated)
+// PayMe uchun /payme/webhook ishlatiladi (payme.controller.ts)
 // ══════════════════════════════════════════════
-export const onlinePaymentCallback = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { orderId, transactionId, provider, status } = req.body;
-
-    const payment = await prisma.payment.findFirst({
-      where: { providerOrderId: orderId },
-    });
-    if (!payment) { sendError(res, 'Payment topilmadi', 404); return; }
-
-    if (status === 'SUCCESS' || status === 'PAID') {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'PAID',
-          paidAt: new Date(),
-          transactionId,
-        },
-      });
-
-      // Student balance yangilash
-      await prisma.studentBalance.upsert({
-        where: { studentId: payment.studentId },
-        update: {
-          balance: { increment: Number(payment.amount) },
-          lastUpdated: new Date(),
-        },
-        create: {
-          studentId: payment.studentId,
-          balance: Number(payment.amount),
-          debt: 0,
-        },
-      });
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    res.json({ success: false });
-  }
+export const onlinePaymentCallback = async (_req: AuthRequest, res: Response): Promise<void> => {
+  res.json({ success: true, message: 'Use /payme/webhook for PayMe callbacks.' });
 };

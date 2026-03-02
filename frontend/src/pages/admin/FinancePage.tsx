@@ -145,6 +145,15 @@ export default function FinancePage() {
       .catch(() => ({ salaries: [], totalPaid: 0 }))
   );
 
+  // Live salary calculation for overview
+  const { data: salaryCalc } = useQuery(
+    ['salaries-calc-finance', selectedMonth],
+    () => api.get(`/salaries/calculate?month=${selectedMonth}`)
+      .then(r => r.data?.data)
+      .catch(() => null),
+    { refetchInterval: 60_000 }
+  );
+
   // Arxiv — barcha xarajatlar (filter bilan)
   const { data: archiveResult = { list: [], total: 0, count: 0 }, isLoading: archiveLoading } = useQuery(
     ['expenses-archive', archiveMonth, archiveCategory],
@@ -265,6 +274,160 @@ export default function FinancePage() {
 
       {/* ── OVERVIEW ─────────────────────────────── */}
       {tab === 'overview' && (
+        <div className="space-y-4">
+
+        {/* ── Ehtimoliy xarajatlar (bu oy uchun prognoz) ── */}
+        {salaryCalc && (
+          <div className="card border border-amber-100 bg-amber-50/30">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center text-base">🔮</div>
+              <div>
+                <h3 className="font-bold text-gray-800">
+                  {months.find(m => m.value === selectedMonth)?.label} — Ehtimoliy xarajatlar
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  O'quvchilar to'lovlari asosida avtomatik hisoblangan prognoz
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+              {/* Teacher salaries */}
+              <div className="bg-white rounded-xl p-3 border border-amber-100 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 text-base">👨‍🏫</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 mb-0.5">Ustoz oyliqlari</p>
+                  <p className="font-bold text-blue-700">{new Intl.NumberFormat('uz-UZ').format(Math.round(salaryCalc.summary?.totalCalculated || 0))} so'm</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {salaryCalc.summary?.totalTeachers || 0} ustoz ·{' '}
+                    {new Intl.NumberFormat('uz-UZ').format(Math.round(salaryCalc.summary?.totalRevenue || 0))} so'm daromaddan
+                  </p>
+                </div>
+              </div>
+
+              {/* Existing recurring expenses */}
+              {(() => {
+                const recurring = expensesList.filter((e: { category: string }) =>
+                  ['RENT', 'UTILITIES'].includes(e.category)
+                );
+                const rentTotal = expensesList
+                  .filter((e: { category: string }) => e.category === 'RENT')
+                  .reduce((s: number, e: { amount: number }) => s + Number(e.amount), 0);
+                const utilTotal = expensesList
+                  .filter((e: { category: string }) => e.category === 'UTILITIES')
+                  .reduce((s: number, e: { amount: number }) => s + Number(e.amount), 0);
+
+                return (
+                  <>
+                    {rentTotal > 0 && (
+                      <div className="bg-white rounded-xl p-3 border border-amber-100 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0 text-base">🏢</div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Ijara</p>
+                          <p className="font-bold text-purple-700">{new Intl.NumberFormat('uz-UZ').format(Math.round(rentTotal))} so'm</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Bu oy kiritilgan</p>
+                        </div>
+                      </div>
+                    )}
+                    {utilTotal > 0 && (
+                      <div className="bg-white rounded-xl p-3 border border-amber-100 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center flex-shrink-0 text-base">💡</div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-0.5">Kommunal</p>
+                          <p className="font-bold text-yellow-700">{new Intl.NumberFormat('uz-UZ').format(Math.round(utilTotal))} so'm</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Bu oy kiritilgan</p>
+                        </div>
+                      </div>
+                    )}
+                    {recurring.length === 0 && rentTotal === 0 && (
+                      <div className="bg-white rounded-xl p-3 border border-dashed border-gray-200 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0 text-base">🏢</div>
+                        <div>
+                          <p className="text-xs text-gray-400">Ijara / kommunal</p>
+                          <p className="text-sm text-gray-300 italic">Kiritilmagan</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Per-teacher breakdown */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ustozlar bo'yicha</p>
+              {(salaryCalc.teachers || []).map((t: {
+                teacherId: number;
+                teacherName: string;
+                totalRevenue: number;
+                calculatedSalary: number;
+                salaryValue: number;
+                salaryType: string;
+                totalStudents: number;
+                isPaid: boolean;
+              }) => (
+                <div key={t.teacherId} className="flex items-center justify-between py-2 border-b border-amber-100 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div className={clsx(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
+                      t.isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    )}>
+                      {t.teacherName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">{t.teacherName}</p>
+                      <p className="text-xs text-gray-400">
+                        {t.totalStudents} o'quvchi ·{' '}
+                        {t.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+                          ? `${t.salaryValue}% × ${new Intl.NumberFormat('uz-UZ').format(Math.round(t.totalRevenue))} so'm`
+                          : `${t.salaryValue.toLocaleString()} so'm/soat`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right flex items-center gap-3">
+                    {t.isPaid && (
+                      <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">To'langan</span>
+                    )}
+                    <p className="font-bold text-blue-700">{new Intl.NumberFormat('uz-UZ').format(Math.round(t.calculatedSalary))} so'm</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total expected expenses */}
+            <div className="mt-3 pt-3 border-t border-amber-200 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Jami ehtimoliy xarajatlar</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Ustoz oyliqlari + bu oy kiritilgan xarajatlar
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-black text-xl text-red-600">
+                  {new Intl.NumberFormat('uz-UZ').format(
+                    Math.round((salaryCalc.summary?.totalCalculated || 0) + monthExpenses)
+                  )} so'm
+                </p>
+                {monthIncome > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Prognoz foyda:{' '}
+                    <span className={clsx(
+                      'font-semibold',
+                      monthIncome - (salaryCalc.summary?.totalCalculated || 0) - monthExpenses >= 0
+                        ? 'text-emerald-600'
+                        : 'text-red-600'
+                    )}>
+                      {new Intl.NumberFormat('uz-UZ').format(
+                        Math.round(monthIncome - (salaryCalc.summary?.totalCalculated || 0) - monthExpenses)
+                      )} so'm
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-4">📊 Xarajatlar taqsimoti</h3>
@@ -326,6 +489,7 @@ export default function FinancePage() {
               </div>
             )}
           </div>
+        </div>
         </div>
       )}
 

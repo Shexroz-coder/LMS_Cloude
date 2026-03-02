@@ -5,6 +5,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import app from './app';
 import { setupSocketHandlers } from './socket';
+import { setIO } from './services/io.service';
 
 const PORT = process.env.PORT || 5000;
 
@@ -19,6 +20,8 @@ const io = new Server(httpServer, {
   },
 });
 
+// IO singletonni sozlash (controller'lardan foydalanish uchun)
+setIO(io);
 setupSocketHandlers(io);
 
 // Server ishga tushirish

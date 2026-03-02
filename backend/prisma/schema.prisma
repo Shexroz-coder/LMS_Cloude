@@ -203,7 +203,8 @@ model Student {
   payments        Payment[]
   balance         StudentBalance?
   monthlyFees     MonthlyFee[]
-  coinTransactions CoinTransaction[]
+  coinTransactions  CoinTransaction[]
+  paymeTransactions PaymeTransaction[]
 
   @@map("students")
 }
@@ -564,4 +565,24 @@ model Announcement {
   creator User @relation(fields: [createdBy], references: [id])
 
   @@map("announcements")
+}
+
+// PayMe Subscribe API tranzaksiyalari
+model PaymeTransaction {
+  id          Int     @id @default(autoincrement())
+  paymeId     String  @unique @map("payme_id") @db.VarChar(200)
+  orderId     String  @unique @map("order_id") @db.VarChar(200)
+  studentId   Int     @map("student_id")
+  amount      Int     // tiyin (1 so'm = 100 tiyin)
+  state       Int     @default(1)
+  // 1=yaratildi, 2=bajarildi, -1=bekor(yaratilgan), -2=bekor(bajarilgan)
+  reason      Int?    // bekor qilish sababi kodi
+  createTime  BigInt  @map("create_time")   // unix ms
+  performTime BigInt? @map("perform_time")
+  cancelTime  BigInt? @map("cancel_time")
+  paymentId   Int?    @map("payment_id")    // tasdiqlangandan keyin Payment.id
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@map("payme_transactions")
 }

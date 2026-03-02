@@ -16,6 +16,7 @@ import expenseRoutes from './expense.routes';
 import lessonRoutes from './lesson.routes';
 import chatRoutes from './chat.routes';
 import aiAssistantRoutes from './ai-assistant.routes';
+import paymeRoutes from './payme.routes';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -32,6 +33,9 @@ router.get('/health', (_req, res) => {
 
 // Public routes
 router.use('/auth', authRoutes);
+
+// PayMe webhook — public (auth PayMe tomonidan tekshiriladi)
+router.use('/payme', paymeRoutes);
 
 // Protected routes
 router.use('/students', authenticate, studentRoutes);

@@ -1,9 +1,8 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 const groupInclude = {
   course: { select: { id: true, name: true, monthlyPrice: true, description: true } },
@@ -47,6 +46,22 @@ export const getGroups = async (req: AuthRequest, res: Response): Promise<void> 
       const student = await prisma.student.findUnique({ where: { userId: req.user.id } });
       if (student) {
         where.groupStudents = { some: { studentId: student.id, status: 'ACTIVE' } };
+      }
+    }
+
+    // Ota-ona faqat farzandining guruhlarini ko'radi
+    // Student.parentId = ota-onaning User.id si
+    if (req.user?.role === 'PARENT') {
+      const children = await prisma.student.findMany({
+        where: { parentId: req.user.id },
+        select: { id: true },
+      });
+      const childIds = children.map((c) => c.id);
+      if (childIds.length > 0) {
+        where.groupStudents = { some: { studentId: { in: childIds }, status: 'ACTIVE' } };
+      } else {
+        // Farzand yo'q bo'lsa — bo'sh ro'yxat
+        where.id = -1;
       }
     }
 

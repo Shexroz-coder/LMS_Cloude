@@ -1,5 +1,5 @@
+import prisma from '../lib/prisma';
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { comparePassword, hashPassword } from '../utils/password.utils';
 import {
   generateAccessToken,
@@ -10,7 +10,6 @@ import {
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { AuthRequest } from '../types';
 
-const prisma = new PrismaClient();
 
 // =====================
 // POST /auth/login
@@ -189,6 +188,24 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
 
     if (!user) {
       sendError(res, 'Foydalanuvchi topilmadi.', 404);
+      return;
+    }
+
+    // Ota-ona uchun farzandlar ro'yxatini qo'shish
+    if (req.user!.role === 'PARENT') {
+      const children = await prisma.student.findMany({
+        where: { parentId: req.user!.id },
+        select: {
+          id: true,
+          coinBalance: true,
+          discountType: true,
+          discountValue: true,
+          status: true,
+          user: { select: { id: true, fullName: true, phone: true } },
+        },
+        orderBy: { id: 'asc' },
+      });
+      sendSuccess(res, { ...user, children });
       return;
     }
 

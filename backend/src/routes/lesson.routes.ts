@@ -1,11 +1,10 @@
+import prisma from '../lib/prisma';
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { authorize } from '../middleware/auth.middleware';
 import { AuthRequest } from '../types';
 import lessonMaterialRoutes from './lesson-material.routes';
 
-const prisma = new PrismaClient();
 const router = Router({ mergeParams: true });
 
 // ══════════════════════════════════════════════

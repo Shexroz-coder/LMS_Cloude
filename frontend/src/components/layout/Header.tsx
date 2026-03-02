@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from 'react-query';
+import api from '../../api/axios';
+import { connectSocket, getSocket } from '../../services/socket';
 
 interface HeaderProps {
   title?: string;
@@ -12,10 +15,39 @@ interface HeaderProps {
 const Header = ({ title }: HeaderProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const [unreadCount] = useState(0); // Socket.io bilan yangilanadi
-
+  const { user, accessToken } = useAuthStore();
+  const qc = useQueryClient();
   const basePath = `/${user?.role?.toLowerCase() || ''}`;
+
+  // Bildirishnomalar soni (API dan)
+  const { data: notifData } = useQuery(
+    ['notifications-count'],
+    () => api.get('/notifications?unreadOnly=true&limit=1').then((r) => r.data?.data?.unreadCount || 0),
+    { refetchInterval: 30000, staleTime: 10000 }
+  );
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  // API dan kelgan sonni state'ga yuklash
+  useEffect(() => {
+    if (typeof notifData === 'number') {
+      setUnreadCount(notifData);
+    }
+  }, [notifData]);
+
+  // Socket orqali real-time yangilash
+  useEffect(() => {
+    if (!accessToken) return;
+    const socket = connectSocket();
+
+    const onNotification = () => {
+      setUnreadCount((c) => c + 1);
+      qc.invalidateQueries(['notifications']);
+      qc.invalidateQueries(['notifications-count']);
+    };
+
+    socket.on('new_notification', onNotification);
+    return () => { socket.off('new_notification', onNotification); };
+  }, [accessToken, qc]);
 
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center px-5 gap-4 flex-shrink-0">
@@ -30,7 +62,7 @@ const Header = ({ title }: HeaderProps) => {
         <input
           type="text"
           placeholder={t('common.search') + '...'}
-          className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
         />
       </div>
 
@@ -39,13 +71,17 @@ const Header = ({ title }: HeaderProps) => {
 
       {/* Notifications */}
       <button
-        onClick={() => navigate(`${basePath}/notifications`)}
+        onClick={() => {
+          navigate(`${basePath}/notifications`);
+          setUnreadCount(0);
+          qc.invalidateQueries(['notifications-count']);
+        }}
         className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold px-1">
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
@@ -55,7 +91,7 @@ const Header = ({ title }: HeaderProps) => {
         onClick={() => navigate(`${basePath}/profile`)}
         className="flex items-center gap-2 pl-2"
       >
-        <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-sm">
+        <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm">
           {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
         </div>
         <div className="hidden sm:block text-left">

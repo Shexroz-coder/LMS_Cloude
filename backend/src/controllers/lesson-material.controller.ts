@@ -1,9 +1,8 @@
+import prisma from '../lib/prisma';
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
 
-const prisma = new PrismaClient();
 
 export const getLessonMaterials = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
