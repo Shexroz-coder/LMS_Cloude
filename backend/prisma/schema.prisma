@@ -1,0 +1,567 @@
+// =============================================
+// Robotic Edu LMS — Prisma Schema
+// PostgreSQL ma'lumotlar bazasi
+// =============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum Language {
+  uz
+  ru
+}
+
+enum GroupStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum StudentGroupStatus {
+  ACTIVE
+  LEFT
+  GRADUATED
+}
+
+enum LessonStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum GradeType {
+  HOMEWORK
+  CLASSWORK
+  EXAM
+  PROJECT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  ONLINE
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+}
+
+enum SalaryType {
+  PERCENTAGE_FROM_PAYMENT
+  PER_LESSON_HOUR
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CoinTransactionType {
+  REWARD
+  PENALTY
+  BONUS
+  EXCHANGE
+}
+
+enum ChatType {
+  DIRECT
+  GROUP
+  ANNOUNCEMENT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+}
+
+enum NotificationType {
+  PAYMENT
+  ATTENDANCE
+  GRADE
+  ANNOUNCEMENT
+  COIN
+  SYSTEM
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
+  PARTIAL
+}
+
+enum StudentStatus {
+  LEAD
+  DEMO
+  ACTIVE
+  INACTIVE
+}
+
+enum MaterialType {
+  PDF
+  VIDEO
+  IMAGE
+  FILE
+  LINK
+}
+
+enum ExpenseCategory {
+  SALARY
+  RENT
+  UTILITIES
+  SUPPLIES
+  FURNITURE
+  MARKETING
+  EQUIPMENT
+  OTHER
+}
+
+// ============================================
+// FOYDALANUVCHILAR
+// ============================================
+
+model User {
+  id           Int      @id @default(autoincrement())
+  fullName     String   @map("full_name") @db.VarChar(150)
+  phone        String   @unique @db.VarChar(20)
+  email        String?  @db.VarChar(150)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         Role
+  avatarUrl    String?  @map("avatar_url")
+  language     Language @default(uz)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  student           Student?
+  teacher           Teacher?
+  parentStudents    Student[]        @relation("ParentStudents")
+  sentMessages      Message[]
+  notifications     Notification[]
+  chatParticipants  ChatParticipant[]
+  givenCoins        CoinTransaction[] @relation("CoinGiver")
+  receivedPayments  Payment[]        @relation("PaymentReceiver")
+  addedExpenses     Expense[]
+  refreshTokens     RefreshToken[]
+  announcements     Announcement[]
+
+  @@map("users")
+}
+
+model Student {
+  id            Int          @id @default(autoincrement())
+  userId        Int          @unique @map("user_id")
+  parentId      Int?         @map("parent_id")
+  birthDate     DateTime?    @map("birth_date") @db.Date
+  address       String?
+  coinBalance   Int          @default(0) @map("coin_balance")
+  discountType  DiscountType? @map("discount_type")
+  discountValue Decimal?     @map("discount_value") @db.Decimal(10, 2)
+  notes          String?
+  status         StudentStatus @default(LEAD)
+  demoDate       DateTime?     @map("demo_date") @db.Date
+  leftAt         DateTime?     @map("left_at") @db.Date
+  leftReason     String?       @map("left_reason") @db.VarChar(500)
+  paymentDueDay  Int?          @map("payment_due_day")   // Oylik to'lov kuni (1-28)
+  paymentRemindDaysBefore Int? @default(3) @map("payment_remind_days_before")
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          User?             @relation("ParentStudents", fields: [parentId], references: [id])
+  groupStudents   GroupStudent[]
+  attendance      Attendance[]
+  grades          Grade[]
+  payments        Payment[]
+  balance         StudentBalance?
+  monthlyFees     MonthlyFee[]
+  coinTransactions CoinTransaction[]
+
+  @@map("students")
+}
+
+model Teacher {
+  id               Int        @id @default(autoincrement())
+  userId           Int        @unique @map("user_id")
+  salaryType       SalaryType? @map("salary_type")
+  salaryValue      Decimal?   @map("salary_value") @db.Decimal(10, 2)
+  specialization   String?    @db.VarChar(200)
+  bio              String?
+
+  // Relations
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groups   Group[]
+  salaries TeacherSalary[]
+
+  @@map("teachers")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// TA'LIM MODULI
+// ============================================
+
+model Course {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(200)
+  description     String?
+  monthlyPrice    Decimal  @map("monthly_price") @db.Decimal(10, 2)
+  perLessonPrice  Decimal? @map("per_lesson_price") @db.Decimal(10, 2)
+  durationMonths  Int?     @map("duration_months")
+  isActive        Boolean  @default(true) @map("is_active")
+  iconUrl         String?  @map("icon_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  groups Group[]
+
+  @@map("courses")
+}
+
+model Group {
+  id          Int         @id @default(autoincrement())
+  name        String      @db.VarChar(150)
+  courseId    Int         @map("course_id")
+  teacherId   Int         @map("teacher_id")
+  maxStudents Int         @default(15) @map("max_students")
+  startDate   DateTime    @map("start_date") @db.Date
+  endDate     DateTime?   @map("end_date") @db.Date
+  status      GroupStatus @default(ACTIVE)
+  room        String?     @db.VarChar(50)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  course       Course         @relation(fields: [courseId], references: [id])
+  teacher      Teacher        @relation(fields: [teacherId], references: [id])
+  groupStudents GroupStudent[]
+  schedules    Schedule[]
+  lessons      Lesson[]
+  monthlyFees  MonthlyFee[]
+  chat         Chat?
+
+  @@map("groups")
+}
+
+model GroupStudent {
+  id        Int                @id @default(autoincrement())
+  groupId   Int                @map("group_id")
+  studentId Int                @map("student_id")
+  joinedAt  DateTime           @default(now()) @map("joined_at") @db.Date
+  status    StudentGroupStatus @default(ACTIVE)
+
+  group   Group   @relation(fields: [groupId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([groupId, studentId])
+  @@map("group_students")
+}
+
+model Schedule {
+  id          Int    @id @default(autoincrement())
+  groupId     Int    @map("group_id")
+  daysOfWeek  Int[]  @map("days_of_week")
+  startTime   String @map("start_time") @db.VarChar(5)
+  endTime     String @map("end_time") @db.VarChar(5)
+  room        String? @db.VarChar(50)
+
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@map("schedules")
+}
+
+model Lesson {
+  id            Int          @id @default(autoincrement())
+  groupId       Int          @map("group_id")
+  date          DateTime     @db.Date
+  startTime     String       @map("start_time") @db.VarChar(5)
+  endTime       String       @map("end_time") @db.VarChar(5)
+  topic         String?      @db.VarChar(300)
+  homework      String?
+  status        LessonStatus @default(SCHEDULED)
+  durationHours Decimal      @default(1) @map("duration_hours") @db.Decimal(4, 2)
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  group      Group        @relation(fields: [groupId], references: [id])
+  attendance Attendance[]
+  grades     Grade[]
+  materials  LessonMaterial[]
+
+  @@map("lessons")
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  lessonId  Int              @map("lesson_id")
+  studentId Int              @map("student_id")
+  status    AttendanceStatus @default(ABSENT)
+  note      String?
+  markedAt  DateTime         @default(now()) @map("marked_at")
+
+  lesson  Lesson  @relation(fields: [lessonId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([lessonId, studentId])
+  @@map("attendance")
+}
+
+model Grade {
+  id        Int       @id @default(autoincrement())
+  studentId Int       @map("student_id")
+  lessonId  Int       @map("lesson_id")
+  score     Decimal   @db.Decimal(5, 2)
+  type      GradeType @default(CLASSWORK)
+  comment   String?
+  givenAt   DateTime  @default(now()) @map("given_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+  lesson  Lesson  @relation(fields: [lessonId], references: [id])
+
+  @@map("grades")
+}
+
+model LessonMaterial {
+  id        Int          @id @default(autoincrement())
+  lessonId  Int          @map("lesson_id")
+  type      MaterialType @default(LINK)
+  title     String       @db.VarChar(200)
+  url       String       @db.VarChar(500)
+  addedBy   Int?         @map("added_by")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("lesson_materials")
+}
+
+model Holiday {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date
+  name        String   @db.VarChar(200)
+  isRecurring Boolean  @default(false) @map("is_recurring")
+
+  @@map("holidays")
+}
+
+// ============================================
+// MOLIYA MODULI
+// ============================================
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  studentId       Int           @map("student_id")
+  amount          Decimal       @db.Decimal(12, 2)
+  month           DateTime      @db.Date
+  paymentMethod   PaymentMethod @default(CASH) @map("payment_method")
+  status          PaymentStatus @default(PAID)
+  paidAt          DateTime      @default(now()) @map("paid_at")
+  receivedBy      Int?          @map("received_by")
+  receiptNumber   String?       @unique @map("receipt_number") @db.VarChar(50)
+  note            String?
+  // Online to'lov
+  transactionId   String?       @map("transaction_id") @db.VarChar(200)
+  provider        String?       @db.VarChar(50)   // 'PAYME' | 'UZUM'
+  providerOrderId String?       @map("provider_order_id") @db.VarChar(200)
+
+  student  Student @relation(fields: [studentId], references: [id])
+  receiver User?   @relation("PaymentReceiver", fields: [receivedBy], references: [id])
+
+  @@map("payments")
+}
+
+model StudentBalance {
+  studentId   Int      @id @map("student_id")
+  balance     Decimal  @default(0) @db.Decimal(12, 2)
+  debt        Decimal  @default(0) @db.Decimal(12, 2)
+  lastUpdated DateTime @default(now()) @map("last_updated")
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@map("student_balances")
+}
+
+model MonthlyFee {
+  id             Int      @id @default(autoincrement())
+  studentId      Int      @map("student_id")
+  groupId        Int      @map("group_id")
+  month          DateTime @db.Date
+  baseAmount     Decimal  @map("base_amount") @db.Decimal(12, 2)
+  discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  finalAmount    Decimal  @map("final_amount") @db.Decimal(12, 2)
+  lessonsCount   Int      @default(0) @map("lessons_count")
+  attendedCount  Int      @default(0) @map("attended_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+  group   Group   @relation(fields: [groupId], references: [id])
+
+  @@unique([studentId, groupId, month])
+  @@map("monthly_fees")
+}
+
+model Expense {
+  id          Int               @id @default(autoincrement())
+  category    ExpenseCategory   @default(OTHER)
+  amount      Decimal           @db.Decimal(12, 2)
+  date        DateTime          @db.Date
+  description String?
+  addedBy     Int?              @map("added_by")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  user User? @relation(fields: [addedBy], references: [id])
+
+  @@map("expenses")
+}
+
+model TeacherSalary {
+  id               Int          @id @default(autoincrement())
+  teacherId        Int          @map("teacher_id")
+  month            DateTime     @db.Date
+  totalHours       Decimal      @default(0) @map("total_hours") @db.Decimal(6, 2)
+  studentsRevenue  Decimal      @default(0) @map("students_revenue") @db.Decimal(12, 2)
+  calculatedSalary Decimal      @map("calculated_salary") @db.Decimal(12, 2)
+  paidSalary       Decimal      @default(0) @map("paid_salary") @db.Decimal(12, 2)
+  status           SalaryStatus @default(PENDING)
+  paidAt           DateTime?    @map("paid_at")
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  @@unique([teacherId, month])
+  @@map("teacher_salaries")
+}
+
+// ============================================
+// COIN TIZIMI
+// ============================================
+
+model CoinTransaction {
+  id        Int                 @id @default(autoincrement())
+  studentId Int                 @map("student_id")
+  givenBy   Int?                @map("given_by")
+  amount    Int
+  reason    String?             @db.VarChar(300)
+  type      CoinTransactionType @default(REWARD)
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id])
+  giver   User?   @relation("CoinGiver", fields: [givenBy], references: [id])
+
+  @@map("coin_transactions")
+}
+
+// ============================================
+// KOMMUNIKATSIYA MODULI
+// ============================================
+
+model Chat {
+  id            Int       @id @default(autoincrement())
+  type          ChatType  @default(DIRECT)
+  name          String?   @db.VarChar(200)
+  groupId       Int?      @unique @map("group_id")
+  lastMessage   String?   @map("last_message") @db.VarChar(500)
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  group        Group?           @relation(fields: [groupId], references: [id])
+  participants ChatParticipant[]
+  messages     Message[]
+
+  @@map("chats")
+}
+
+model ChatParticipant {
+  id         Int      @id @default(autoincrement())
+  chatId     Int      @map("chat_id")
+  userId     Int      @map("user_id")
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  lastReadAt DateTime? @map("last_read_at")
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@map("chat_participants")
+}
+
+model Message {
+  id        Int         @id @default(autoincrement())
+  chatId    Int         @map("chat_id")
+  senderId  Int         @map("sender_id")
+  content   String?
+  type      MessageType @default(TEXT)
+  fileUrl   String?     @map("file_url")
+  fileName  String?     @map("file_name") @db.VarChar(300)
+  fileSize  Int?        @map("file_size")
+  duration  Int?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  title     String           @db.VarChar(300)
+  body      String
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false) @map("is_read")
+  actionUrl String?          @map("action_url")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(300)
+  body        String
+  targetRoles Role[]   @map("target_roles")
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@map("announcements")
+}

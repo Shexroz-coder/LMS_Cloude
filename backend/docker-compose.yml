@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  # PostgreSQL ma'lumotlar bazasi
+  postgres:
+    image: postgres:16-alpine
+    container_name: robotic_edu_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: robotic_edu_db
+      POSTGRES_USER: robotic_user
+      POSTGRES_PASSWORD: robotic_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U robotic_user -d robotic_edu_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (cache va session)
+  redis:
+    image: redis:7-alpine
+    container_name: robotic_edu_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Backend API server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: robotic_edu_api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://robotic_user:robotic_pass@postgres:5432/robotic_edu_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  # Frontend (Nginx orqali)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: robotic_edu_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

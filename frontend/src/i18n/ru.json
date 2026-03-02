@@ -1,0 +1,231 @@
+{
+  "app": {
+    "name": "Robotic Edu",
+    "tagline": "Система управления учебным центром"
+  },
+  "nav": {
+    "dashboard": "Главная",
+    "students": "Ученики",
+    "teachers": "Учителя",
+    "groups": "Группы",
+    "schedule": "Расписание",
+    "attendance": "Посещаемость",
+    "grades": "Оценки",
+    "payments": "Платежи",
+    "finance": "Финансы",
+    "salaries": "Зарплаты",
+    "coins": "Монеты",
+    "chat": "Чат",
+    "notifications": "Уведомления",
+    "announcements": "Объявления",
+    "reports": "Отчёты",
+    "profile": "Профиль",
+    "settings": "Настройки",
+    "logout": "Выйти",
+    "courses": "Курсы"
+  },
+  "auth": {
+    "login": "Войти",
+    "logout": "Выйти",
+    "phone": "Номер телефона",
+    "password": "Пароль",
+    "phonePlaceholder": "+998 90 123 45 67",
+    "passwordPlaceholder": "Введите пароль",
+    "loginButton": "Войти в систему",
+    "logging_in": "Вход...",
+    "loginError": "Неверный номер телефона или пароль",
+    "changePassword": "Изменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердить пароль"
+  },
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "add": "Добавить",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "export": "Экспорт",
+    "loading": "Загрузка...",
+    "noData": "Данные не найдены",
+    "confirm": "Подтвердить",
+    "close": "Закрыть",
+    "back": "Назад",
+    "next": "Далее",
+    "yes": "Да",
+    "no": "Нет",
+    "active": "Активный",
+    "inactive": "Неактивный",
+    "total": "Всего",
+    "status": "Статус",
+    "date": "Дата",
+    "time": "Время",
+    "name": "Имя",
+    "phone": "Телефон",
+    "actions": "Действия",
+    "page": "Страница",
+    "of": "из",
+    "rows": "строк"
+  },
+  "dashboard": {
+    "welcome": "Добро пожаловать",
+    "todayLessons": "Уроки сегодня",
+    "totalStudents": "Всего учеников",
+    "totalTeachers": "Всего учителей",
+    "monthlyIncome": "Доход за месяц",
+    "totalDebt": "Общий долг",
+    "netProfit": "Чистая прибыль",
+    "attendanceRate": "Посещаемость",
+    "recentPayments": "Последние платежи",
+    "upcomingLessons": "Ближайшие уроки",
+    "debtors": "Должники"
+  },
+  "students": {
+    "title": "Ученики",
+    "add": "Новый ученик",
+    "fullName": "Полное имя",
+    "phone": "Телефон",
+    "parent": "Родитель",
+    "group": "Группа",
+    "balance": "Баланс",
+    "debt": "Долг",
+    "coins": "Монеты",
+    "discount": "Скидка",
+    "discountType": "Тип скидки",
+    "discountValue": "Размер скидки",
+    "percentage": "Процент",
+    "fixedAmount": "Фиксированная сумма",
+    "profile": "Профиль",
+    "attendance": "Посещаемость",
+    "grades": "Оценки",
+    "payments": "Платежи"
+  },
+  "teachers": {
+    "title": "Учителя",
+    "add": "Новый учитель",
+    "specialization": "Специализация",
+    "salaryType": "Тип зарплаты",
+    "salaryValue": "Размер зарплаты",
+    "percentageFromPayment": "Процент от платежей",
+    "perLessonHour": "Почасовая ставка",
+    "groups": "Группы",
+    "salary": "Зарплата"
+  },
+  "groups": {
+    "title": "Группы",
+    "add": "Новая группа",
+    "name": "Название группы",
+    "course": "Курс",
+    "teacher": "Учитель",
+    "students": "Ученики",
+    "schedule": "Расписание",
+    "room": "Комната",
+    "startDate": "Дата начала",
+    "endDate": "Дата окончания",
+    "status": {
+      "active": "Активная",
+      "completed": "Завершена",
+      "paused": "На паузе"
+    }
+  },
+  "attendance": {
+    "title": "Посещаемость",
+    "present": "Присутствовал",
+    "absent": "Отсутствовал",
+    "late": "Опоздал",
+    "excused": "По уважительной причине",
+    "mark": "Отметить посещаемость",
+    "rate": "Процент посещаемости"
+  },
+  "grades": {
+    "title": "Оценки",
+    "add": "Поставить оценку",
+    "score": "Балл",
+    "type": {
+      "homework": "Домашнее задание",
+      "classwork": "Классная работа",
+      "exam": "Экзамен",
+      "project": "Проект"
+    },
+    "comment": "Комментарий",
+    "average": "Средний балл"
+  },
+  "payments": {
+    "title": "Платежи",
+    "add": "Принять платёж",
+    "amount": "Сумма",
+    "month": "Месяц",
+    "method": {
+      "cash": "Наличные",
+      "card": "Карта",
+      "transfer": "Перевод",
+      "online": "Онлайн"
+    },
+    "status": {
+      "paid": "Оплачено",
+      "partial": "Частично",
+      "pending": "Ожидается"
+    },
+    "receipt": "Квитанция",
+    "debt": "Долг",
+    "balance": "Баланс"
+  },
+  "finance": {
+    "title": "Финансы",
+    "income": "Доходы",
+    "expenses": "Расходы",
+    "salaries": "Зарплаты",
+    "netProfit": "Чистая прибыль",
+    "addExpense": "Добавить расход",
+    "category": "Категория",
+    "monthly": "Ежемесячно",
+    "yearly": "Ежегодно",
+    "analytics": "Аналитика"
+  },
+  "coins": {
+    "title": "Система монет",
+    "balance": "Баланс монет",
+    "give": "Выдать монеты",
+    "amount": "Количество монет",
+    "reason": "Причина",
+    "history": "История",
+    "leaderboard": "Рейтинг",
+    "type": {
+      "reward": "Награда",
+      "penalty": "Штраф",
+      "bonus": "Бонус",
+      "exchange": "Обмен"
+    }
+  },
+  "notifications": {
+    "title": "Уведомления",
+    "markAllRead": "Отметить все как прочитанные",
+    "empty": "Уведомлений нет",
+    "new": "Новое уведомление"
+  },
+  "days": {
+    "monday": "Понедельник",
+    "tuesday": "Вторник",
+    "wednesday": "Среда",
+    "thursday": "Четверг",
+    "friday": "Пятница",
+    "saturday": "Суббота",
+    "sunday": "Воскресенье"
+  },
+  "months": {
+    "1": "Январь",
+    "2": "Февраль",
+    "3": "Март",
+    "4": "Апрель",
+    "5": "Май",
+    "6": "Июнь",
+    "7": "Июль",
+    "8": "Август",
+    "9": "Сентябрь",
+    "10": "Октябрь",
+    "11": "Ноябрь",
+    "12": "Декабрь"
+  }
+}

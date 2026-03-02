@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🤖 Robotic Edu LMS</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter','sans-serif'] },
+      colors: {
+        primary: { 50:'#EFF6FF',100:'#DBEAFE',200:'#BFDBFE',500:'#3B82F6',600:'#2563EB',700:'#1D4ED8',800:'#1E40AF',900:'#1B3A6B' }
+      }
+    }
+  }
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#F8FAFC}
+.page{display:none}
+.page.active{display:flex}
+.sidebar-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:rgba(255,255,255,.7)}
+.sidebar-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.sidebar-link.active{background:rgba(255,255,255,.2);color:#fff}
+.card{background:#fff;border-radius:12px;border:1px solid #f1f5f9;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#1D4ED8}
+.btn-secondary{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.stat-card{background:#fff;border-radius:12px;border:1px solid #f1f5f9;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:flex-start;gap:14px}
+.stat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+input:focus{outline:2px solid #2563EB;outline-offset:0}
+.tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:#6B7280;background:transparent;border:none}
+.tab.active{background:#EFF6FF;color:#2563EB}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal.open{display:flex}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:99px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease}
+.sidebar{width:240px;min-width:240px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.main-content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- LOGIN PAGE -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="loginPage" class="page active" style="min-height:100vh;background:linear-gradient(135deg,#1B3A6B 0%,#2563EB 60%,#3B82F6 100%);align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:420px" class="fade-in">
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:14px">🤖</div>
+      <div style="font-size:26px;font-weight:800;color:#fff">Robotic Edu</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:4px">O'quv Markaz Boshqaruv Tizimi</div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 25px 60px rgba(0,0,0,.2)">
+      <div style="font-size:17px;font-weight:700;color:#1E293B;margin-bottom:24px">Tizimga kirish</div>
+
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px">📱 Telefon raqam</label>
+        <input id="loginPhone" type="tel" value="+998901234567" placeholder="+998 90 123 45 67"
+          style="width:100%;padding:11px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:inherit;transition:all .2s"/>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:6px">🔒 Parol</label>
+        <input id="loginPass" type="password" value="admin123" placeholder="Parolni kiriting"
+          style="width:100%;padding:11px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:inherit;transition:all .2s"/>
+      </div>
+
+      <button onclick="doLogin()" id="loginBtn"
+        style="width:100%;padding:13px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s">
+        Tizimga kirish →
+      </button>
+
+      <!-- Demo accounts -->
+      <div style="margin-top:22px;padding-top:20px;border-top:1px solid #F1F5F9">
+        <div style="font-size:11px;color:#94A3B8;text-align:center;margin-bottom:12px">Demo kirish uchun tanlang:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="quickLogin('admin')" style="padding:9px;background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer">
+            👑 Admin
+          </button>
+          <button onclick="quickLogin('teacher')" style="padding:9px;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer">
+            👨‍🏫 Ustoz
+          </button>
+          <button onclick="quickLogin('student')" style="padding:9px;background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer">
+            🎓 O'quvchi
+          </button>
+          <button onclick="quickLogin('parent')" style="padding:9px;background:#FFF7ED;color:#D97706;border:1px solid #FED7AA;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer">
+            👨‍👩‍👧 Ota-ona
+          </button>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;color:rgba(255,255,255,.4);font-size:12px;margin-top:16px">© 2026 Robotic Edu. Barcha huquqlar himoyalangan.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MAIN APP -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="appPage" class="page" style="height:100vh;overflow:hidden">
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar" style="background:linear-gradient(180deg,#1B3A6B 0%,#1E40AF 100%)">
+    <!-- Logo -->
+    <div style="padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🤖</div>
+      <div>
+        <div style="font-weight:700;color:#fff;font-size:14px">Robotic Edu</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4)">LMS v1.0</div>
+      </div>
+    </div>
+
+    <!-- User info -->
+    <div id="sidebarUser" style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="avatarCircle" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0">A</div>
+        <div style="min-width:0">
+          <div id="sidebarName" style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Super Admin</div>
+          <div id="sidebarRole" style="color:rgba(255,255,255,.5);font-size:11px">👑 Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav id="sidebarNav" style="flex:1;overflow-y:auto;padding:10px 8px">
+    </nav>
+
+    <!-- Logout -->
+    <div style="padding:10px 8px;border-top:1px solid rgba(255,255,255,.08)">
+      <div class="sidebar-link" onclick="doLogout()">
+        <span>🚪</span><span>Chiqish</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <!-- Header -->
+    <div style="height:54px;background:#fff;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0">
+      <div style="flex:1;position:relative;max-width:280px">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94A3B8;font-size:14px">🔍</span>
+        <input type="text" placeholder="Qidirish..." style="width:100%;padding:8px 12px 8px 32px;background:#F8FAFC;border:1.5px solid #F1F5F9;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <!-- Language -->
+        <div style="display:flex;background:#F1F5F9;border-radius:8px;padding:3px;gap:2px">
+          <button id="langUz" onclick="setLang('uz')" style="padding:4px 10px;border-radius:6px;background:#2563EB;color:#fff;border:none;font-size:12px;font-weight:500;cursor:pointer">🇺🇿 O'z</button>
+          <button id="langRu" onclick="setLang('ru')" style="padding:4px 10px;border-radius:6px;background:transparent;color:#6B7280;border:none;font-size:12px;font-weight:500;cursor:pointer">🇷🇺 Ру</button>
+        </div>
+        <!-- Bell -->
+        <button onclick="showSection('notifications')" style="width:36px;height:36px;background:#F8FAFC;border:1.5px solid #F1F5F9;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative">
+          🔔
+          <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:#EF4444;border-radius:50%;border:2px solid #fff"></span>
+        </button>
+        <!-- User -->
+        <div id="headerUser" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 10px 4px 4px;border-radius:8px;border:1.5px solid #F1F5F9" onclick="showSection('profile')">
+          <div id="headerAvatar" style="width:30px;height:30px;border-radius:50%;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">A</div>
+          <div style="font-size:13px;font-weight:500;color:#374151" id="headerName">Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div style="flex:1;overflow-y:auto;padding:20px" id="pageContent">
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- ADD STUDENT MODAL -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="addStudentModal" class="modal">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;margin:20px" class="fade-in">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700;color:#1E293B">➕ Yangi O'quvchi</div>
+      <button onclick="closeModal('addStudentModal')" style="width:30px;height:30px;background:#F1F5F9;border:none;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="grid-column:1/-1">
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">To'liq ism *</label>
+        <input type="text" placeholder="Familiya Ism" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Telefon *</label>
+        <input type="tel" placeholder="+998901234567" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Tug'ilgan sana</label>
+        <input type="date" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Guruh</label>
+        <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+          <option>Robotika-A</option>
+          <option>Arduino-B</option>
+          <option>Coding-C</option>
+          <option>IoT-A</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Chegirma turi</label>
+        <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+          <option>Yo'q</option>
+          <option>Foizda (%)</option>
+          <option>Aniq summa</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Chegirma miqdori</label>
+        <input type="number" placeholder="0" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Ota-ona telefoni</label>
+        <input type="tel" placeholder="+998901234567" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Izoh</label>
+        <textarea rows="2" placeholder="Qo'shimcha ma'lumot..." style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit;resize:none"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeModal('addStudentModal')" class="btn-secondary">Bekor qilish</button>
+      <button onclick="saveStudent()" class="btn-primary">💾 Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PAYMENT MODAL -->
+<div id="addPaymentModal" class="modal">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px;margin:20px" class="fade-in">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700;color:#1E293B">💰 To'lov Qabul Qilish</div>
+      <button onclick="closeModal('addPaymentModal')" style="width:30px;height:30px;background:#F1F5F9;border:none;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+    </div>
+    <div style="display:grid;gap:12px">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">O'quvchi *</label>
+        <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+          <option>Bobur Toshmatov</option>
+          <option>Dilnoza Yusupova</option>
+          <option>Jasur Karimov</option>
+          <option>Malika Rahimova</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Summa (so'm) *</label>
+          <input type="number" placeholder="500000" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Oy *</label>
+          <input type="month" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">To'lov usuli</label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:#374151">
+            <input type="radio" name="pMethod" value="cash" checked style="display:none"/>
+            <span style="font-size:18px">💵</span>Naqd
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:#374151">
+            <input type="radio" name="pMethod" value="card" style="display:none"/>
+            <span style="font-size:18px">💳</span>Karta
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:#374151">
+            <input type="radio" name="pMethod" value="transfer" style="display:none"/>
+            <span style="font-size:18px">🏦</span>O'tkazma
+          </label>
+          <label style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1.5px solid #E2E8F0;border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:#374151">
+            <input type="radio" name="pMethod" value="online" style="display:none"/>
+            <span style="font-size:18px">📱</span>Online
+          </label>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Izoh</label>
+        <input type="text" placeholder="Ixtiyoriy..." style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeModal('addPaymentModal')" class="btn-secondary">Bekor qilish</button>
+      <button onclick="savePayment()" class="btn-primary">✅ Qabul qilish</button>
+    </div>
+  </div>
+</div>
+
+<!-- GIVE COIN MODAL -->
+<div id="giveCoinModal" class="modal">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;margin:20px" class="fade-in">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:700;color:#1E293B">🪙 Coin Berish</div>
+      <button onclick="closeModal('giveCoinModal')" style="width:30px;height:30px;background:#F1F5F9;border:none;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+    </div>
+    <div style="display:grid;gap:12px">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">O'quvchi</label>
+        <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+          <option>Bobur Toshmatov (50 🪙)</option>
+          <option>Dilnoza Yusupova (120 🪙)</option>
+          <option>Jasur Karimov (85 🪙)</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Coin miqdori</label>
+          <input type="number" value="10" min="1" max="100" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Tur</label>
+          <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+            <option>🏆 Mukofot</option>
+            <option>⭐ Bonus</option>
+            <option>❌ Jarima</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Sabab</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+          <button onclick="setCoinReason(this,'Uy ishini a\'lo bajardi')" style="padding:7px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;border-radius:7px;font-size:11px;cursor:pointer">Uy ishi ✓</button>
+          <button onclick="setCoinReason(this,'Darsda faol ishtirok etdi')" style="padding:7px;background:#DCFCE7;color:#166534;border:1px solid #BBF7D0;border-radius:7px;font-size:11px;cursor:pointer">Faollik ✓</button>
+          <button onclick="setCoinReason(this,'Musobaqada g\'olib bo\'ldi')" style="padding:7px;background:#EDE9FE;color:#6D28D9;border:1px solid #DDD6FE;border-radius:7px;font-size:11px;cursor:pointer">Musobaqa 🏆</button>
+          <button onclick="setCoinReason(this,'Loyihani muvaffaqiyatli yakunladi')" style="padding:7px;background:#DBEAFE;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:7px;font-size:11px;cursor:pointer">Loyiha ✓</button>
+        </div>
+        <input id="coinReason" type="text" placeholder="Yoki o'z sababingizni yozing..." style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeModal('giveCoinModal')" class="btn-secondary">Bekor qilish</button>
+      <button onclick="saveCoin()" class="btn-primary">🪙 Berish</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:none;background:#1E293B;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.3);align-items:center;gap:10px;max-width:320px"></div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const USERS = {
+  admin:   { name:'Super Admin', role:'ADMIN',   icon:'👑', color:'#1B3A6B' },
+  teacher: { name:'Alisher Karimov', role:'TEACHER', icon:'👨‍🏫', color:'#065F46' },
+  student: { name:'Bobur Toshmatov', role:'STUDENT', icon:'🎓', color:'#4C1D95' },
+  parent:  { name:'Jasur Toshmatov', role:'PARENT',  icon:'👨‍👩‍👧', color:'#7C2D12' }
+};
+
+let currentUser = null;
+let currentSection = 'dashboard';
+let currentLang = 'uz';
+let incomeChart = null;
+
+const T = {
+  uz: { dashboard:'Bosh sahifa', students:"O'quvchilar", teachers:'Ustozlar', groups:'Guruhlar',
+        schedule:'Jadval', attendance:'Davomat', grades:'Baholar', payments:"To'lovlar",
+        finance:'Moliya', salaries:'Oyliklar', coins:'Coinlar', chat:'Chat',
+        notifications:'Bildirishnomalar', announcements:"E'lonlar", reports:'Hisobotlar',
+        profile:'Profil', logout:'Chiqish' },
+  ru: { dashboard:'Главная', students:'Ученики', teachers:'Учителя', groups:'Группы',
+        schedule:'Расписание', attendance:'Посещаемость', grades:'Оценки', payments:'Платежи',
+        finance:'Финансы', salaries:'Зарплаты', coins:'Монеты', chat:'Чат',
+        notifications:'Уведомления', announcements:'Объявления', reports:'Отчёты',
+        profile:'Профиль', logout:'Выйти' }
+};
+
+const NAV = {
+  ADMIN:   [{s:'dashboard',i:'🏠'},{s:'students',i:'👥'},{s:'teachers',i:'👨‍🏫'},{s:'groups',i:'📚'},
+            {s:'schedule',i:'📅'},{s:'payments',i:'💳'},{s:'finance',i:'📊'},{s:'salaries',i:'💰'},
+            {s:'coins',i:'🪙'},{s:'announcements',i:'📣'},{s:'reports',i:'📋'},
+            {s:'chat',i:'💬'},{s:'notifications',i:'🔔'},{s:'profile',i:'👤'}],
+  TEACHER: [{s:'dashboard',i:'🏠'},{s:'groups',i:'📚'},{s:'attendance',i:'✅'},
+            {s:'grades',i:'⭐'},{s:'coins',i:'🪙'},{s:'chat',i:'💬'},{s:'notifications',i:'🔔'},{s:'profile',i:'👤'}],
+  STUDENT: [{s:'dashboard',i:'🏠'},{s:'schedule',i:'📅'},{s:'grades',i:'⭐'},
+            {s:'coins',i:'🪙'},{s:'payments',i:'💳'},{s:'chat',i:'💬'},{s:'notifications',i:'🔔'},{s:'profile',i:'👤'}],
+  PARENT:  [{s:'dashboard',i:'🏠'},{s:'chat',i:'💬'},{s:'notifications',i:'🔔'},{s:'profile',i:'👤'}]
+};
+
+// ══════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════
+function quickLogin(role) {
+  document.getElementById('loginPhone').value = '+998901234567';
+  document.getElementById('loginPass').value = role + '123';
+  doLogin(role);
+}
+
+function doLogin(forcedRole) {
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = '⏳ Kirilmoqda...';
+  btn.disabled = true;
+  setTimeout(() => {
+    const role = forcedRole || 'admin';
+    currentUser = { ...USERS[role], key: role };
+    document.getElementById('loginPage').classList.remove('active');
+    document.getElementById('appPage').classList.add('active');
+    setupSidebar();
+    showSection('dashboard');
+    showToast('✅ Xush kelibsiz, ' + currentUser.name + '!', 'success');
+    btn.textContent = 'Tizimga kirish →';
+    btn.disabled = false;
+  }, 800);
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('appPage').classList.remove('active');
+  document.getElementById('loginPage').classList.add('active');
+  showToast('👋 Chiqildi', 'info');
+}
+
+// ══════════════════════════════════════
+// SIDEBAR SETUP
+// ══════════════════════════════════════
+function setupSidebar() {
+  const u = currentUser;
+  document.getElementById('sidebarName').textContent = u.name;
+  document.getElementById('sidebarRole').textContent = u.icon + ' ' + capitalize(u.key);
+  document.getElementById('avatarCircle').textContent = u.name[0];
+  document.getElementById('headerName').textContent = u.name.split(' ')[0];
+  document.getElementById('headerAvatar').textContent = u.name[0];
+
+  const nav = document.getElementById('sidebarNav');
+  const items = NAV[u.role] || NAV.ADMIN;
+  nav.innerHTML = items.map(item => `
+    <div class="sidebar-link" id="nav_${item.s}" onclick="showSection('${item.s}')">
+      <span>${item.i}</span>
+      <span>${T[currentLang][item.s] || item.s}</span>
+    </div>
+  `).join('');
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('langUz').style.background = lang==='uz' ? '#2563EB' : 'transparent';
+  document.getElementById('langUz').style.color = lang==='uz' ? '#fff' : '#6B7280';
+  document.getElementById('langRu').style.background = lang==='ru' ? '#2563EB' : 'transparent';
+  document.getElementById('langRu').style.color = lang==='ru' ? '#fff' : '#6B7280';
+  if (currentUser) setupSidebar();
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function showSection(sec) {
+  currentSection = sec;
+  // Update active nav
+  document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+  const activeEl = document.getElementById('nav_' + sec);
+  if (activeEl) activeEl.classList.add('active');
+
+  const role = currentUser?.role || 'ADMIN';
+  const content = document.getElementById('pageContent');
+
+  const pages = {
+    dashboard:     role === 'ADMIN'   ? renderAdminDashboard()
+                 : role === 'TEACHER' ? renderTeacherDashboard()
+                 : role === 'STUDENT' ? renderStudentDashboard()
+                 : renderParentDashboard(),
+    students:      renderStudents(),
+    teachers:      renderTeachers(),
+    groups:        renderGroups(),
+    schedule:      renderSchedule(),
+    attendance:    renderAttendance(),
+    grades:        renderGrades(),
+    payments:      renderPayments(),
+    finance:       renderFinance(),
+    salaries:      renderSalaries(),
+    coins:         renderCoins(),
+    chat:          renderChat(),
+    notifications: renderNotifications(),
+    announcements: renderAnnouncements(),
+    reports:       renderReports(),
+    profile:       renderProfile(),
+  };
+
+  content.innerHTML = `<div class="fade-in">${pages[sec] || renderComingSoon(sec)}</div>`;
+
+  // Charts
+  if (sec === 'dashboard' && role === 'ADMIN') setTimeout(renderCharts, 50);
+  if (sec === 'finance') setTimeout(renderFinanceCharts, 50);
+}
+
+// ══════════════════════════════════════
+// PAGES
+// ══════════════════════════════════════
+
+function fmt(n) { return new Intl.NumberFormat('uz-UZ').format(n); }
+
+function renderAdminDashboard() {
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div>
+      <h1 style="font-size:20px;font-weight:800;color:#1E293B">Xush kelibsiz, ${currentUser.name.split(' ')[0]}! 👋</h1>
+      <p style="font-size:13px;color:#94A3B8;margin-top:2px">27-Fevral, 2026 — Bugun 12 ta dars bor</p>
+    </div>
+    <span style="background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500">✅ Tizim ishlayapti</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+    ${statCard("👥 Jami o'quvchilar","124","bg:#EFF6FF;color:#2563EB","+5.2% o'sdi")}
+    ${statCard("👨‍🏫 Jami ustozlar","8","bg:#F0FDF4;color:#16A34A","")}
+    ${statCard("💳 Oylik tushum","62,000,000 so'm","bg:#F5F3FF;color:#7C3AED","+6.7% o'sdi")}
+    ${statCard("⚠️ Jami qarzdorlik","4,500,000 so'm","bg:#FFF1F2;color:#EF4444","−2.1% kamaydi")}
+    ${statCard("📈 Sof foyda","38,000,000 so'm","bg:#F0FDFA;color:#0D9488","+8.3% o'sdi")}
+    ${statCard("✅ Davomat","87%","bg:#F0FDF4;color:#16A34A","")}
+    ${statCard("📚 Bugungi darslar","12 ta","bg:#EFF6FF;color:#2563EB","")}
+    ${statCard("🪙 Coin aylanma","1,240","bg:#FFFBEB;color:#D97706","")}
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;color:#1E293B">📈 Moliyaviy ko'rsatkichlar</div>
+        <span style="background:#EFF6FF;color:#2563EB;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500">So'nggi 6 oy</span>
+      </div>
+      <canvas id="incomeChart" height="180"></canvas>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📚 Kurslar bo'yicha</div>
+      <canvas id="courseChart" height="160"></canvas>
+      <div style="margin-top:12px;display:grid;gap:6px">
+        ${[['Robotika',45,'#2563EB'],['Arduino',32,'#7C3AED'],['Coding',28,'#059669'],['IoT',19,'#D97706']].map(([n,v,c])=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px">
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:${c}"></div><span style="color:#64748B">${n}</span></div>
+            <span style="font-weight:600;color:#374151">${v}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📋 Haftalik davomat</div>
+      <canvas id="attendanceChart" height="150"></canvas>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;color:#1E293B">💳 So'nggi to'lovlar</div>
+        <button onclick="showSection('payments')" style="background:none;border:none;color:#2563EB;font-size:12px;cursor:pointer">Barchasi →</button>
+      </div>
+      ${[['Bobur Toshmatov','500,000','Naqd','27-Fev','PAID'],
+         ['Dilnoza Yusupova','450,000','Karta','27-Fev','PAID'],
+         ['Jasur Karimov','250,000',"O'tkazma",'26-Fev','PARTIAL'],
+         ['Malika Rahimova','—','—','—','PENDING'],
+         ['Sherzod Aliyev','500,000','Naqd','25-Fev','PAID']].map(([n,a,m,d,s])=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F8FAFC">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${n[0]}</div>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:#374151">${n}</div>
+              <div style="font-size:11px;color:#94A3B8">${m} · ${d}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:600;color:#1E293B">${a !== '—' ? a+' so\'m':a}</div>
+            <span style="font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;${
+              s==='PAID'?'background:#DCFCE7;color:#166534':
+              s==='PARTIAL'?'background:#FEF9C3;color:#92400E':'background:#FFE4E6;color:#DC2626'}">${
+              s==='PAID'?"To'landi":s==='PARTIAL'?'Qisman':'Kutilmoqda'}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;color:#1E293B">📅 Bugungi darslar</div>
+      <span style="background:#EFF6FF;color:#2563EB;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500">12 ta dars</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      ${[['Robotika-A','Alisher K.','09:00–10:30','101','done'],
+         ['Arduino-B','Dilshod M.','11:00–12:30','102','active'],
+         ['Coding-C','Nodira R.','14:00–15:30','103','upcoming'],
+         ['IoT-A','Sardor J.','15:30–17:00','101','upcoming'],
+         ['Robotika-B','Alisher K.','17:00–18:30','102','upcoming'],
+         ['Arduino-C','Dilshod M.','18:30–20:00','103','upcoming']].map(([g,t,time,r,st])=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;border:1px solid ${
+          st==='active'?'#BBF7D0':st==='done'?'#F1F5F9':'#DBEAFE'};background:${
+          st==='active'?'#F0FDF4':st==='done'?'#F8FAFC':'#fff'}">
+          <div style="width:4px;height:40px;border-radius:99px;background:${
+            st==='active'?'#22C55E':st==='done'?'#94A3B8':'#2563EB'};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:#1E293B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g}</div>
+            <div style="font-size:11px;color:#94A3B8">${t}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:11px;font-weight:500;color:#374151">⏰ ${time}</div>
+            <div style="font-size:10px;color:#94A3B8">Xona ${r}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function statCard(title, value, style, sub) {
+  const [bg, color] = style.split(';');
+  return `
+  <div class="card" style="padding:16px">
+    <div style="font-size:12px;color:#64748B;margin-bottom:8px">${title}</div>
+    <div style="font-size:22px;font-weight:800;color:#1E293B;margin-bottom:${sub?'4':'0'}px">${value}</div>
+    ${sub ? `<div style="font-size:11px;color:${sub.includes('−')?'#EF4444':'#16A34A'};font-weight:500">${sub}</div>` : ''}
+  </div>`;
+}
+
+function renderTeacherDashboard() {
+  return `
+  <h1 style="font-size:20px;font-weight:800;color:#1E293B;margin-bottom:20px">Salom, Alisher! 👋</h1>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+    ${statCard("📚 Mening guruhlarim","4 ta","","")}
+    ${statCard("👥 Jami o'quvchilar","48 ta","","")}
+    ${statCard("📅 Bugungi darslar","2 ta","","")}
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📅 Bugungi jadval</div>
+    ${[['Robotika-A','09:00–10:30','101',18],['Arduino-B','14:00–15:30','102',15]].map(([g,t,r,n])=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#F8FAFC;border-radius:10px;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1E293B">${g}</div>
+          <div style="font-size:12px;color:#64748B">Xona ${r} · ${n} o'quvchi</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:600;color:#374151">⏰ ${t}</div>
+          <button onclick="showSection('attendance')" style="margin-top:4px;padding:5px 12px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">Davomat →</button>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderStudentDashboard() {
+  return `
+  <h1 style="font-size:20px;font-weight:800;color:#1E293B;margin-bottom:6px">Salom, Bobur! 🎓</h1>
+  <p style="font-size:13px;color:#94A3B8;margin-bottom:20px">Robotika-A guruhi</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+    ${statCard("⭐ O'rtacha ball","92.4","","")}
+    ${statCard("🪙 Coinlar","50 ta","","")}
+    ${statCard("✅ Davomat","94%","","")}
+    ${statCard("💳 Balans","0 so'm","","")}
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📅 Bugungi dars</div>
+    <div style="padding:14px;background:#EFF6FF;border-radius:10px">
+      <div style="font-size:15px;font-weight:600;color:#1E293B">Robotika va Arduino</div>
+      <div style="font-size:13px;color:#64748B;margin-top:4px">⏰ 14:00–15:30 · Xona 101 · Alisher K.</div>
+    </div>
+  </div>`;
+}
+
+function renderParentDashboard() {
+  return `
+  <h1 style="font-size:20px;font-weight:800;color:#1E293B;margin-bottom:20px">Farzandim haqida 👨‍👩‍👧</h1>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">🎓 Bobur Toshmatov</div>
+      ${[['Guruh','Robotika-A'],['Ustoz','Alisher K.'],['Davomat','94%'],['O\'rtacha ball','92.4']].map(([k,v])=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:13px">
+          <span style="color:#64748B">${k}</span><span style="font-weight:600;color:#1E293B">${v}</span>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">💳 To'lov holati</div>
+      <div style="padding:12px;background:#DCFCE7;border-radius:10px;margin-bottom:10px">
+        <div style="font-size:12px;color:#166534">✅ Bu oy to'landi</div>
+        <div style="font-size:18px;font-weight:700;color:#166534;margin-top:2px">500,000 so'm</div>
+      </div>
+      <div style="font-size:12px;color:#64748B">Keyingi to'lov: 1-Mart, 2026</div>
+    </div>
+  </div>`;
+}
+
+function renderStudents() {
+  const students = [
+    {n:'Bobur Toshmatov',g:'Robotika-A',b:'500,000',d:'0',c:50,s:'PAID'},
+    {n:'Dilnoza Yusupova',g:'Arduino-B',b:'500,000',d:'0',c:120,s:'PAID'},
+    {n:'Jasur Karimov',g:'Coding-C',b:'250,000',d:'250,000',c:85,s:'PARTIAL'},
+    {n:'Malika Rahimova',g:'IoT-A',b:'0',d:'500,000',c:30,s:'PENDING'},
+    {n:'Sherzod Aliyev',g:'Robotika-B',b:'500,000',d:'0',c:95,s:'PAID'},
+    {n:'Zulfiya Nazarova',g:'Arduino-C',b:'450,000',d:'50,000',c:65,s:'PARTIAL'},
+    {n:'Ulugbek Rashidov',g:'Robotika-A',b:'500,000',d:'0',c:40,s:'PAID'},
+    {n:'Maftuna Sobirova',g:'Coding-C',b:'0',d:'500,000',c:20,s:'PENDING'},
+  ];
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">👥 O'quvchilar</h1>
+    <button class="btn-primary" onclick="openModal('addStudentModal')">+ Yangi o'quvchi</button>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <input type="text" placeholder="🔍 Qidirish..." style="flex:1;padding:9px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+    <select style="padding:9px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit;color:#374151">
+      <option>Barcha guruhlar</option>
+      <option>Robotika-A</option>
+      <option>Arduino-B</option>
+      <option>Coding-C</option>
+    </select>
+    <select style="padding:9px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit;color:#374151">
+      <option>Barcha holatlar</option>
+      <option>To'langan</option>
+      <option>Qarzdor</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#F8FAFC">
+          <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">O'quvchi</th>
+          <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Guruh</th>
+          <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">🪙 Coinlar</th>
+          <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">To'lov holati</th>
+          <th style="padding:12px 16px;text-align:left;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Qarzdorlik</th>
+          <th style="padding:12px 16px;text-align:center;font-weight:600;color:#64748B;font-size:11px;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Amallar</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${students.map(s=>`
+        <tr style="border-bottom:1px solid #F8FAFC;transition:background .15s" onmouseover="this.style.background='#FAFAFA'" onmouseout="this.style.background=''">
+          <td style="padding:12px 16px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:50%;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${s.n[0]}</div>
+              <div>
+                <div style="font-weight:600;color:#1E293B">${s.n}</div>
+              </div>
+            </div>
+          </td>
+          <td style="padding:12px 16px"><span style="background:#EFF6FF;color:#2563EB;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500">${s.g}</span></td>
+          <td style="padding:12px 16px"><span style="color:#D97706;font-weight:600">🪙 ${s.c}</span></td>
+          <td style="padding:12px 16px">
+            <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;${
+              s.s==='PAID'?'background:#DCFCE7;color:#166534':
+              s.s==='PARTIAL'?'background:#FEF9C3;color:#92400E':'background:#FFE4E6;color:#DC2626'}">
+              ${s.s==='PAID'?"✅ To'langan":s.s==='PARTIAL'?"⚠️ Qisman":"❌ Qarzdor"}
+            </span>
+          </td>
+          <td style="padding:12px 16px;font-weight:600;color:${s.d!=='0'?'#EF4444':'#16A34A'}">${s.d!=='0'?s.d+' so\'m':'—'}</td>
+          <td style="padding:12px 16px;text-align:center">
+            <button style="padding:5px 11px;background:#EFF6FF;color:#2563EB;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-right:4px">Tahrirlash</button>
+            <button onclick="openModal('addPaymentModal')" style="padding:5px 11px;background:#DCFCE7;color:#166534;border:none;border-radius:6px;font-size:11px;cursor:pointer">To'lov</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12px;color:#64748B">
+    <span>Jami: 8 ta o'quvchi</span>
+    <div style="display:flex;gap:6px">
+      <button style="padding:5px 11px;background:#fff;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px">← Oldingi</button>
+      <button style="padding:5px 11px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">1</button>
+      <button style="padding:5px 11px;background:#fff;border:1px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px">Keyingi →</button>
+    </div>
+  </div>`;
+}
+
+function renderPayments() {
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">💳 To'lovlar</h1>
+    <button class="btn-primary" onclick="openModal('addPaymentModal')">+ To'lov qabul qilish</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px">
+    ${statCard("✅ Bu oy to'langan","48 ta (38,400,000 so'm)","","")}
+    ${statCard("⚠️ Qisman to'lagan","6 ta (3,600,000 so'm)","","")}
+    ${statCard("❌ Qarzdorlar","12 ta (4,500,000 so'm)","","")}
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#F8FAFC">
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">O'quvchi</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Summa</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Oy</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Usul</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Holat</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Sana</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${[['Bobur Toshmatov','500,000','Fevral 2026','💵 Naqd','PAID','27-Fev'],
+           ['Dilnoza Yusupova','500,000','Fevral 2026','💳 Karta','PAID','27-Fev'],
+           ['Jasur Karimov','250,000','Fevral 2026',"🏦 O'tkazma",'PARTIAL','26-Fev'],
+           ['Sherzod Aliyev','500,000','Fevral 2026','💵 Naqd','PAID','25-Fev'],
+           ['Malika Rahimova','0','Fevral 2026','—','PENDING','—'],
+        ].map(([n,a,m,me,s,d])=>`
+        <tr style="border-bottom:1px solid #F8FAFC">
+          <td style="padding:12px 16px;font-weight:500;color:#1E293B">${n}</td>
+          <td style="padding:12px 16px;font-weight:600;color:#1E293B">${a} so'm</td>
+          <td style="padding:12px 16px;color:#64748B">${m}</td>
+          <td style="padding:12px 16px;color:#64748B">${me}</td>
+          <td style="padding:12px 16px"><span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;${
+            s==='PAID'?'background:#DCFCE7;color:#166534':
+            s==='PARTIAL'?'background:#FEF9C3;color:#92400E':'background:#FFE4E6;color:#DC2626'}">
+            ${s==='PAID'?"To'landi":s==='PARTIAL'?'Qisman':'Kutilmoqda'}</span></td>
+          <td style="padding:12px 16px;color:#64748B">${d}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderCoins() {
+  const role = currentUser?.role;
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">🪙 Coin Tizimi</h1>
+    ${role !== 'STUDENT' ? `<button class="btn-primary" onclick="openModal('giveCoinModal')">🪙 Coin berish</button>` : ''}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">🏆 Reyting</div>
+      ${[['🥇','Dilnoza Yusupova','Robotika-A',120,'#F59E0B'],
+         ['🥈','Sherzod Aliyev','Arduino-B',95,'#94A3B8'],
+         ['🥉','Jasur Karimov','Coding-C',85,'#CD7F32'],
+         ['4','Zulfiya Nazarova','IoT-A',65,'#64748B'],
+         ['5','Bobur Toshmatov','Robotika-A',50,'#64748B'],
+         ['6','Ulugbek Rashidov','Robotika-A',40,'#64748B']].map(([pos,name,grp,coins,c])=>`
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;margin-bottom:6px;background:${pos.length===1?'#F8FAFC':''}">
+          <span style="font-size:${pos.length>1?'13':'18'}px;font-weight:700;color:${c};width:24px;text-align:center">${pos}</span>
+          <div style="width:34px;height:34px;border-radius:50%;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">${name[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:#1E293B">${name}</div>
+            <div style="font-size:11px;color:#94A3B8">${grp}</div>
+          </div>
+          <span style="font-weight:700;color:#D97706">🪙 ${coins}</span>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📋 Coin tarixi</div>
+      ${[['Bobur Toshmatov','+10','Uy ishini a\'lo bajardi','Bugun','green'],
+         ['Dilnoza Yusupova','+15','Musobaqada 1-o\'rin','Kecha','green'],
+         ['Jasur Karimov','+5','Darsda faol','27-Fev','green'],
+         ['Malika Rahimova','-5','Uy ishini topshirmadi','26-Fev','red'],
+         ['Sherzod Aliyev','+20','Loyihani muvaffaqiyatli yakunladi','25-Fev','green']].map(([n,a,r,d,c])=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F8FAFC">
+          <div style="width:32px;height:32px;border-radius:50%;background:${c==='green'?'#DCFCE7':'#FFE4E6'};color:${c==='green'?'#16A34A':'#DC2626'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${n[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;color:#1E293B">${n}</div>
+            <div style="font-size:11px;color:#94A3B8">${r}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:14px;font-weight:700;color:${c==='green'?'#16A34A':'#DC2626'}">🪙 ${a}</div>
+            <div style="font-size:10px;color:#94A3B8">${d}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderAttendance() {
+  const students = ['Bobur Toshmatov','Dilnoza Yusupova','Jasur Karimov','Malika Rahimova','Sherzod Aliyev','Zulfiya Nazarova'];
+  const statuses = ['PRESENT','PRESENT','LATE','ABSENT','PRESENT','EXCUSED'];
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">✅ Davomat Belgilash</h1>
+    <button class="btn-primary" onclick="saveAttendance()">💾 Saqlash</button>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:14px">
+    <select style="padding:9px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+      <option>Robotika-A — Bugun (27-Fev)</option>
+      <option>Arduino-B — Bugun</option>
+    </select>
+    <div style="padding:9px 14px;background:#DCFCE7;color:#166534;border-radius:8px;font-size:13px;font-weight:500">✅ 4 / 6 keldi</div>
+    <div style="padding:9px 14px;background:#FFE4E6;color:#DC2626;border-radius:8px;font-size:13px;font-weight:500">❌ 1 kelmadi</div>
+    <div style="padding:9px 14px;background:#FEF9C3;color:#92400E;border-radius:8px;font-size:13px;font-weight:500">⚠️ 1 ta boshqa</div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:#F8FAFC">
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">#</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">O'quvchi</th>
+          <th style="padding:12px 16px;text-align:center;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Holat</th>
+          <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;border-bottom:1px solid #F1F5F9">Izoh</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${students.map((n,i)=>{
+          const s = statuses[i];
+          const opts = [['PRESENT','✅ Keldi','#DCFCE7','#166534'],['ABSENT','❌ Kelmadi','#FFE4E6','#DC2626'],['LATE','⚠️ Kech','#FEF9C3','#92400E'],['EXCUSED','📝 Sababli','#EFF6FF','#2563EB']];
+          return `<tr style="border-bottom:1px solid #F8FAFC">
+            <td style="padding:12px 16px;color:#94A3B8;font-weight:500">${i+1}</td>
+            <td style="padding:12px 16px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:30px;height:30px;border-radius:50%;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${n[0]}</div>
+                <span style="font-weight:500;color:#1E293B">${n}</span>
+              </div>
+            </td>
+            <td style="padding:12px 16px;text-align:center">
+              <div style="display:flex;gap:5px;justify-content:center">
+                ${opts.map(([val,lbl,bg,col])=>`
+                  <button onclick="setAtt(this,'${val}')" style="padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid ${s===val?col:'#E2E8F0'};background:${s===val?bg:'#fff'};color:${s===val?col:'#94A3B8'}">${lbl}</button>`).join('')}
+              </div>
+            </td>
+            <td style="padding:12px 16px">
+              <input type="text" placeholder="Izoh..." style="width:100%;padding:6px 10px;border:1.5px solid #F1F5F9;border-radius:6px;font-size:12px;font-family:inherit"/>
+            </td>
+          </tr>`;}).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderSchedule() {
+  const days = ['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba'];
+  const schedule = {
+    0:[{g:'Robotika-A',t:'09:00–10:30',r:'101',c:'#DBEAFE'},{g:'Arduino-B',t:'14:00–15:30',r:'102',c:'#F3E8FF'}],
+    1:[{g:'Coding-C',t:'11:00–12:30',r:'103',c:'#DCFCE7'},{g:'IoT-A',t:'15:30–17:00',r:'101',c:'#FEF3C7'}],
+    2:[{g:'Robotika-A',t:'09:00–10:30',r:'101',c:'#DBEAFE'},{g:'Robotika-B',t:'17:00–18:30',r:'102',c:'#DBEAFE'}],
+    3:[{g:'Arduino-B',t:'14:00–15:30',r:'102',c:'#F3E8FF'},{g:'Coding-C',t:'18:30–20:00',r:'103',c:'#DCFCE7'}],
+    4:[{g:'IoT-A',t:'10:00–11:30',r:'101',c:'#FEF3C7'}],
+    5:[{g:'Barcha guruhlar',t:'10:00–13:00',r:'Zal',c:'#FFE4E6'}],
+  };
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">📅 Dars Jadvali</h1>
+    <div style="display:flex;gap:8px">
+      <button style="padding:7px 14px;background:#F1F5F9;border:none;border-radius:8px;font-size:13px;cursor:pointer">← Oldingi hafta</button>
+      <span style="padding:7px 14px;background:#EFF6FF;color:#2563EB;border-radius:8px;font-size:13px;font-weight:600">24 Fev – 1 Mar</span>
+      <button style="padding:7px 14px;background:#F1F5F9;border:none;border-radius:8px;font-size:13px;cursor:pointer">Keyingi hafta →</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+    ${days.map((d,i)=>`
+      <div>
+        <div style="text-align:center;font-size:12px;font-weight:600;color:#64748B;padding:8px;background:#F8FAFC;border-radius:8px 8px 0 0;border:1px solid #F1F5F9;border-bottom:none">${d}<br><span style="font-weight:400;color:#94A3B8">${24+i} Feb</span></div>
+        <div style="border:1px solid #F1F5F9;border-radius:0 0 8px 8px;padding:8px;min-height:120px;background:#fff">
+          ${(schedule[i]||[]).map(l=>`
+            <div style="padding:8px;background:${l.c};border-radius:6px;margin-bottom:6px">
+              <div style="font-size:12px;font-weight:600;color:#1E293B">${l.g}</div>
+              <div style="font-size:10px;color:#64748B;margin-top:2px">⏰ ${l.t}</div>
+              <div style="font-size:10px;color:#64748B">🚪 Xona ${l.r}</div>
+            </div>`).join('') || '<div style="font-size:11px;color:#CBD5E1;text-align:center;padding-top:20px">Dam olish kuni</div>'}
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderFinance() {
+  return `
+  <div style="margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">📊 Moliyaviy Tahlil</h1>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px">
+    ${statCard("💰 Jami tushum","62,000,000 so'm","","")}
+    ${statCard("💸 Xarajatlar","14,000,000 so'm","","")}
+    ${statCard("👨‍🏫 Ustoz oyliqlari","10,000,000 so'm","","")}
+    ${statCard("📈 Sof foyda","38,000,000 so'm","","")}
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📈 Oylik tushum va xarajatlar</div>
+      <canvas id="financeChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:14px">📋 Xarajatlar bo'yicha</div>
+      <canvas id="expenseChart" height="180"></canvas>
+    </div>
+  </div>`;
+}
+
+function renderNotifications() {
+  const notifs = [
+    {t:'💳 To\'lov qabul qilindi', b:"Bobur Toshmatov — 500,000 so'm to'ladi", time:'5 daqiqa avval', read:false},
+    {t:'✅ Davomat belgilandi', b:'Alisher K. Robotika-A guruhiga davomat qo\'ydi', time:'1 soat avval', read:false},
+    {t:'⭐ Yangi baho', b:"Dilnoza Yusupova — Uy ishi: 95 ball", time:'2 soat avval', read:false},
+    {t:'🪙 Coin berildi', b:"Jasur Karimov — +10 coin oldi", time:'3 soat avval', read:true},
+    {t:'📣 Yangi e\'lon', b:"Ertaga darslar 9:00 da boshlanadi", time:'Kecha', read:true},
+    {t:'⚠️ Qarzdorlik eslatmasi', b:"Malika Rahimova — 500,000 so'm qarzdor", time:'2 kun avval', read:true},
+  ];
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <h1 style="font-size:20px;font-weight:800;color:#1E293B">🔔 Bildirishnomalar</h1>
+    <button onclick="showToast('✅ Barchasi o\'qildi deb belgilandi')" class="btn-secondary">Barchasini o'qildi</button>
+  </div>
+  <div style="display:grid;gap:8px">
+    ${notifs.map(n=>`
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;background:${n.read?'#fff':'#EFF6FF'};border:1px solid ${n.read?'#F1F5F9':'#BFDBFE'};border-radius:10px;cursor:pointer" onclick="this.style.background='#fff';this.style.borderColor='#F1F5F9'">
+        ${n.read ? '' : '<div style="width:8px;height:8px;border-radius:50%;background:#2563EB;margin-top:6px;flex-shrink:0"></div>'}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:${n.read?500:600};color:#1E293B">${n.t}</div>
+          <div style="font-size:12px;color:#64748B;margin-top:3px">${n.b}</div>
+        </div>
+        <div style="font-size:11px;color:#94A3B8;white-space:nowrap;margin-top:2px">${n.time}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderChat() {
+  return `
+  <div style="display:flex;gap:16px;height:calc(100vh - 130px)">
+    <!-- Contacts -->
+    <div style="width:260px;background:#fff;border-radius:12px;border:1px solid #F1F5F9;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0">
+      <div style="padding:14px;border-bottom:1px solid #F1F5F9">
+        <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:10px">💬 Chat</div>
+        <input type="text" placeholder="🔍 Qidirish..." style="width:100%;padding:7px 12px;background:#F8FAFC;border:1px solid #F1F5F9;border-radius:8px;font-size:12px;font-family:inherit"/>
+      </div>
+      <div style="flex:1;overflow-y:auto">
+        ${[['Robotika-A','Guruh','Uy ishi qachon?','Hozir','3'],
+           ['Alisher K.','Ustoz','Rahmat!','5 daq',''],
+           ['Bobur Toshmatov',"O'quvchi","Savolim bor",'10 daq','1'],
+           ['Jasur T.','Ota-ona',"To'lovni qildim",'1 soat','']].map(([n,r,m,t,c])=>`
+          <div onclick="openChatWith('${n}')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid #F8FAFC;transition:background .15s" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background=''">
+            <div style="width:38px;height:38px;border-radius:50%;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${n[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:13px;font-weight:600;color:#1E293B">${n}</span>
+                <span style="font-size:10px;color:#94A3B8">${t}</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+                <span style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${m}</span>
+                ${c?`<span style="background:#2563EB;color:#fff;font-size:10px;font-weight:600;min-width:18px;height:18px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 4px">${c}</span>`:''}
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <!-- Chat area -->
+    <div id="chatArea" style="flex:1;background:#fff;border-radius:12px;border:1px solid #F1F5F9;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid #F1F5F9;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;font-weight:700">R</div>
+        <div><div style="font-size:14px;font-weight:600;color:#1E293B">Robotika-A</div><div style="font-size:11px;color:#16A34A">● 18 ta a'zo</div></div>
+      </div>
+      <div id="chatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
+        ${[['Alisher K.','Uyga vazifa — Servo motorni ulash. Holbuki schemani chizing.',false,'14:20'],
+           ['Bobur','Ha ustoz! Tushundim.✅',true,'14:22'],
+           ['Dilnoza','Ustoz, link joylaysizmi?',false,'14:23'],
+           ['Alisher K.',"Mana: https://example.com/servo-circuit",false,'14:25'],
+           ['Bobur','Rahmat! 🙏',true,'14:26']].map(([s,m,mine,t])=>`
+          <div style="display:flex;${mine?'justify-content:flex-end':'gap:8px'}">
+            ${!mine?`<div style="width:30px;height:30px;border-radius:50%;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:auto">${s[0]}</div>`:''}
+            <div style="max-width:65%">
+              ${!mine?`<div style="font-size:11px;color:#64748B;margin-bottom:4px">${s}</div>`:''}
+              <div style="padding:10px 13px;border-radius:${mine?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${mine?'#2563EB':'#F1F5F9'};color:${mine?'#fff':'#1E293B'};font-size:13px">${m}</div>
+              <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:${mine?'right':'left'}">${t}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid #F1F5F9;display:flex;gap:8px">
+        <input type="text" id="chatInput" placeholder="Xabar yozing..." onkeydown="if(event.key==='Enter')sendChat()"
+          style="flex:1;padding:10px 14px;background:#F8FAFC;border:1.5px solid #F1F5F9;border-radius:10px;font-size:13px;font-family:inherit"/>
+        <button onclick="sendChat()" style="padding:10px 16px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:13px;cursor:pointer">Yuborish →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openChatWith(name) {
+  const area = document.getElementById('chatArea');
+  if (area) area.querySelector('div').querySelector('div:last-child').textContent = name;
+}
+
+function sendChat() {
+  const inp = document.getElementById('chatInput');
+  if (!inp || !inp.value.trim()) return;
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.style = 'display:flex;justify-content:flex-end';
+  div.innerHTML = `<div style="max-width:65%"><div style="padding:10px 13px;border-radius:14px 14px 4px 14px;background:#2563EB;color:#fff;font-size:13px">${inp.value}</div><div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:right">Hozir</div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  inp.value = '';
+}
+
+function renderProfile() {
+  const u = currentUser || { name:'Super Admin', key:'admin' };
+  return `
+  <h1 style="font-size:20px;font-weight:800;color:#1E293B;margin-bottom:18px">👤 Profil Sozlamalari</h1>
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+    <div class="card" style="text-align:center">
+      <div style="width:80px;height:80px;border-radius:50%;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;margin:0 auto 14px">${u.name[0]}</div>
+      <div style="font-size:16px;font-weight:700;color:#1E293B">${u.name}</div>
+      <div style="font-size:13px;color:#64748B;margin-top:4px">+998901234567</div>
+      <div style="margin-top:10px"><span style="background:#EFF6FF;color:#2563EB;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500">${u.icon || '👑'} ${capitalize(u.key)}</span></div>
+      <button onclick="showToast('📷 Rasm yuklash')" style="margin-top:14px;width:100%;padding:9px;background:#F1F5F9;border:none;border-radius:8px;font-size:13px;cursor:pointer;color:#374151">📷 Rasmni o'zgartirish</button>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:16px">Shaxsiy ma'lumotlar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">To'liq ism</label>
+          <input value="${u.name}" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Telefon</label>
+          <input value="+998901234567" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Email</label>
+          <input value="admin@roboticedu.uz" style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Interfeys tili</label>
+          <select style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit">
+            <option selected>🇺🇿 O'zbek tili</option>
+            <option>🇷🇺 Rus tili</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Yangi parol</label>
+          <input type="password" placeholder="Parolni o'zgartirish uchun yozing..." style="width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit"/>
+        </div>
+      </div>
+      <button onclick="showToast('✅ Ma\'lumotlar saqlandi!')" class="btn-primary" style="margin-top:16px">💾 Saqlash</button>
+    </div>
+  </div>`;
+}
+
+function renderComingSoon(sec) {
+  const icons = {teachers:'👨‍🏫',groups:'📚',grades:'⭐',salaries:'💰',announcements:'📣',reports:'📋'};
+  return `
+  <h1 style="font-size:20px;font-weight:800;color:#1E293B;margin-bottom:18px">${icons[sec]||'📋'} ${T[currentLang][sec]||sec}</h1>
+  <div class="card" style="text-align:center;padding:60px">
+    <div style="font-size:60px;margin-bottom:16px">${icons[sec]||'🚧'}</div>
+    <h2 style="font-size:18px;font-weight:700;color:#374151">Tayyorlanmoqda...</h2>
+    <p style="color:#94A3B8;font-size:13px;margin-top:8px">Bu bo'lim keyingi bosqichda qo'shiladi</p>
+    <button onclick="showToast('🔔 Tayyor bo\'lganda xabar beriladi!')" class="btn-primary" style="margin-top:20px">🔔 Xabar bering</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════
+function renderCharts() {
+  // Income chart
+  const ic = document.getElementById('incomeChart');
+  if (ic) new Chart(ic, {
+    type: 'line',
+    data: {
+      labels: ['Sen','Okt','Noy','Dek','Yan','Fev'],
+      datasets: [
+        {label:'Tushum',data:[45,52,48,55,58,62],borderColor:'#2563EB',backgroundColor:'rgba(37,99,235,.1)',fill:true,tension:.4,borderWidth:2,pointRadius:4,pointBackgroundColor:'#2563EB'},
+        {label:'Xarajat',data:[18,20,19,21,22,24],borderColor:'#EF4444',backgroundColor:'rgba(239,68,68,.05)',fill:true,tension:.4,borderWidth:2,pointRadius:4,pointBackgroundColor:'#EF4444'}
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{y:{ticks:{callback:v=>(v/1000)+'K',font:{size:10}},grid:{color:'#F1F5F9'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+
+  // Course pie
+  const cc = document.getElementById('courseChart');
+  if (cc) new Chart(cc, {
+    type: 'doughnut',
+    data: {
+      labels: ['Robotika','Arduino','Coding','IoT'],
+      datasets:[{data:[45,32,28,19],backgroundColor:['#2563EB','#7C3AED','#059669','#D97706'],borderWidth:0,hoverOffset:4}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},cutout:'60%'}
+  });
+
+  // Attendance bar
+  const ac = document.getElementById('attendanceChart');
+  if (ac) new Chart(ac, {
+    type: 'bar',
+    data: {
+      labels: ['Du','Se','Ch','Pa','Ju','Sh'],
+      datasets: [
+        {label:'Keldi',data:[95,88,92,85,78,90],backgroundColor:'#22C55E',borderRadius:4},
+        {label:'Kelmadi',data:[5,12,8,15,22,10],backgroundColor:'#EF4444',borderRadius:4}
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,grid:{color:'#F1F5F9'},ticks:{font:{size:10}}}}}
+  });
+}
+
+function renderFinanceCharts() {
+  const fc = document.getElementById('financeChart');
+  if (fc) new Chart(fc, {
+    type:'bar',
+    data:{
+      labels:['Sen','Okt','Noy','Dek','Yan','Fev'],
+      datasets:[
+        {label:'Tushum',data:[45,52,48,55,58,62],backgroundColor:'#2563EB',borderRadius:4},
+        {label:'Xarajat',data:[18,20,19,21,22,24],backgroundColor:'#F87171',borderRadius:4},
+        {label:'Sof foyda',data:[27,32,29,34,36,38],backgroundColor:'#22C55E',borderRadius:4}
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{callback:v=>v+'M',font:{size:10}},grid:{color:'#F1F5F9'}}}}
+  });
+
+  const ec = document.getElementById('expenseChart');
+  if (ec) new Chart(ec, {
+    type:'pie',
+    data:{
+      labels:['Ijara','Ustoz ish haqi','Kommunal','Jihozlar','Boshqa'],
+      datasets:[{data:[40,30,10,12,8],backgroundColor:['#2563EB','#7C3AED','#059669','#F59E0B','#94A3B8'],borderWidth:0}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}
+  });
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  t.innerHTML = `<span>${icons[type]||'✅'}</span> ${msg}`;
+  t.style.display = 'flex';
+  t.style.background = type==='error'?'#DC2626':'#1E293B';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.style.display='none', 3000);
+}
+
+function saveStudent() {
+  closeModal('addStudentModal');
+  showToast("✅ O'quvchi muvaffaqiyatli qo'shildi!");
+}
+
+function savePayment() {
+  closeModal('addPaymentModal');
+  showToast("✅ To'lov qabul qilindi!");
+}
+
+function saveCoin() {
+  closeModal('giveCoinModal');
+  showToast('🪙 Coin muvaffaqiyatli berildi!');
+}
+
+function saveAttendance() {
+  showToast('✅ Davomat saqlandi!');
+}
+
+function setAtt(btn, val) {
+  const row = btn.closest('tr');
+  row.querySelectorAll('button').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#94A3B8';
+    b.style.borderColor = '#E2E8F0';
+  });
+  const colors = {PRESENT:'#DCFCE7,#166534',ABSENT:'#FFE4E6,#DC2626',LATE:'#FEF9C3,#92400E',EXCUSED:'#EFF6FF,#2563EB'};
+  const [bg, col] = (colors[val]||'').split(',');
+  btn.style.background = bg;
+  btn.style.color = col;
+  btn.style.borderColor = col;
+}
+
+function setCoinReason(btn, text) {
+  document.getElementById('coinReason').value = text;
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; }
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

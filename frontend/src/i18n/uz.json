@@ -1,0 +1,231 @@
+{
+  "app": {
+    "name": "Robotic Edu",
+    "tagline": "O'quv Markaz Boshqaruv Tizimi"
+  },
+  "nav": {
+    "dashboard": "Bosh sahifa",
+    "students": "O'quvchilar",
+    "teachers": "Ustozlar",
+    "groups": "Guruhlar",
+    "schedule": "Jadval",
+    "attendance": "Davomat",
+    "grades": "Baholar",
+    "payments": "To'lovlar",
+    "finance": "Moliya",
+    "salaries": "Oyliklar",
+    "coins": "Coinlar",
+    "chat": "Chat",
+    "notifications": "Bildirishnomalar",
+    "announcements": "E'lonlar",
+    "reports": "Hisobotlar",
+    "profile": "Profil",
+    "settings": "Sozlamalar",
+    "logout": "Chiqish",
+    "courses": "Kurslar"
+  },
+  "auth": {
+    "login": "Kirish",
+    "logout": "Chiqish",
+    "phone": "Telefon raqam",
+    "password": "Parol",
+    "phonePlaceholder": "+998 90 123 45 67",
+    "passwordPlaceholder": "Parolingizni kiriting",
+    "loginButton": "Tizimga kirish",
+    "logging_in": "Kirilmoqda...",
+    "loginError": "Telefon raqam yoki parol noto'g'ri",
+    "changePassword": "Parolni o'zgartirish",
+    "currentPassword": "Joriy parol",
+    "newPassword": "Yangi parol",
+    "confirmPassword": "Parolni tasdiqlash"
+  },
+  "common": {
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "delete": "O'chirish",
+    "edit": "Tahrirlash",
+    "add": "Qo'shish",
+    "search": "Qidirish",
+    "filter": "Filtr",
+    "export": "Eksport",
+    "loading": "Yuklanmoqda...",
+    "noData": "Ma'lumot topilmadi",
+    "confirm": "Tasdiqlash",
+    "close": "Yopish",
+    "back": "Orqaga",
+    "next": "Keyingi",
+    "yes": "Ha",
+    "no": "Yo'q",
+    "active": "Faol",
+    "inactive": "Faol emas",
+    "total": "Jami",
+    "status": "Holat",
+    "date": "Sana",
+    "time": "Vaqt",
+    "name": "Ism",
+    "phone": "Telefon",
+    "actions": "Amallar",
+    "page": "Bet",
+    "of": "dan",
+    "rows": "qator"
+  },
+  "dashboard": {
+    "welcome": "Xush kelibsiz",
+    "todayLessons": "Bugungi darslar",
+    "totalStudents": "Jami o'quvchilar",
+    "totalTeachers": "Jami ustozlar",
+    "monthlyIncome": "Oylik tushumlar",
+    "totalDebt": "Jami qarzdorlik",
+    "netProfit": "Sof foyda",
+    "attendanceRate": "Davomat foizi",
+    "recentPayments": "So'nggi to'lovlar",
+    "upcomingLessons": "Yaqin darslar",
+    "debtors": "Qarzdorlar"
+  },
+  "students": {
+    "title": "O'quvchilar",
+    "add": "Yangi o'quvchi",
+    "fullName": "To'liq ism",
+    "phone": "Telefon",
+    "parent": "Ota-ona",
+    "group": "Guruh",
+    "balance": "Balans",
+    "debt": "Qarzdorlik",
+    "coins": "Coinlar",
+    "discount": "Chegirma",
+    "discountType": "Chegirma turi",
+    "discountValue": "Chegirma miqdori",
+    "percentage": "Foizda",
+    "fixedAmount": "Aniq summa",
+    "profile": "Profil",
+    "attendance": "Davomat",
+    "grades": "Baholar",
+    "payments": "To'lovlar"
+  },
+  "teachers": {
+    "title": "Ustozlar",
+    "add": "Yangi ustoz",
+    "specialization": "Mutaxassislik",
+    "salaryType": "Oylik turi",
+    "salaryValue": "Oylik miqdori",
+    "percentageFromPayment": "To'lovlardan foiz",
+    "perLessonHour": "Soatlik stavka",
+    "groups": "Guruhlar",
+    "salary": "Oylik"
+  },
+  "groups": {
+    "title": "Guruhlar",
+    "add": "Yangi guruh",
+    "name": "Guruh nomi",
+    "course": "Kurs",
+    "teacher": "Ustoz",
+    "students": "O'quvchilar",
+    "schedule": "Jadval",
+    "room": "Xona",
+    "startDate": "Boshlanish sanasi",
+    "endDate": "Tugash sanasi",
+    "status": {
+      "active": "Faol",
+      "completed": "Tugagan",
+      "paused": "To'xtatilgan"
+    }
+  },
+  "attendance": {
+    "title": "Davomat",
+    "present": "Keldi",
+    "absent": "Kelmadi",
+    "late": "Kech keldi",
+    "excused": "Sababli",
+    "mark": "Davomat belgilash",
+    "rate": "Davomat foizi"
+  },
+  "grades": {
+    "title": "Baholar",
+    "add": "Baho qo'yish",
+    "score": "Ball",
+    "type": {
+      "homework": "Uy ishi",
+      "classwork": "Sinf ishi",
+      "exam": "Imtihon",
+      "project": "Loyiha"
+    },
+    "comment": "Izoh",
+    "average": "O'rtacha ball"
+  },
+  "payments": {
+    "title": "To'lovlar",
+    "add": "To'lov qabul qilish",
+    "amount": "Summa",
+    "month": "Oy",
+    "method": {
+      "cash": "Naqd",
+      "card": "Karta",
+      "transfer": "O'tkazma",
+      "online": "Online"
+    },
+    "status": {
+      "paid": "To'langan",
+      "partial": "Qisman",
+      "pending": "Kutilmoqda"
+    },
+    "receipt": "Kvitansiya",
+    "debt": "Qarzdorlik",
+    "balance": "Balans"
+  },
+  "finance": {
+    "title": "Moliya",
+    "income": "Tushumlar",
+    "expenses": "Xarajatlar",
+    "salaries": "Oyliklar",
+    "netProfit": "Sof foyda",
+    "addExpense": "Xarajat qo'shish",
+    "category": "Kategoriya",
+    "monthly": "Oylik",
+    "yearly": "Yillik",
+    "analytics": "Analitika"
+  },
+  "coins": {
+    "title": "Coin tizimi",
+    "balance": "Coin balansi",
+    "give": "Coin berish",
+    "amount": "Coin miqdori",
+    "reason": "Sabab",
+    "history": "Tarix",
+    "leaderboard": "Reyting",
+    "type": {
+      "reward": "Mukofot",
+      "penalty": "Jarima",
+      "bonus": "Bonus",
+      "exchange": "Almashish"
+    }
+  },
+  "notifications": {
+    "title": "Bildirishnomalar",
+    "markAllRead": "Barchasini o'qildi deb belgilash",
+    "empty": "Bildirishnomalar yo'q",
+    "new": "Yangi bildirishnoma"
+  },
+  "days": {
+    "monday": "Dushanba",
+    "tuesday": "Seshanba",
+    "wednesday": "Chorshanba",
+    "thursday": "Payshanba",
+    "friday": "Juma",
+    "saturday": "Shanba",
+    "sunday": "Yakshanba"
+  },
+  "months": {
+    "1": "Yanvar",
+    "2": "Fevral",
+    "3": "Mart",
+    "4": "Aprel",
+    "5": "May",
+    "6": "Iyun",
+    "7": "Iyul",
+    "8": "Avgust",
+    "9": "Sentabr",
+    "10": "Oktabr",
+    "11": "Noyabr",
+    "12": "Dekabr"
+  }
+}

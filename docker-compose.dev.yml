@@ -1,0 +1,39 @@
+version: '3.9'
+# ── Development override ─────────────────────────────────────────────────────
+# Ishlatish: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    environment:
+      NODE_ENV: development
+    command: ["npm", "run", "dev"]
+    ports:
+      - "5000:5000"
+      - "9229:9229"   # Node.js debugger
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000/api/v1
+    ports:
+      - "5173:5173"
+    command: ["npm", "run", "dev", "--", "--host"]
