@@ -92,12 +92,12 @@ const StudentsPage = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/students/${id}`),
     {
-      onSuccess: () => {
-        toast.success("O'quvchi o'chirildi");
+      onSuccess: (_data: unknown) => {
+        void toast.success("O'quvchi o'chirildi");
         qc.invalidateQueries('students');
         setDeleteConfirm(null);
       },
-      onError: () => toast.error("Xato yuz berdi")
+      onError: (_err: unknown) => { void toast.error("Xato yuz berdi"); }
     }
   );
 

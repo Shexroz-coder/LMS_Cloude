@@ -36,8 +36,8 @@ const TeachersPage = () => {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/teachers/${id}`),
     {
-      onSuccess: () => { toast.success("Ustoz o'chirildi"); qc.invalidateQueries('teachers'); setDeleteConfirm(null); },
-      onError: () => toast.error('Xato yuz berdi')
+      onSuccess: (_data: unknown) => { void toast.success("Ustoz o'chirildi"); qc.invalidateQueries('teachers'); setDeleteConfirm(null); },
+      onError: (_err: unknown) => { void toast.error('Xato yuz berdi'); }
     }
   );
 

@@ -124,6 +124,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
   // PARENT
   return [
     { to: '/parent',               icon: LayoutDashboard, label: t('nav.dashboard') },
+    { to: '/parent/payments',      icon: CreditCard,      label: t('nav.payments') },
     { to: '/parent/chat',          icon: MessageCircle,   label: t('nav.chat') },
     { to: '/parent/notifications', icon: Bell,            label: t('nav.notifications') },
     { to: '/parent/profile',       icon: User,            label: t('nav.profile') },

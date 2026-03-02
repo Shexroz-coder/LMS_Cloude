@@ -40,6 +40,7 @@ import StudentPaymentsPage from './pages/student/StudentPaymentsPage';
 // Pages — Parent
 import ParentLayout from './components/layout/ParentLayout';
 import ParentDashboard from './pages/parent/ParentDashboard';
+import ParentPaymentsPage from './pages/parent/ParentPaymentsPage';
 
 // Shared
 import ChatPage from './pages/shared/ChatPage';
@@ -149,6 +150,7 @@ const App = () => {
         </PrivateRoute>
       }>
         <Route index element={<ParentDashboard />} />
+        <Route path="payments" element={<ParentPaymentsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />

@@ -378,12 +378,14 @@ export default function SalariesPage() {
     (data: { teacherId: number; month: string; amount: number; note: string }) =>
       api.post('/salaries/pay', data),
     {
-      onSuccess: () => {
+      onSuccess: (_data: unknown) => {
         qc.invalidateQueries(['salaries-calculate']);
         setPayTarget(null);
-        toast.success("Oylik to'landi! ✅");
+        void toast.success("Oylik to'landi! ✅");
       },
-      onError: () => toast.error('Xato yuz berdi'),
+      onError: (_err: unknown) => {
+        void toast.error('Xato yuz berdi');
+      },
     }
   );
 

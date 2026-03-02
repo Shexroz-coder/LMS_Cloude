@@ -36,13 +36,13 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
   const addMutation = useMutation(
     (data: typeof form) => api.post(`/lessons/${lessonId}/materials`, data),
     {
-      onSuccess: () => {
+      onSuccess: (_data: unknown) => {
         qc.invalidateQueries(['lesson-materials', lessonId]);
         setForm({ type: 'LINK', title: '', url: '' });
         setShowForm(false);
-        toast.success('Material qo\'shildi!');
+        void toast.success('Material qo\'shildi!');
       },
-      onError: () => toast.error('Xato yuz berdi')
+      onError: (_err: unknown) => { void toast.error('Xato yuz berdi'); }
     }
   );
 
