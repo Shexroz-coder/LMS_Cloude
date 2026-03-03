@@ -94,8 +94,8 @@ const AttendancePage = () => {
       }))
     }),
     {
-      onSuccess: () => {
-        toast.success('Davomat muvaffaqiyatli belgilandi!');
+      onSuccess: (_data: unknown) => {
+        void toast.success('Davomat muvaffaqiyatli belgilandi!');
         qc.invalidateQueries(['group-detail', selectedGroupId]);
         qc.invalidateQueries('attendance-stats');
       },

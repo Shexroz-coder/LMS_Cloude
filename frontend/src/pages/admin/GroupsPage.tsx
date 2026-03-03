@@ -77,7 +77,7 @@ const GroupsPage = () => {
 
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/groups/${id}`),
-    { onSuccess: () => { qc.invalidateQueries('groups'); setDeleteConfirm(null); toast.success('Guruh yopildi.'); } }
+    { onSuccess: (_data: unknown) => { qc.invalidateQueries('groups'); setDeleteConfirm(null); void toast.success('Guruh yopildi.'); } }
   );
 
   const filtered = groups.filter(g =>

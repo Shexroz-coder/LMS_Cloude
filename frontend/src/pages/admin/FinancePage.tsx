@@ -174,9 +174,9 @@ export default function FinancePage() {
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/expenses/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (_data: unknown) => {
         ['expenses-month', 'expenses-archive', 'finance-summary', 'finance-all-time'].forEach(k => qc.invalidateQueries(k));
-        toast.success("Xarajat o'chirildi");
+        void toast.success("Xarajat o'chirildi");
       }
     }
   );

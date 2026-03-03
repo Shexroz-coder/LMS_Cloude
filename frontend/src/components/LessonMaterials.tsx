@@ -49,9 +49,9 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/lessons/${lessonId}/materials/${id}`),
     {
-      onSuccess: () => {
+      onSuccess: (_data: unknown) => {
         qc.invalidateQueries(['lesson-materials', lessonId]);
-        toast.success('Material o\'chirildi');
+        void toast.success('Material o\'chirildi');
       }
     }
   );

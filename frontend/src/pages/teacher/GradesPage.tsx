@@ -124,8 +124,8 @@ const GradesPage = () => {
       }
     },
     {
-      onSuccess: () => {
-        toast.success('Baho saqlandi!');
+      onSuccess: (_data: unknown) => {
+        void toast.success('Baho saqlandi!');
         qc.invalidateQueries(['gradebook', selectedGroupId, currentMonth]);
         qc.invalidateQueries(['grade-stats', selectedGroupId, currentMonth]);
         setEditingCell(null);
@@ -143,8 +143,8 @@ const GradesPage = () => {
     (data: { lessonId: number; grades: Array<{ studentId: number; score: number }>; type: string }) =>
       api.post('/grades/bulk', data),
     {
-      onSuccess: () => {
-        toast.success('Baholar saqlandi!');
+      onSuccess: (_data: unknown) => {
+        void toast.success('Baholar saqlandi!');
         qc.invalidateQueries(['gradebook', selectedGroupId, currentMonth]);
         qc.invalidateQueries(['grade-stats', selectedGroupId, currentMonth]);
         setBulkMode(false);
