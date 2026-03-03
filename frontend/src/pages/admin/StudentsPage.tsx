@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -59,15 +59,16 @@ const StudentsPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<Student | null>(null);
   const [dueDayStudent, setDueDayStudent] = useState<Student | null>(null);
 
-  const handleSearch = useCallback((v: string) => {
-    setSearch(v);
-    clearTimeout((window as Record<string, unknown>)._searchTimer as ReturnType<typeof setTimeout>);
-(window as Record<string, unknown>)._searchTimer = setTimeout(() => { ... });
-      setDebouncedSearch(v);
+  // Debounce effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
       setPage(1);
     }, 400);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [search]);
 
+  // Fetch students data
   const { data, isLoading } = useQuery(
     ['students', page, debouncedSearch, filterDebt, selectedGroupId, selectedStatus],
     () => api.get('/students', {
@@ -81,14 +82,13 @@ const StudentsPage = () => {
     { keepPreviousData: true }
   );
 
+  // Fetch groups
   const { data: groupsData } = useQuery('groups-list', () =>
     api.get('/groups', { params: { limit: 100, status: 'ACTIVE' } })
       .then(r => r.data.data).catch(() => [])
   );
 
-  const students: Student[] = data?.data || [];
-  const pagination: Pagination = data?.meta || { total: 0, page: 1, limit: 15, totalPages: 1 };
-
+  // Delete mutation
   const deleteMutation = useMutation(
     (id: number) => api.delete(`/students/${id}`),
     {
@@ -100,6 +100,9 @@ const StudentsPage = () => {
       onError: (_err: unknown) => { void toast.error("Xato yuz berdi"); }
     }
   );
+
+  const students: Student[] = data?.data || [];
+  const pagination: Pagination = data?.meta || { total: 0, page: 1, limit: 15, totalPages: 1 };
 
   const exportCSV = () => {
     const headers = ["Ism", "Telefon", "Guruh", "Balans", "Qarz", "Coin"];
@@ -113,6 +116,10 @@ const StudentsPage = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'talabalar.csv'; a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleSearch = (v: string) => {
+    setSearch(v);
   };
 
   return (
@@ -1017,7 +1024,7 @@ const PaymentDueDayModal = ({ student, onClose, onSuccess }: {
               Har oyning necha-sida to'laydi?
             </label>
             <div className="grid grid-cols-7 gap-1.5">
-              {[1,5,10,15,20,25,28].map(d => (
+              {[1, 5, 10, 15, 20, 25, 28].map(d => (
                 <button key={d} onClick={() => setDueDay(String(d))}
                   className={clsx('py-2 text-sm font-semibold rounded-xl border-2 transition',
                     dueDay === String(d)
@@ -1040,7 +1047,7 @@ const PaymentDueDayModal = ({ student, onClose, onSuccess }: {
               Eslatma necha kun oldin?
             </label>
             <div className="flex gap-2">
-              {['1','2','3','5','7'].map(d => (
+              {['1', '2', '3', '5', '7'].map(d => (
                 <button key={d} onClick={() => setRemindDays(d)}
                   className={clsx('flex-1 py-2 text-sm font-semibold rounded-xl border-2 transition',
                     remindDays === d
