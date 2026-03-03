@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Users, UserCheck, BookOpen, Calendar, ClipboardCheck,
-  Star, CreditCard, BarChart3, Wallet, Coins, MessageCircle, Bell,
+  Star, CreditCard, BarChart3, Wallet, Coins, Bell,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
   ChevronDown, GraduationCap, DollarSign, Settings2
 } from 'lucide-react';
@@ -37,17 +37,17 @@ function isGroup(item: NavItem | NavGroup): item is NavGroup {
 
 // ── Role colors ────────────────────────────────────────
 const ROLE_COLORS: Record<Role, string> = {
-  ADMIN:   'from-gray-900 to-black',
+  ADMIN: 'from-gray-900 to-black',
   TEACHER: 'from-gray-900 to-black',
   STUDENT: 'from-red-800 to-black',
-  PARENT:  'from-gray-900 to-black',
+  PARENT: 'from-gray-900 to-black',
 };
 
 const ROLE_LABELS: Record<Role, string> = {
-  ADMIN:   '👑 Admin',
+  ADMIN: '👑 Admin',
   TEACHER: '👨‍🏫 Ustoz',
   STUDENT: '🎓 O\'quvchi',
-  PARENT:  '👨‍👩‍👧 Ota-ona',
+  PARENT: '👨‍👩‍👧 Ota-ona',
 };
 
 // ── Nav config per role ────────────────────────────────
@@ -57,9 +57,8 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
     label: 'Tizim',
     icon: Settings2,
     items: [
-      { to: `/${role.toLowerCase()}/chat`,          icon: MessageCircle, label: t('nav.chat') },
-      { to: `/${role.toLowerCase()}/notifications`, icon: Bell,          label: t('nav.notifications') },
-      { to: `/${role.toLowerCase()}/profile`,       icon: User,          label: t('nav.profile') },
+      { to: `/${role.toLowerCase()}/notifications`, icon: Bell, label: t('nav.notifications') },
+      { to: `/${role.toLowerCase()}/profile`, icon: User, label: t('nav.profile') },
     ],
   };
 
@@ -68,25 +67,31 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
       // standalone
       { to: '/admin', icon: LayoutDashboard, label: t('nav.dashboard') },
 
-      { key: 'education', label: "Ta'lim", icon: GraduationCap, items: [
-        { to: '/admin/students', icon: Users,     label: t('nav.students') },
-        { to: '/admin/teachers', icon: UserCheck, label: t('nav.teachers') },
-        { to: '/admin/groups',   icon: BookOpen,  label: t('nav.groups') },
-        { to: '/admin/courses',  icon: Star,      label: t('nav.courses') },
-        { to: '/admin/schedule', icon: Calendar,  label: t('nav.schedule') },
-      ]},
+      {
+        key: 'education', label: "Ta'lim", icon: GraduationCap, items: [
+          { to: '/admin/students', icon: Users, label: t('nav.students') },
+          { to: '/admin/teachers', icon: UserCheck, label: t('nav.teachers') },
+          { to: '/admin/groups', icon: BookOpen, label: t('nav.groups') },
+          { to: '/admin/courses', icon: Star, label: t('nav.courses') },
+          { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
+        ]
+      },
 
-      { key: 'finance', label: 'Moliya', icon: DollarSign, items: [
-        { to: '/admin/payments',  icon: CreditCard, label: t('nav.payments') },
-        { to: '/admin/finance',   icon: BarChart3,  label: t('nav.finance') },
-        { to: '/admin/salaries',  icon: Wallet,     label: t('nav.salaries') },
-        { to: '/admin/coins',     icon: Coins,      label: t('nav.coins') },
-      ]},
+      {
+        key: 'finance', label: 'Moliya', icon: DollarSign, items: [
+          { to: '/admin/payments', icon: CreditCard, label: t('nav.payments') },
+          { to: '/admin/finance', icon: BarChart3, label: t('nav.finance') },
+          { to: '/admin/salaries', icon: Wallet, label: t('nav.salaries') },
+          { to: '/admin/coins', icon: Coins, label: t('nav.coins') },
+        ]
+      },
 
-      { key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
-        { to: '/admin/announcements', icon: Megaphone, label: t('nav.announcements') },
-        { to: '/admin/reports',       icon: FileText,  label: t('nav.reports') },
-      ]},
+      {
+        key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
+          { to: '/admin/announcements', icon: Megaphone, label: t('nav.announcements') },
+          { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
+        ]
+      },
 
       systemGroup,
     ];
@@ -96,13 +101,15 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
     return [
       { to: '/teacher', icon: LayoutDashboard, label: t('nav.dashboard') },
 
-      { key: 'teaching', label: 'Darslar', icon: BookOpen, items: [
-        { to: '/teacher/schedule',   icon: Calendar,       label: t('nav.schedule') },
-        { to: '/teacher/groups',     icon: BookOpen,       label: t('nav.groups') },
-        { to: '/teacher/attendance', icon: ClipboardCheck, label: t('nav.attendance') },
-        { to: '/teacher/grades',     icon: Star,           label: t('nav.grades') },
-        { to: '/teacher/coins',      icon: Coins,          label: t('nav.coins') },
-      ]},
+      {
+        key: 'teaching', label: 'Darslar', icon: BookOpen, items: [
+          { to: '/teacher/schedule', icon: Calendar, label: t('nav.schedule') },
+          { to: '/teacher/groups', icon: BookOpen, label: t('nav.groups') },
+          { to: '/teacher/attendance', icon: ClipboardCheck, label: t('nav.attendance') },
+          { to: '/teacher/grades', icon: Star, label: t('nav.grades') },
+          { to: '/teacher/coins', icon: Coins, label: t('nav.coins') },
+        ]
+      },
 
       systemGroup,
     ];
@@ -110,24 +117,22 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
   if (role === 'STUDENT') {
     return [
-      { to: '/student',               icon: LayoutDashboard, label: t('nav.dashboard') },
-      { to: '/student/schedule',      icon: Calendar,        label: t('nav.schedule') },
-      { to: '/student/grades',        icon: Star,            label: t('nav.grades') },
-      { to: '/student/coins',         icon: Coins,           label: t('nav.coins') },
-      { to: '/student/payments',      icon: CreditCard,      label: t('nav.payments') },
-      { to: '/student/chat',          icon: MessageCircle,   label: t('nav.chat') },
-      { to: '/student/notifications', icon: Bell,            label: t('nav.notifications') },
-      { to: '/student/profile',       icon: User,            label: t('nav.profile') },
+      { to: '/student', icon: LayoutDashboard, label: t('nav.dashboard') },
+      { to: '/student/schedule', icon: Calendar, label: t('nav.schedule') },
+      { to: '/student/grades', icon: Star, label: t('nav.grades') },
+      { to: '/student/coins', icon: Coins, label: t('nav.coins') },
+      { to: '/student/payments', icon: CreditCard, label: t('nav.payments') },
+      { to: '/student/notifications', icon: Bell, label: t('nav.notifications') },
+      { to: '/student/profile', icon: User, label: t('nav.profile') },
     ];
   }
 
   // PARENT
   return [
-    { to: '/parent',               icon: LayoutDashboard, label: t('nav.dashboard') },
-    { to: '/parent/payments',      icon: CreditCard,      label: t('nav.payments') },
-    { to: '/parent/chat',          icon: MessageCircle,   label: t('nav.chat') },
-    { to: '/parent/notifications', icon: Bell,            label: t('nav.notifications') },
-    { to: '/parent/profile',       icon: User,            label: t('nav.profile') },
+    { to: '/parent', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { to: '/parent/payments', icon: CreditCard, label: t('nav.payments') },
+    { to: '/parent/notifications', icon: Bell, label: t('nav.notifications') },
+    { to: '/parent/profile', icon: User, label: t('nav.profile') },
   ];
 };
 

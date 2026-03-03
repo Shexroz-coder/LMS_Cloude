@@ -43,7 +43,6 @@ import ParentDashboard from './pages/parent/ParentDashboard';
 import ParentPaymentsPage from './pages/parent/ParentPaymentsPage';
 
 // Shared
-import ChatPage from './pages/shared/ChatPage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
 
@@ -71,11 +70,11 @@ const RootRedirect = () => {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   switch (user?.role) {
-    case 'ADMIN':    return <Navigate to="/admin" replace />;
-    case 'TEACHER':  return <Navigate to="/teacher" replace />;
-    case 'STUDENT':  return <Navigate to="/student" replace />;
-    case 'PARENT':   return <Navigate to="/parent" replace />;
-    default:         return <Navigate to="/login" replace />;
+    case 'ADMIN': return <Navigate to="/admin" replace />;
+    case 'TEACHER': return <Navigate to="/teacher" replace />;
+    case 'STUDENT': return <Navigate to="/student" replace />;
+    case 'PARENT': return <Navigate to="/parent" replace />;
+    default: return <Navigate to="/login" replace />;
   }
 };
 
@@ -105,7 +104,6 @@ const App = () => {
         <Route path="coins" element={<AdminCoinsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="reports" element={<ReportsPage />} />
-        <Route path="chat" element={<ChatPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -122,7 +120,6 @@ const App = () => {
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="grades" element={<GradesPage />} />
         <Route path="coins" element={<CoinsPage />} />
-        <Route path="chat" element={<ChatPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -138,7 +135,6 @@ const App = () => {
         <Route path="grades" element={<StudentGradesPage />} />
         <Route path="coins" element={<StudentCoinsPage />} />
         <Route path="payments" element={<StudentPaymentsPage />} />
-        <Route path="chat" element={<ChatPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
@@ -151,7 +147,6 @@ const App = () => {
       }>
         <Route index element={<ParentDashboard />} />
         <Route path="payments" element={<ParentPaymentsPage />} />
-        <Route path="chat" element={<ChatPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

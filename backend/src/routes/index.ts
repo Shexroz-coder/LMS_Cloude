@@ -14,7 +14,6 @@ import notificationRoutes from './notification.routes';
 import salaryRoutes from './salary.routes';
 import expenseRoutes from './expense.routes';
 import lessonRoutes from './lesson.routes';
-import chatRoutes from './chat.routes';
 import aiAssistantRoutes from './ai-assistant.routes';
 import paymeRoutes from './payme.routes';
 import { authenticate } from '../middleware/auth.middleware';
@@ -52,7 +51,6 @@ router.use('/notifications', authenticate, notificationRoutes);
 router.use('/salaries', authenticate, salaryRoutes);
 router.use('/expenses', authenticate, expenseRoutes);
 router.use('/lessons', authenticate, lessonRoutes);
-router.use('/chats', authenticate, chatRoutes);
 router.use('/ai-assistant', authenticate, aiAssistantRoutes);
 
 export default router;

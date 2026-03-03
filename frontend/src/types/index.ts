@@ -191,28 +191,6 @@ export interface Notification {
   createdAt: string;
 }
 
-// Chat & Message
-export interface Chat {
-  id: number;
-  type: 'DIRECT' | 'GROUP' | 'ANNOUNCEMENT';
-  name?: string;
-  groupId?: number;
-  createdAt: string;
-  participants?: User[];
-  lastMessage?: Message;
-}
-
-export interface Message {
-  id: number;
-  chatId: number;
-  senderId: number;
-  content?: string;
-  fileUrl?: string;
-  isRead: boolean;
-  createdAt: string;
-  sender?: User;
-}
-
 // Finance
 export interface FinanceSummary {
   totalIncome: number;

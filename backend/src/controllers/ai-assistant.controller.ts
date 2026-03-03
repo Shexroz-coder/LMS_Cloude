@@ -106,9 +106,6 @@ function detectIntent(message: string): string {
   // Coins / points
   if (/coin|ball|reward|mukofot/.test(m)) return 'COINS';
 
-  // Chat / message
-  if (/chat|xabar|message|yoz/.test(m)) return 'CHAT';
-
   // Reports
   if (/hisobot|report|statistika|statistic/.test(m)) return 'REPORTS';
 
@@ -139,19 +136,18 @@ function generateResponse(
   switch (intent) {
     case 'GREETING':
       return {
-        text: `Salom, ${userName}! 👋 Men **RoboticEdu AI yordamchisi**man. Sizga ${
-          role === 'ADMIN' ? 'tizimni boshqarishda' :
+        text: `Salom, ${userName}! 👋 Men **RoboticEdu AI yordamchisi**man. Sizga ${role === 'ADMIN' ? 'tizimni boshqarishda' :
           role === 'TEACHER' ? 'darslaringizni boshqarishda' :
-          role === 'STUDENT' ? "ta'lim jarayoningizda" :
-          "farzandingiz ta'limini kuzatishda"
-        } yordam beraman! 🤖\n\nNima haqida bilishni xohlaysiz?`,
+            role === 'STUDENT' ? "ta'lim jarayoningizda" :
+              "farzandingiz ta'limini kuzatishda"
+          } yordam beraman! 🤖\n\nNima haqida bilishni xohlaysiz?`,
         quickReplies: role === 'ADMIN'
           ? ['📊 Statistika', '👥 O\'quvchilar', '💰 To\'lovlar', '⚙️ Tizim holati']
           : role === 'TEACHER'
-          ? ['📋 Davomat qilish', '⭐ Baho qo\'yish', '👥 Guruhlarim', '📅 Jadvalim']
-          : role === 'STUDENT'
-          ? ['📚 Baholarim', '📋 Davomatim', '💎 Coinlarim', '📅 Jadvalim']
-          : ['📊 Farzandim bahosi', '📋 Davomat', '💰 To\'lov holati'],
+            ? ['📋 Davomat qilish', '⭐ Baho qo\'yish', '👥 Guruhlarim', '📅 Jadvalim']
+            : role === 'STUDENT'
+              ? ['📚 Baholarim', '📋 Davomatim', '💎 Coinlarim', '📅 Jadvalim']
+              : ['📊 Farzandim bahosi', '📋 Davomat', '💰 To\'lov holati'],
       };
 
     case 'STATS':
@@ -368,26 +364,14 @@ function generateResponse(
           (role === 'TEACHER'
             ? `**Coin berish:**\n1️⃣ Coinlar → O'quvchi tanlang\n2️⃣ Miqdor kiriting\n3️⃣ Sabab yozing → Yuborish\n\n*Dars jadvalida ham dars paytida coin berishingiz mumkin.*`
             : role === 'STUDENT'
-            ? `**Sizning coinlaringiz:** ${stats?.coins || 0} ta 💎\n\nReyting jadvalida boshqa o'quvchilar bilan raqobatlashing!`
-            : `**Coinlar** bo'limida barcha o'quvchilarning coin tarixi va reytingi ko'rsatiladi.`),
+              ? `**Sizning coinlaringiz:** ${stats?.coins || 0} ta 💎\n\nReyting jadvalida boshqa o'quvchilar bilan raqobatlashing!`
+              : `**Coinlar** bo'limida barcha o'quvchilarning coin tarixi va reytingi ko'rsatiladi.`),
         quickReplies: role === 'TEACHER'
           ? ['👥 Guruhlarim', '📋 Davomat']
           : ['📊 Reyting', '📚 Baholarim'],
       };
 
-    case 'CHAT':
-      return {
-        text: `💬 **Chat tizimi:**\n\n` +
-          `Tizim ichida barcha foydalanuvchilar bilan xabar yozish mumkin!\n\n` +
-          `**Chat** bo'limida:\n` +
-          `• Alohida (direct) xabarlar\n` +
-          `• Guruh chatlari\n` +
-          `• Fayl ulashish\n\n` +
-          `Yangi suhbat boshlash uchun **Chat → "+" → Kontakt tanlash**.`,
-        quickReplies: ['📢 E\'lonlar', '🔔 Bildirishnomalar'],
-      };
-
-    case 'HEALTH':
+    case 'COINS':
       return {
         text: `🔧 **Tizim holati:**\n\n` +
           `Tizim to'g'ri ishlayapti ✅\n\n` +
@@ -431,18 +415,17 @@ function generateResponse(
 
     case 'HELP':
       return {
-        text: `❓ **Yordam — ${
-          role === 'ADMIN' ? 'Admin' :
+        text: `❓ **Yordam — ${role === 'ADMIN' ? 'Admin' :
           role === 'TEACHER' ? 'Ustoz' :
-          role === 'STUDENT' ? 'O\'quvchi' : 'Ota-ona'
-        } uchun qo'llanma:**\n\n` +
+            role === 'STUDENT' ? 'O\'quvchi' : 'Ota-ona'
+          } uchun qo'llanma:**\n\n` +
           (role === 'ADMIN'
             ? `🏠 **Dashboard** — umumiy statistika\n👥 **O'quvchilar** — ro'yxat va boshqaruv\n👨‍🏫 **O'qituvchilar** — kadrlar boshqaruvi\n📚 **Guruhlar** — guruhlar va jadval\n💰 **To'lovlar** — to'lov qabul qilish\n💼 **Moliya** — daromad va xarajatlar\n💵 **Maoshlar** — ustoz maoshlari\n💎 **Coinlar** — rag'batlantirish tizimi\n📈 **Hisobotlar** — CSV eksport\n📢 **E'lonlar** — barcha foydalanuvchilarga xabar`
             : role === 'TEACHER'
-            ? `🏠 **Dashboard** — bugungi darslar\n📅 **Dars Jadvalim** — haftalik jadval\n👥 **Guruhlarim** — guruhlar ro'yxati\n📋 **Davomat** — davomat belgilash\n⭐ **Baholar** — baholar jadvali\n💎 **Coinlar** — o'quvchilarga coin berish\n💬 **Chat** — xabarlar`
-            : role === 'STUDENT'
-            ? `🏠 **Dashboard** — umumiy ko'rinish\n📅 **Jadvalim** — dars jadvali\n⭐ **Baholarim** — baho tarixi\n💎 **Coinlarim** — coin balansi\n💰 **To'lovlarim** — to'lov holati\n💬 **Chat** — xabarlar`
-            : `🏠 **Bosh sahifa** — farzandingiz haqida umumiy ma'lumot\n💰 **To'lov** — online to'lov imkoniyati\n💬 **Chat** — o'qituvchi bilan muloqot`),
+              ? `🏠 **Dashboard** — bugungi darslar\n📅 **Dars Jadvalim** — haftalik jadval\n👥 **Guruhlarim** — guruhlar ro'yxati\n📋 **Davomat** — davomat belgilash\n⭐ **Baholar** — baholar jadvali\n💎 **Coinlar** — o'quvchilarga coin berish`
+              : role === 'STUDENT'
+                ? `🏠 **Dashboard** — umumiy ko'rinish\n📅 **Jadvalim** — dars jadvali\n⭐ **Baholarim** — baho tarixi\n💎 **Coinlarim** — coin balansi\n💰 **To'lovlarim** — to'lov holati`
+                : `🏠 **Bosh sahifa** — farzandingiz haqida umumiy ma'lumot\n💰 **To'lov** — online to'lov imkoniyati`),
         quickReplies: ['📊 Statistika', '🔧 Tizim holati'],
       };
 
@@ -462,8 +445,8 @@ function generateResponse(
         quickReplies: role === 'ADMIN'
           ? ['📊 Statistika', '👥 O\'quvchilar', '💰 To\'lovlar', '❓ Yordam']
           : role === 'TEACHER'
-          ? ['📋 Davomat', '⭐ Baholar', '👥 Guruhlarim', '❓ Yordam']
-          : ['📚 Baholarim', '📋 Davomat', '💎 Coinlarim', '❓ Yordam'],
+            ? ['📋 Davomat', '⭐ Baholar', '👥 Guruhlarim', '❓ Yordam']
+            : ['📚 Baholarim', '📋 Davomat', '💎 Coinlarim', '❓ Yordam'],
       };
   }
 }

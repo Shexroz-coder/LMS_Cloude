@@ -90,19 +90,6 @@ enum CoinTransactionType {
   EXCHANGE
 }
 
-enum ChatType {
-  DIRECT
-  GROUP
-  ANNOUNCEMENT
-}
-
-enum MessageType {
-  TEXT
-  IMAGE
-  FILE
-  VOICE
-}
-
 enum NotificationType {
   PAYMENT
   ATTENDANCE
@@ -165,9 +152,7 @@ model User {
   student           Student?
   teacher           Teacher?
   parentStudents    Student[]        @relation("ParentStudents")
-  sentMessages      Message[]
   notifications     Notification[]
-  chatParticipants  ChatParticipant[]
   givenCoins        CoinTransaction[] @relation("CoinGiver")
   receivedPayments  Payment[]        @relation("PaymentReceiver")
   addedExpenses     Expense[]
@@ -276,7 +261,6 @@ model Group {
   schedules    Schedule[]
   lessons      Lesson[]
   monthlyFees  MonthlyFee[]
-  chat         Chat?
 
   @@map("groups")
 }
@@ -488,56 +472,8 @@ model CoinTransaction {
 }
 
 // ============================================
-// KOMMUNIKATSIYA MODULI
+// KOMUNIKATSIYA MODULI
 // ============================================
-
-model Chat {
-  id            Int       @id @default(autoincrement())
-  type          ChatType  @default(DIRECT)
-  name          String?   @db.VarChar(200)
-  groupId       Int?      @unique @map("group_id")
-  lastMessage   String?   @map("last_message") @db.VarChar(500)
-  lastMessageAt DateTime? @map("last_message_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  group        Group?           @relation(fields: [groupId], references: [id])
-  participants ChatParticipant[]
-  messages     Message[]
-
-  @@map("chats")
-}
-
-model ChatParticipant {
-  id         Int      @id @default(autoincrement())
-  chatId     Int      @map("chat_id")
-  userId     Int      @map("user_id")
-  joinedAt   DateTime @default(now()) @map("joined_at")
-  lastReadAt DateTime? @map("last_read_at")
-
-  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([chatId, userId])
-  @@map("chat_participants")
-}
-
-model Message {
-  id        Int         @id @default(autoincrement())
-  chatId    Int         @map("chat_id")
-  senderId  Int         @map("sender_id")
-  content   String?
-  type      MessageType @default(TEXT)
-  fileUrl   String?     @map("file_url")
-  fileName  String?     @map("file_name") @db.VarChar(300)
-  fileSize  Int?        @map("file_size")
-  duration  Int?
-  createdAt DateTime    @default(now()) @map("created_at")
-
-  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender User @relation(fields: [senderId], references: [id])
-
-  @@map("messages")
-}
 
 model Notification {
   id        Int              @id @default(autoincrement())
