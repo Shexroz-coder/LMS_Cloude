@@ -62,7 +62,7 @@ const StudentsPage = () => {
   const handleSearch = useCallback((v: string) => {
     setSearch(v);
     clearTimeout((window as Record<string, unknown>)._searchTimer as ReturnType<typeof setTimeout>);
-    (window as Record<string, unknown>)._searchTimer = setTimeout(() => {
+(window as Record<string, unknown>)._searchTimer = setTimeout(() => { ... });
       setDebouncedSearch(v);
       setPage(1);
     }, 400);
