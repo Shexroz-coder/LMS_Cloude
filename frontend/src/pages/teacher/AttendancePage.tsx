@@ -101,7 +101,7 @@ const AttendancePage = () => {
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        toast.error(msg || 'Xato yuz berdi');
+        void toast.error(msg || 'Xato yuz berdi');
       }
     }
   );

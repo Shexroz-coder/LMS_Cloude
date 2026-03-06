@@ -133,7 +133,7 @@ const GradesPage = () => {
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        toast.error(msg || 'Bahoni saqlashda xato');
+        void toast.error(msg || 'Bahoni saqlashda xato');
       }
     }
   );
@@ -153,7 +153,7 @@ const GradesPage = () => {
       },
       onError: (err: unknown) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        toast.error(msg || 'Saqlashda xato');
+        void toast.error(msg || 'Saqlashda xato');
       }
     }
   );

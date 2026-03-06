@@ -5,9 +5,9 @@ services:
     container_name: lms_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-lms_robotic}
-      POSTGRES_USER: ${POSTGRES_USER:-lms_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strongpassword123}
+      - POSTGRES_USER=lms_user
+      - POSTGRES_PASSWORD=lms_password  # <--- SHU QATORNI QO'SHING
+      - POSTGRES_DB=lms_robotic
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
