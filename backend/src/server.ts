@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import app from './app';
 import { setupSocketHandlers } from './socket';
 import { setIO } from './services/io.service';
+import { startTelegramBot, stopTelegramBot } from './telegram';
 
 const PORT = process.env.PORT || 5000;
 
@@ -34,6 +35,11 @@ httpServer.listen(PORT, () => {
   ║   📊 Prisma Studio: npx prisma studio    ║
   ╚══════════════════════════════════════════╝
   `);
+
+  // Telegram botni ishga tushirish
+  startTelegramBot().catch(err => {
+    console.error('❌ Telegram bot ishga tushirishda xato:', err);
+  });
 });
 
 // Kutilmagan xatoliklarni ushlash
@@ -44,6 +50,18 @@ process.on('unhandledRejection', (err) => {
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
   process.exit(1);
+});
+
+// Graceful shutdown — Telegram botni to'xtatish
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Server to\'xtatilmoqda...');
+  await stopTelegramBot();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await stopTelegramBot();
+  process.exit(0);
 });
 
 export { io };

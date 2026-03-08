@@ -148,6 +148,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  // Telegram integration
+  telegramChatId   String?   @unique @map("telegram_chat_id") @db.VarChar(100)
+  telegramUsername  String?   @map("telegram_username") @db.VarChar(100)
+  telegramLinkedAt  DateTime? @map("telegram_linked_at")
+
   // Relations
   student           Student?
   teacher           Teacher?
@@ -158,6 +163,7 @@ model User {
   addedExpenses     Expense[]
   refreshTokens     RefreshToken[]
   announcements     Announcement[]
+  telegramSessions  TelegramSession[]
 
   @@map("users")
 }
@@ -301,8 +307,9 @@ model Lesson {
   topic         String?      @db.VarChar(300)
   homework      String?
   status        LessonStatus @default(SCHEDULED)
-  durationHours Decimal      @default(1) @map("duration_hours") @db.Decimal(4, 2)
-  createdAt     DateTime     @default(now()) @map("created_at")
+  durationHours   Decimal      @default(1) @map("duration_hours") @db.Decimal(4, 2)
+  isForcedHoliday Boolean      @default(false) @map("is_forced_holiday")
+  createdAt       DateTime     @default(now()) @map("created_at")
 
   group      Group        @relation(fields: [groupId], references: [id])
   attendance Attendance[]
@@ -357,12 +364,35 @@ model LessonMaterial {
 }
 
 model Holiday {
-  id          Int      @id @default(autoincrement())
-  date        DateTime @db.Date
-  name        String   @db.VarChar(200)
-  isRecurring Boolean  @default(false) @map("is_recurring")
+  id          Int       @id @default(autoincrement())
+  date        DateTime  @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  name        String    @db.VarChar(200)
+  isRecurring Boolean   @default(false) @map("is_recurring")
+  type        String    @default("HOLIDAY") @map("type") @db.VarChar(20)
+  createdBy   Int?      @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("holidays")
+}
+
+// ============================================
+// TELEGRAM BOT
+// ============================================
+
+model TelegramSession {
+  id              Int       @id @default(autoincrement())
+  telegramChatId  String    @map("telegram_chat_id") @db.VarChar(100)
+  phone           String    @db.VarChar(20)
+  otp             String    @db.VarChar(6)
+  expiresAt       DateTime  @map("expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user            User      @relation(fields: [phone], references: [phone], onDelete: Cascade)
+
+  @@index([telegramChatId])
+  @@index([phone])
+  @@map("telegram_sessions")
 }
 
 // ============================================
@@ -384,6 +414,11 @@ model Payment {
   transactionId   String?       @map("transaction_id") @db.VarChar(200)
   provider        String?       @db.VarChar(50)   // 'PAYME' | 'UZUM'
   providerOrderId String?       @map("provider_order_id") @db.VarChar(200)
+  // Arxiv (soft delete)
+  isDeleted       Boolean       @default(false) @map("is_deleted")
+  deletedAt       DateTime?     @map("deleted_at")
+  deletedBy       Int?          @map("deleted_by")
+  deleteReason    String?       @map("delete_reason") @db.VarChar(500)
 
   student  Student @relation(fields: [studentId], references: [id])
   receiver User?   @relation("PaymentReceiver", fields: [receivedBy], references: [id])

@@ -1,0 +1,41 @@
+/**
+ * Barcha handlerlarni bot ga register qilish
+ */
+import bot, { BotContext } from '../bot';
+import { handleStart, handlePhone, handleOtp } from './start.handler';
+import { routeCallback } from './menu.handler';
+
+export function registerHandlers() {
+  // ── /start komandasi ────────────────────────────
+  bot.command('start', handleStart);
+
+  // ── Callback query handler (menyu tugmalari) ────
+  bot.on('callback_query:data', routeCallback);
+
+  // ── Text xabarlari (telefon va OTP) ─────────────
+  bot.on('message:text', async (ctx: BotContext) => {
+    const step = ctx.session.step;
+
+    // Registratsiya jarayonida bo'lsa
+    if (step === 'waiting_phone') {
+      await handlePhone(ctx);
+      return;
+    }
+
+    if (step === 'waiting_otp') {
+      await handleOtp(ctx);
+      return;
+    }
+
+    // Registratsiyadan o'tgan foydalanuvchi oddiy xabar yozsa
+    await ctx.reply(
+      '🤖 Menyudan foydalaning!\n\n/start — Asosiy menyu',
+      { parse_mode: 'HTML' }
+    );
+  });
+
+  // ── Xatolik handler ─────────────────────────────
+  bot.catch((err: Error) => {
+    console.error('❌ Telegram bot xatosi:', err);
+  });
+}

@@ -34,8 +34,16 @@ api.interceptors.response.use(
 
       try {
         const res = await axios.post('/api/v1/auth/refresh', { refreshToken });
-        const { accessToken } = res.data.data;
+        const { accessToken, refreshToken: newRefreshToken } = res.data.data;
         setAccessToken(accessToken);
+        // Yangi refreshToken ham saqlanishi kerak!
+        if (newRefreshToken) {
+          useAuthStore.getState().setAuth(
+            useAuthStore.getState().user!,
+            accessToken,
+            newRefreshToken
+          );
+        }
         original.headers.Authorization = `Bearer ${accessToken}`;
         return api(original);
       } catch {

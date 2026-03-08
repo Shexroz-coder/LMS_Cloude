@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, UserCheck, BookOpen, Calendar, ClipboardCheck,
   Star, CreditCard, BarChart3, Wallet, Coins, Bell,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
-  ChevronDown, GraduationCap, DollarSign, Settings2
+  ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
@@ -74,6 +74,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/admin/groups', icon: BookOpen, label: t('nav.groups') },
           { to: '/admin/courses', icon: Star, label: t('nav.courses') },
           { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
+          { to: '/admin/holidays', icon: CalendarOff, label: 'Bayramlar' },
         ]
       },
 

@@ -16,6 +16,7 @@ import expenseRoutes from './expense.routes';
 import lessonRoutes from './lesson.routes';
 import aiAssistantRoutes from './ai-assistant.routes';
 import paymeRoutes from './payme.routes';
+import holidayRoutes from './holiday.routes';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -52,5 +53,6 @@ router.use('/salaries', authenticate, salaryRoutes);
 router.use('/expenses', authenticate, expenseRoutes);
 router.use('/lessons', authenticate, lessonRoutes);
 router.use('/ai-assistant', authenticate, aiAssistantRoutes);
+router.use('/holidays', authenticate, holidayRoutes);
 
 export default router;

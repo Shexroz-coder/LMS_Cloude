@@ -19,6 +19,7 @@ import AnnouncementsPage from './pages/admin/AnnouncementsPage';
 import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import AdminCoinsPage from './pages/admin/AdminCoinsPage';
+import HolidaysPage from './pages/admin/HolidaysPage';
 
 // Pages — Teacher
 import TeacherLayout from './components/layout/TeacherLayout';
@@ -98,6 +99,7 @@ const App = () => {
         <Route path="groups" element={<GroupsPage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="schedule" element={<SchedulePage />} />
+        <Route path="holidays" element={<HolidaysPage />} />
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="finance" element={<FinancePage />} />
         <Route path="salaries" element={<SalariesPage />} />

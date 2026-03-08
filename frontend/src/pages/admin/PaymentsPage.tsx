@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import {
   CreditCard, Plus, Search, TrendingUp, AlertCircle, X,
   ChevronLeft, ChevronRight, DollarSign, Banknote, Smartphone, Building2,
-  Users, TrendingDown, Calculator, Percent
+  Users, TrendingDown, Calculator, Percent, Edit3, Trash2, Archive
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -18,6 +18,11 @@ interface Payment {
   paidAt: string;
   note?: string;
   student: { user: { fullName: string; phone: string } };
+  // Archive fields
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedByName?: string;
+  deleteReason?: string;
 }
 interface Summary {
   income: number; expenses: number; netProfit: number; totalDebt: number;
@@ -50,13 +55,23 @@ interface StudentObligation {
   hasSurplus: boolean;
 }
 
+const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries('payments');
+  qc.invalidateQueries('payment-summary');
+  qc.invalidateQueries('archived-payments');
+  qc.invalidateQueries('student-obligations');
+};
+
 const PaymentsPage = () => {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [currentMonth, setCurrentMonth] = useState(''); // Bo'sh = barcha to'lovlar
+  const [currentMonth, setCurrentMonth] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'payments' | 'obligations'>('payments');
+  const [editPayment, setEditPayment] = useState<Payment | null>(null);
+  const [deletePayment, setDeletePayment] = useState<Payment | null>(null);
+  const [activeTab, setActiveTab] = useState<'payments' | 'obligations' | 'archive'>('payments');
   const [obligSearch, setObligSearch] = useState('');
+  const [archivePage, setArchivePage] = useState(1);
 
   const { data, isLoading } = useQuery(
     ['payments', page, currentMonth],
@@ -79,6 +94,12 @@ const PaymentsPage = () => {
     { enabled: activeTab === 'obligations' }
   );
 
+  const { data: archiveData, isLoading: archiveLoading } = useQuery(
+    ['archived-payments', archivePage],
+    () => api.get('/payments/archive', { params: { page: archivePage, limit: 20 } }).then(r => r.data),
+    { enabled: activeTab === 'archive', keepPreviousData: true }
+  );
+
   const filteredObligations = (obligations || []).filter(o =>
     !obligSearch ||
     o.fullName.toLowerCase().includes(obligSearch.toLowerCase()) ||
@@ -93,6 +114,10 @@ const PaymentsPage = () => {
   const payments: Payment[] = Array.isArray(rawData) ? rawData : (rawData?.payments || []);
   const pagination = data?.meta || { total: 0, totalPages: 1 };
   const totalAmount: number = rawData?.totalAmount || 0;
+
+  const archiveRaw = archiveData?.data;
+  const archivedPayments: Payment[] = archiveRaw?.payments || [];
+  const archivePagination = archiveData?.meta || { total: 0, totalPages: 1 };
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -138,10 +163,11 @@ const PaymentsPage = () => {
         {[
           { key: 'payments', label: "To'lovlar tarixi", icon: CreditCard },
           { key: 'obligations', label: "O'quvchilar qarzi", icon: Users },
+          { key: 'archive', label: "Arxiv", icon: Archive },
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as 'payments' | 'obligations')}
+            onClick={() => setActiveTab(tab.key as 'payments' | 'obligations' | 'archive')}
             className={clsx(
               'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition',
               activeTab === tab.key
@@ -155,7 +181,7 @@ const PaymentsPage = () => {
         ))}
       </div>
 
-      {/* Payments Tab Content */}
+      {/* ═══ Payments Tab ═══ */}
       {activeTab === 'payments' && <>
 
       {/* Summary Cards */}
@@ -217,16 +243,17 @@ const PaymentsPage = () => {
                 <th className="hidden lg:table-cell">Oy</th>
                 <th className="hidden sm:table-cell">Sana</th>
                 <th className="hidden lg:table-cell">Izoh</th>
+                <th className="w-20">Amal</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 [...Array(8)].map((_, i) => (
-                  <tr key={i}>{[...Array(7)].map((_, j) => <td key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}</tr>
+                  <tr key={i}>{[...Array(8)].map((_, j) => <td key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}</tr>
                 ))
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-16">
+                  <td colSpan={8} className="text-center py-16">
                     <CreditCard className="w-10 h-10 mx-auto mb-3 text-gray-200" />
                     <p className="text-gray-400">
                       {currentMonth ? "Bu oyda to'lovlar yo'q" : "Hali hech qanday to'lov qilinmagan"}
@@ -234,40 +261,56 @@ const PaymentsPage = () => {
                   </td>
                 </tr>
               ) : (
-                payments.map((p, i) => {
-                  return (
-                    <tr key={p.id} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="text-gray-400 text-xs">{(page - 1) * 20 + i + 1}</td>
-                      <td>
-                        <div className="font-medium text-gray-800 text-sm">{p.student.user.fullName}</div>
-                        <div className="text-xs text-gray-400">{p.student.user.phone}</div>
-                      </td>
-                      <td>
-                        <span className="font-bold text-emerald-600 text-sm">{formatMoney(Number(p.amount))}</span>
-                      </td>
-                      <td className="hidden md:table-cell">
-                        {(() => { const MethodIcon = methodIcon[p.paymentMethod] || CreditCard; return (
-                          <span className={clsx('flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg w-fit', methodColor[p.paymentMethod] || 'text-gray-500 bg-gray-50')}>
-                            <MethodIcon className="w-3 h-3" />{methodLabel[p.paymentMethod] || p.paymentMethod}
-                          </span>
-                        ); })()}
-                      </td>
-                      <td className="hidden lg:table-cell">
-                        <span className="text-sm text-gray-600">
-                          {p.month ? format(new Date(p.month), 'MMMM yyyy') : '—'}
+                payments.map((p, i) => (
+                  <tr key={p.id} className="hover:bg-gray-50/70 transition-colors">
+                    <td className="text-gray-400 text-xs">{(page - 1) * 20 + i + 1}</td>
+                    <td>
+                      <div className="font-medium text-gray-800 text-sm">{p.student.user.fullName}</div>
+                      <div className="text-xs text-gray-400">{p.student.user.phone}</div>
+                    </td>
+                    <td>
+                      <span className="font-bold text-emerald-600 text-sm">{formatMoney(Number(p.amount))}</span>
+                    </td>
+                    <td className="hidden md:table-cell">
+                      {(() => { const MethodIcon = methodIcon[p.paymentMethod] || CreditCard; return (
+                        <span className={clsx('flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg w-fit', methodColor[p.paymentMethod] || 'text-gray-500 bg-gray-50')}>
+                          <MethodIcon className="w-3 h-3" />{methodLabel[p.paymentMethod] || p.paymentMethod}
                         </span>
-                      </td>
-                      <td className="hidden sm:table-cell">
-                        <span className="text-xs text-gray-400">
-                          {p.paidAt ? format(new Date(p.paidAt), 'd-MMM HH:mm') : '—'}
-                        </span>
-                      </td>
-                      <td className="hidden lg:table-cell">
-                        <span className="text-xs text-gray-400 max-w-[120px] truncate block">{p.note || '—'}</span>
-                      </td>
-                    </tr>
-                  );
-                })
+                      ); })()}
+                    </td>
+                    <td className="hidden lg:table-cell">
+                      <span className="text-sm text-gray-600">
+                        {p.month ? format(new Date(p.month), 'MMMM yyyy') : '—'}
+                      </span>
+                    </td>
+                    <td className="hidden sm:table-cell">
+                      <span className="text-xs text-gray-400">
+                        {p.paidAt ? format(new Date(p.paidAt), 'd-MMM HH:mm') : '—'}
+                      </span>
+                    </td>
+                    <td className="hidden lg:table-cell">
+                      <span className="text-xs text-gray-400 max-w-[120px] truncate block">{p.note || '—'}</span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditPayment(p)}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"
+                          title="Tahrirlash"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletePayment(p)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition"
+                          title="O'chirish"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -293,10 +336,9 @@ const PaymentsPage = () => {
 
       </>}
 
-      {/* Student Obligations Tab */}
+      {/* ═══ Obligations Tab ═══ */}
       {activeTab === 'obligations' && (
         <div className="space-y-4">
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="card py-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
@@ -327,7 +369,6 @@ const PaymentsPage = () => {
             </div>
           </div>
 
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -339,7 +380,6 @@ const PaymentsPage = () => {
             />
           </div>
 
-          {/* Table */}
           <div className="card p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="table w-full">
@@ -369,7 +409,7 @@ const PaymentsPage = () => {
                       </td>
                     </tr>
                   ) : filteredObligations.map((o, i) => (
-                    <tr key={o.studentId} className={clsx(
+                    <tr key={`${o.studentId}-${o.groupId}`} className={clsx(
                       'hover:bg-gray-50/70 transition-colors',
                       o.hasDebt && 'bg-red-50/30'
                     )}>
@@ -420,11 +460,112 @@ const PaymentsPage = () => {
         </div>
       )}
 
-      {/* Add Payment Modal */}
+      {/* ═══ Archive Tab ═══ */}
+      {activeTab === 'archive' && (
+        <div className="space-y-4">
+          <div className="card p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                <Archive className="w-4 h-4 text-gray-400" />
+                O'chirilgan to'lovlar arxivi
+              </h3>
+              <span className="text-xs text-gray-500">Jami: {archivePagination.total} ta</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table w-full">
+                <thead>
+                  <tr>
+                    <th className="w-10">#</th>
+                    <th>O'quvchi</th>
+                    <th>Summa</th>
+                    <th className="hidden md:table-cell">Usul</th>
+                    <th className="hidden sm:table-cell">To'lov sanasi</th>
+                    <th>O'chirgan</th>
+                    <th>Sabab</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {archiveLoading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i}>{[...Array(7)].map((_, j) => <td key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}</tr>
+                    ))
+                  ) : archivedPayments.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-16">
+                        <Archive className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                        <p className="text-gray-400">Arxivda to'lovlar yo'q</p>
+                      </td>
+                    </tr>
+                  ) : archivedPayments.map((p, i) => (
+                    <tr key={p.id} className="hover:bg-gray-50/70 transition-colors opacity-70">
+                      <td className="text-gray-400 text-xs">{(archivePage - 1) * 20 + i + 1}</td>
+                      <td>
+                        <div className="font-medium text-gray-800 text-sm">{p.student.user.fullName}</div>
+                        <div className="text-xs text-gray-400">{p.student.user.phone}</div>
+                      </td>
+                      <td>
+                        <span className="font-bold text-red-500 text-sm line-through">{formatMoney(Number(p.amount))}</span>
+                      </td>
+                      <td className="hidden md:table-cell">
+                        <span className="text-xs text-gray-500">{methodLabel[p.paymentMethod] || p.paymentMethod}</span>
+                      </td>
+                      <td className="hidden sm:table-cell">
+                        <span className="text-xs text-gray-400">
+                          {p.paidAt ? format(new Date(p.paidAt), 'd-MMM yyyy') : '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="text-xs text-gray-600">{p.deletedByName || '—'}</div>
+                        <div className="text-[10px] text-gray-400">
+                          {p.deletedAt ? format(new Date(p.deletedAt), 'd-MMM HH:mm') : ''}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="text-xs text-gray-500 max-w-[150px] truncate block">{p.deleteReason || '—'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {archivePagination.totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">{archivePagination.total} ta</p>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setArchivePage(p => Math.max(1, p - 1))} disabled={archivePage === 1}
+                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setArchivePage(p => Math.min(archivePagination.totalPages, p + 1))} disabled={archivePage === archivePagination.totalPages}
+                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Modals ═══ */}
       {showAddModal && (
         <AddPaymentModal
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => { setShowAddModal(false); qc.invalidateQueries('payments'); qc.invalidateQueries('payment-summary'); }}
+          onSuccess={() => { setShowAddModal(false); invalidateAll(qc); }}
+        />
+      )}
+      {editPayment && (
+        <EditPaymentModal
+          payment={editPayment}
+          onClose={() => setEditPayment(null)}
+          onSuccess={() => { setEditPayment(null); invalidateAll(qc); }}
+        />
+      )}
+      {deletePayment && (
+        <DeletePaymentModal
+          payment={deletePayment}
+          onClose={() => setDeletePayment(null)}
+          onSuccess={() => { setDeletePayment(null); invalidateAll(qc); }}
         />
       )}
     </div>
@@ -461,9 +602,9 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
       await api.post('/payments', {
         studentId: form.studentId,
         amount: parseFloat(form.amount),
-        paymentMethod: form.method,   // backend 'paymentMethod' kutadi
+        paymentMethod: form.method,
         month: form.month,
-        note: form.description,       // backend 'note' kutadi
+        note: form.description,
         isDebtPayment: form.isDebtPayment,
       });
       toast.success("To'lov muvaffaqiyatli qayd etildi!");
@@ -485,7 +626,6 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
         </div>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {/* Student search */}
           <div className="relative">
             <label className="label">O'quvchi *</label>
             {form.studentId ? (
@@ -524,14 +664,12 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
             )}
           </div>
 
-          {/* Amount */}
           <div>
             <label className="label">Summa (so'm) *</label>
             <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
               placeholder="500000" min="1000" step="1000" className="input text-lg font-semibold" />
           </div>
 
-          {/* Method */}
           <div>
             <label className="label">To'lov usuli</label>
             <div className="grid grid-cols-2 gap-2">
@@ -554,13 +692,11 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
             </div>
           </div>
 
-          {/* Month */}
           <div>
             <label className="label">Qaysi oyga</label>
             <input type="month" value={form.month} onChange={e => set('month', e.target.value)} className="input" />
           </div>
 
-          {/* Debt payment toggle */}
           <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl bg-gray-50">
             <input type="checkbox" checked={form.isDebtPayment} onChange={e => set('isDebtPayment', e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-primary-600" />
@@ -570,7 +706,6 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
             </div>
           </label>
 
-          {/* Description */}
           <div>
             <label className="label">Izoh</label>
             <input type="text" value={form.description} onChange={e => set('description', e.target.value)}
@@ -581,6 +716,147 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
           <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
           <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={loading} className="btn-primary flex-1">
             {loading ? 'Saqlanmoqda...' : "To'lovni qayd etish"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Edit Payment Modal ──────────────────────────────
+const EditPaymentModal = ({ payment, onClose, onSuccess }: { payment: Payment; onClose: () => void; onSuccess: () => void }) => {
+  const [form, setForm] = useState({
+    amount: String(Number(payment.amount)),
+    method: payment.paymentMethod,
+    month: payment.month ? format(new Date(payment.month), 'yyyy-MM') : '',
+    note: payment.note || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.amount || parseFloat(form.amount) <= 0) { toast.error("Summa kiritilishi shart"); return; }
+    setLoading(true);
+    try {
+      await api.put(`/payments/${payment.id}`, {
+        amount: parseFloat(form.amount),
+        paymentMethod: form.method,
+        month: form.month,
+        note: form.note,
+      });
+      toast.success("To'lov yangilandi!");
+      onSuccess();
+    } catch (err: unknown) {
+      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Xato');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Edit3 className="w-5 h-5 text-blue-600" /> To'lovni tahrirlash
+          </h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          <div className="p-3 rounded-xl bg-gray-50">
+            <div className="text-sm font-medium text-gray-700">{payment.student.user.fullName}</div>
+            <div className="text-xs text-gray-400">{payment.student.user.phone}</div>
+          </div>
+
+          <div>
+            <label className="label">Summa (so'm)</label>
+            <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
+              min="1000" step="1000" className="input text-lg font-semibold" />
+          </div>
+
+          <div>
+            <label className="label">To'lov usuli</label>
+            <select value={form.method} onChange={e => set('method', e.target.value)} className="input">
+              <option value="CASH">Naqd pul</option>
+              <option value="CARD">Bank kartasi</option>
+              <option value="TRANSFER">Bank o'tkazma</option>
+              <option value="ONLINE">Online to'lov</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="label">Qaysi oyga</label>
+            <input type="month" value={form.month} onChange={e => set('month', e.target.value)} className="input" />
+          </div>
+
+          <div>
+            <label className="label">Izoh</label>
+            <input type="text" value={form.note} onChange={e => set('note', e.target.value)}
+              placeholder="Ixtiyoriy izoh..." className="input" />
+          </div>
+        </div>
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
+          <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
+            {loading ? 'Saqlanmoqda...' : 'Saqlash'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Delete Payment Modal ──────────────────────────────
+const DeletePaymentModal = ({ payment, onClose, onSuccess }: { payment: Payment; onClose: () => void; onSuccess: () => void }) => {
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await api.delete(`/payments/${payment.id}`, { data: { reason } });
+      toast.success("To'lov o'chirildi va arxivlandi!");
+      onSuccess();
+    } catch (err: unknown) {
+      toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Xato');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+            <Trash2 className="w-5 h-5" /> To'lovni o'chirish
+          </h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          <div className="p-3 rounded-xl bg-red-50 border border-red-100">
+            <div className="text-sm font-medium text-gray-700">{payment.student.user.fullName}</div>
+            <div className="text-sm font-bold text-red-600 mt-1">{formatMoney(Number(payment.amount))}</div>
+            <div className="text-xs text-gray-400 mt-0.5">
+              {payment.paidAt ? format(new Date(payment.paidAt), 'd-MMM yyyy, HH:mm') : ''}
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-600">
+            Bu to'lov arxivga ko'chiriladi va o'quvchining balansidan qaytariladi. Bu amalni ortga qaytarib bo'lmaydi.
+          </p>
+
+          <div>
+            <label className="label">O'chirish sababi</label>
+            <input type="text" value={reason} onChange={e => setReason(e.target.value)}
+              placeholder="Sabab kiriting..." className="input" />
+          </div>
+        </div>
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
+          <button onClick={handleDelete} disabled={loading}
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition">
+            {loading ? "O'chirilmoqda..." : "O'chirish va arxivlash"}
           </button>
         </div>
       </div>

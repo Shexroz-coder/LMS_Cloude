@@ -2,6 +2,8 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
+import { countLessonsInMonth } from '../utils/schedule.utils';
+import { sendPaymentNotification } from '../telegram/services/notify.service';
 
 
 // ══════════════════════════════════════════════
@@ -18,7 +20,7 @@ export const getPayments = async (req: AuthRequest, res: Response): Promise<void
     const limitNum = Math.min(100, parseInt(limit));
     const skip = (pageNum - 1) * limitNum;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { isDeleted: false };
     if (studentId) where.studentId = parseInt(studentId);
     if (method) where.paymentMethod = method;
     if (month) {
@@ -130,6 +132,11 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
     });
 
     sendSuccess(res, result, "To'lov muvaffaqiyatli qabul qilindi!", 201);
+
+    // Telegram ga to'lov xabari yuborish
+    sendPaymentNotification(parseInt(studentId), paymentAmount, paymentMethod)
+      .catch(err => console.error('Telegram payment notification error:', err));
+
   } catch (err) {
     console.error('createPayment error:', err);
     sendError(res, "To'lovni qayd etishda xato.", 500);
@@ -154,7 +161,7 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
 
     const [incomeResult, expenseResult, debtResult, studentCount] = await Promise.all([
       prisma.payment.aggregate({
-        where: dateFilter ? { paidAt: dateFilter } : {},
+        where: dateFilter ? { paidAt: dateFilter, isDeleted: false } : { isDeleted: false },
         _sum: { amount: true }
       }),
       prisma.expense.aggregate({
@@ -175,7 +182,7 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
     // Breakdown by paymentMethod
     const byMethod = await prisma.payment.groupBy({
       by: ['paymentMethod'],
-      where: dateFilter ? { paidAt: dateFilter } : {},
+      where: dateFilter ? { paidAt: dateFilter, isDeleted: false } : { isDeleted: false },
       _sum: { amount: true },
       _count: true
     });
@@ -265,10 +272,11 @@ export const generateMonthlyFees = async (req: AuthRequest, res: Response): Prom
 
       const finalAmount = Math.max(0, baseAmount - discountAmount);
 
-      // Mavjud fee borligini tekshirish
+      // Mavjud fee borligini tekshirish (studentId + groupId + month bo'yicha)
       const existingFee = await prisma.monthlyFee.findFirst({
         where: {
           studentId: student.id,
+          groupId: gs.groupId,
           month: { gte: monthStart, lt: new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1) }
         }
       });
@@ -315,7 +323,7 @@ export const getStudentPayments = async (req: AuthRequest, res: Response): Promi
 
     const [payments, fees, balance] = await Promise.all([
       prisma.payment.findMany({
-        where: { studentId },
+        where: { studentId, isDeleted: false },
         orderBy: { paidAt: 'desc' },
         take: 24
       }),
@@ -523,13 +531,14 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
 
     const today = new Date();
 
-    const obligations = activeStudents
+    const filteredStudents = activeStudents
       .filter(gs => {
         if (!search) return true;
         return gs.student.user.fullName.toLowerCase().includes(search.toLowerCase()) ||
           gs.student.user.phone.includes(search);
-      })
-      .map(gs => {
+      });
+
+    const obligations = await Promise.all(filteredStudents.map(async (gs) => {
         const student = gs.student;
         const group = gs.group;
         const course = group.course;
@@ -547,7 +556,7 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
 
         // Scheduledan dars kunlarini hisoblash
         const uniqueDays = [...new Set(group.schedules.flatMap(s => s.daysOfWeek))];
-        const lessonsPerMonth = countLessonsInMonth(today.getFullYear(), today.getMonth(), uniqueDays);
+        const lessonsPerMonth = await countLessonsInMonth(today.getFullYear(), today.getMonth(), uniqueDays);
         const pricePerLesson = lessonsPerMonth > 0 ? monthlyAmount / lessonsPerMonth : 0;
 
         const currentDebt = Number(student.balance?.debt || 0);
@@ -573,8 +582,9 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
           hasDebt: currentDebt > 0,
           hasSurplus: currentBalance > 0,
         };
-      })
-      .sort((a, b) => b.currentDebt - a.currentDebt);
+      }));
+
+    obligations.sort((a, b) => b.currentDebt - a.currentDebt);
 
     sendSuccess(res, obligations);
   } catch (err) {
@@ -582,20 +592,6 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
     sendError(res, "O'quvchilar qarzini olishda xato.", 500);
   }
 };
-
-// ══════════════════════════════════════════════
-// Helper: oyda necha marta dars bor (schedule days bo'yicha)
-// ══════════════════════════════════════════════
-function countLessonsInMonth(year: number, month: number, days: number[]): number {
-  if (days.length === 0) return 0;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let count = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const weekday = new Date(year, month, d).getDay(); // 0=Yak, 1=Du...
-    if (days.includes(weekday)) count++;
-  }
-  return count;
-}
 
 // ══════════════════════════════════════════════
 // GET /payments/calculate/:studentId — To'lov summasi hisoblash
@@ -669,14 +665,14 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
-    const lessonsPerMonth = countLessonsInMonth(currentYear, currentMonth, uniqueDays);
+    const lessonsPerMonth = await countLessonsInMonth(currentYear, currentMonth, uniqueDays);
 
     // Narxni dars soniga bo'lib hisoblash
     const pricePerLesson = lessonsPerMonth > 0 ? monthlyAmount / lessonsPerMonth : 0;
 
     // Keyingi oy uchun darslar soni va summasi
     const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
-    const nextMonthLessons = countLessonsInMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), uniqueDays);
+    const nextMonthLessons = await countLessonsInMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), uniqueDays);
     const nextMonthAmount = Math.round(nextMonthLessons * pricePerLesson);
 
     // O'tilgan darslar soni (o'quvchi qo'shilgan kundan)
@@ -693,7 +689,7 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
 
     // Haqiqatda to'langan summa
     const totalPaidResult = await prisma.payment.aggregate({
-      where: { studentId, status: 'PAID' },
+      where: { studentId, status: 'PAID', isDeleted: false },
       _sum: { amount: true }
     });
     const totalPaid = Number(totalPaidResult._sum.amount || 0);
@@ -742,4 +738,196 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
 // ══════════════════════════════════════════════
 export const onlinePaymentCallback = async (_req: AuthRequest, res: Response): Promise<void> => {
   res.json({ success: true, message: 'Use /payme/webhook for PayMe callbacks.' });
+};
+
+// ══════════════════════════════════════════════
+// PUT /payments/:id — To'lovni tahrirlash
+// ══════════════════════════════════════════════
+export const updatePayment = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const paymentId = parseInt(req.params.id);
+    const { amount, paymentMethod, month, note } = req.body;
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { student: { include: { balance: true } } },
+    });
+
+    if (!payment || payment.isDeleted) {
+      sendError(res, "To'lov topilmadi.", 404);
+      return;
+    }
+
+    const oldAmount = Number(payment.amount);
+    const newAmount = amount !== undefined ? parseFloat(amount) : oldAmount;
+    const diff = newAmount - oldAmount;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // To'lovni yangilash
+      const updated = await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          ...(amount !== undefined && { amount: newAmount }),
+          ...(paymentMethod && { paymentMethod: paymentMethod as 'CASH' | 'CARD' | 'TRANSFER' | 'ONLINE' }),
+          ...(month && { month: new Date(month + '-01') }),
+          ...(note !== undefined && { note }),
+        },
+        include: {
+          student: { include: { user: { select: { fullName: true, phone: true } } } },
+        },
+      });
+
+      // Summada farq bo'lsa, balansni yangilash
+      if (diff !== 0 && payment.student.balance) {
+        const currentBalance = Number(payment.student.balance.balance);
+        const currentDebt = Number(payment.student.balance.debt);
+
+        let newBalance = currentBalance;
+        let newDebt = currentDebt;
+
+        if (diff > 0) {
+          // Summa oshgan — balansga qo'shish (avval qarzni kamaytirib)
+          if (newDebt > 0) {
+            const debtPaid = Math.min(diff, newDebt);
+            newDebt -= debtPaid;
+            newBalance += (diff - debtPaid);
+          } else {
+            newBalance += diff;
+          }
+        } else {
+          // Summa kamaygan — balansdan yechish yoki qarz qo'shish
+          const deduct = Math.abs(diff);
+          if (newBalance >= deduct) {
+            newBalance -= deduct;
+          } else {
+            const shortfall = deduct - newBalance;
+            newBalance = 0;
+            newDebt += shortfall;
+          }
+        }
+
+        await tx.studentBalance.update({
+          where: { studentId: payment.studentId },
+          data: { balance: newBalance, debt: newDebt },
+        });
+      }
+
+      return updated;
+    });
+
+    sendSuccess(res, result, "To'lov yangilandi!");
+  } catch (err) {
+    console.error('updatePayment error:', err);
+    sendError(res, "To'lovni yangilashda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// DELETE /payments/:id — To'lovni o'chirish (soft delete + balans qaytarish)
+// ══════════════════════════════════════════════
+export const deletePayment = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const paymentId = parseInt(req.params.id);
+    const { reason } = req.body;
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { student: { include: { balance: true } } },
+    });
+
+    if (!payment || payment.isDeleted) {
+      sendError(res, "To'lov topilmadi.", 404);
+      return;
+    }
+
+    const paymentAmount = Number(payment.amount);
+
+    await prisma.$transaction(async (tx) => {
+      // Soft delete
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: req.user!.id,
+          deleteReason: reason || null,
+        },
+      });
+
+      // Balansni qaytarish — to'lov summasi balansdan yechiladi
+      if (payment.student.balance) {
+        const currentBalance = Number(payment.student.balance.balance);
+        const currentDebt = Number(payment.student.balance.debt);
+
+        let newBalance = currentBalance;
+        let newDebt = currentDebt;
+
+        if (newBalance >= paymentAmount) {
+          newBalance -= paymentAmount;
+        } else {
+          const shortfall = paymentAmount - newBalance;
+          newBalance = 0;
+          newDebt += shortfall;
+        }
+
+        await tx.studentBalance.update({
+          where: { studentId: payment.studentId },
+          data: { balance: newBalance, debt: newDebt },
+        });
+      }
+    });
+
+    sendSuccess(res, { id: paymentId }, "To'lov o'chirildi va arxivlandi!");
+  } catch (err) {
+    console.error('deletePayment error:', err);
+    sendError(res, "To'lovni o'chirishda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /payments/archive — Arxivlangan (o'chirilgan) to'lovlar
+// ══════════════════════════════════════════════
+export const getArchivedPayments = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { page = '1', limit = '20' } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, parseInt(limit));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = { isDeleted: true };
+
+    const [payments, total] = await Promise.all([
+      prisma.payment.findMany({
+        where,
+        include: {
+          student: { include: { user: { select: { fullName: true, phone: true } } } },
+          receiver: { select: { fullName: true } },
+        },
+        skip,
+        take: limitNum,
+        orderBy: { deletedAt: 'desc' },
+      }),
+      prisma.payment.count({ where }),
+    ]);
+
+    // deletedBy foydalanuvchi nomini topish
+    const enriched = await Promise.all(
+      payments.map(async (p) => {
+        let deletedByName: string | null = null;
+        if (p.deletedBy) {
+          const deleter = await prisma.user.findUnique({
+            where: { id: p.deletedBy },
+            select: { fullName: true },
+          });
+          deletedByName = deleter?.fullName || null;
+        }
+        return { ...p, deletedByName };
+      })
+    );
+
+    sendSuccess(res, { payments: enriched }, undefined, 200, paginate(pageNum, limitNum, total));
+  } catch (err) {
+    console.error('getArchivedPayments error:', err);
+    sendError(res, 'Arxivni olishda xato.', 500);
+  }
 };

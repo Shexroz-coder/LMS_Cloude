@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getDashboardStats, getIncomeChart,
   getRecentPayments, getTodayLessons, getWeeklyAttendance,
-  getTodaySchedule,
+  getTodaySchedule, getTeacherDebtors,
 } from '../controllers/dashboard.controller';
 import { authorize } from '../middleware/auth.middleware';
 
@@ -13,6 +13,7 @@ router.get('/income-chart', authorize('ADMIN'), getIncomeChart);
 router.get('/recent-payments', authorize('ADMIN'), getRecentPayments);
 router.get('/today-lessons', authorize('ADMIN', 'TEACHER'), getTodayLessons);
 router.get('/weekly-attendance', authorize('ADMIN'), getWeeklyAttendance);
-router.get('/today-schedule', authorize('ADMIN', 'TEACHER', 'STUDENT'), getTodaySchedule);
+router.get('/today-schedule', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getTodaySchedule);
+router.get('/teacher-debtors', authorize('TEACHER'), getTeacherDebtors);
 
 export default router;

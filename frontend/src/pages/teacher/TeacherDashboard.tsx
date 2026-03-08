@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { Link } from 'react-router-dom';
 
 const DAYS_FULL = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 interface TodayEntry {
   scheduleId: number;
@@ -15,6 +16,18 @@ interface TodayEntry {
   endTime: string;
   room: string | null;
   studentCount: number;
+}
+
+interface DebtorStudent {
+  studentId: number;
+  fullName: string;
+  phone: string;
+  avatarUrl: string | null;
+  groupId: number;
+  groupName: string;
+  courseName: string;
+  debt: number;
+  balance: number;
 }
 
 const TeacherDashboard = () => {
@@ -48,6 +61,18 @@ const TeacherDashboard = () => {
       return r.data?.data || [];
     }
   );
+
+  const { data: debtorsData } = useQuery(
+    ['teacher-debtors'],
+    async () => {
+      const r = await api.get('/dashboard/teacher-debtors');
+      return r.data?.data;
+    },
+    { refetchInterval: 120000 }
+  );
+
+  const debtors: DebtorStudent[] = debtorsData?.debtors || [];
+  const totalDebt: number = debtorsData?.totalDebt || 0;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -179,6 +204,51 @@ const TeacherDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* ── Qarzdor o'quvchilar ────────────────────────── */}
+      {debtors.length > 0 && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <span className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center text-sm">💰</span>
+              Qarzdor o'quvchilar
+            </h3>
+            <span className="text-xs font-medium text-red-600 bg-red-50 px-2.5 py-1 rounded-full">
+              {debtors.length} ta · {formatMoney(totalDebt)}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {debtors.slice(0, 8).map(d => (
+              <div key={`${d.studentId}-${d.groupId}`}
+                className="flex items-center justify-between p-3 rounded-xl bg-red-50/50 border border-red-100">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    {d.avatarUrl ? (
+                      <img src={d.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-red-600">
+                        {d.fullName.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-800 text-sm truncate">{d.fullName}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{d.groupName} · {d.courseName}</p>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-red-600 flex-shrink-0 ml-2">
+                  {formatMoney(d.debt)}
+                </span>
+              </div>
+            ))}
+            {debtors.length > 8 && (
+              <p className="text-center text-xs text-gray-400 pt-1">
+                ... va yana {debtors.length - 8} ta
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Tezkor amallar ───────────────────────────── */}
       <div className="card">

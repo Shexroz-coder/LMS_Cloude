@@ -2,21 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
-
-
-// ─────────────────────────────────────────────────────────
-// Helper: Shu oydagi darslar sonini hisoblash (jadval asosida)
-// ─────────────────────────────────────────────────────────
-function countLessonsInMonth(year: number, month: number, days: number[]): number {
-  if (!days || days.length === 0) return 0;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let count = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const weekday = new Date(year, month, d).getDay();
-    if (days.includes(weekday)) count++;
-  }
-  return count;
-}
+import { countLessonsInMonth } from '../utils/schedule.utils';
 
 // ─────────────────────────────────────────────────────────
 // Helper: Bir o'quvchining oylik to'lov summasini hisoblash
@@ -69,9 +55,10 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
   const salaryValue = Number(teacher.salaryValue || 0);
 
   // ── Per-group breakdown ──
-  const groups = teacher.groups.map(g => {
+  const groups = await Promise.all(teacher.groups.map(async (g) => {
     const monthlyPrice = Number(g.course.monthlyPrice);
-    const lessonsPerMonth = g.schedules.reduce((s, sc) => s + countLessonsInMonth(year, month, sc.daysOfWeek), 0);
+    const scheduleLessons = await Promise.all(g.schedules.map(sc => countLessonsInMonth(year, month, sc.daysOfWeek)));
+    const lessonsPerMonth = scheduleLessons.reduce((s, n) => s + n, 0);
 
     const students = g.groupStudents.map(gs => {
       const disc = gs.student.discountType as string | null;
@@ -98,7 +85,7 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
       groupRevenue,
       students,
     };
-  });
+  }));
 
   const totalRevenue = groups.reduce((s, g) => s + g.groupRevenue, 0);
   const totalStudents = groups.reduce((s, g) => s + g.studentCount, 0);

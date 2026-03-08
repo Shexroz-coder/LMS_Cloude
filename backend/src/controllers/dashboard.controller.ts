@@ -119,6 +119,7 @@ export const getIncomeChart = async (_req: AuthRequest, res: Response): Promise<
 export const getRecentPayments = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const payments = await prisma.payment.findMany({
+      where: { isDeleted: false },
       take: 10,
       orderBy: { paidAt: 'desc' },
       include: {
@@ -205,6 +206,69 @@ export const getTodayLessons = async (_req: AuthRequest, res: Response): Promise
 };
 
 // ══════════════════════════════════════════════
+// GET /dashboard/teacher-debtors — Ustozning guruhlaridagi qarzdor o'quvchilar
+// ══════════════════════════════════════════════
+export const getTeacherDebtors = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+
+    // Ustozni topish
+    const teacher = await prisma.teacher.findUnique({ where: { userId } });
+    if (!teacher) {
+      sendError(res, 'Ustoz topilmadi.', 404);
+      return;
+    }
+
+    // Ustozning faol guruhlaridagi ACTIVE o'quvchilar
+    const groupStudents = await prisma.groupStudent.findMany({
+      where: {
+        status: 'ACTIVE',
+        group: { teacherId: teacher.id, status: 'ACTIVE' },
+      },
+      include: {
+        student: {
+          include: {
+            user: { select: { fullName: true, phone: true, avatarUrl: true } },
+            balance: { select: { balance: true, debt: true } },
+          },
+        },
+        group: {
+          select: { id: true, name: true, course: { select: { name: true } } },
+        },
+      },
+    });
+
+    // Faqat qarzdor o'quvchilarni filtrlash
+    const debtors = groupStudents
+      .filter(gs => {
+        const debt = Number(gs.student.balance?.debt || 0);
+        return debt > 0;
+      })
+      .map(gs => ({
+        studentId: gs.student.id,
+        fullName: gs.student.user.fullName,
+        phone: gs.student.user.phone,
+        avatarUrl: gs.student.user.avatarUrl,
+        groupId: gs.group.id,
+        groupName: gs.group.name,
+        courseName: gs.group.course.name,
+        debt: Number(gs.student.balance?.debt || 0),
+        balance: Number(gs.student.balance?.balance || 0),
+      }))
+      .sort((a, b) => b.debt - a.debt);
+
+    sendSuccess(res, {
+      debtors,
+      totalDebt: debtors.reduce((sum, d) => sum + d.debt, 0),
+      count: debtors.length,
+    });
+  } catch (err) {
+    console.error('getTeacherDebtors error:', err);
+    sendError(res, 'Qarzdor o\'quvchilarni olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /dashboard/today-schedule — Bugungi dars jadvali (Schedule asosida)
 // Admin, Teacher, Student uchun
 // ══════════════════════════════════════════════
@@ -225,6 +289,15 @@ export const getTodaySchedule = async (req: AuthRequest, res: Response): Promise
       const teacher = await prisma.teacher.findUnique({ where: { userId } });
       if (!teacher) { sendSuccess(res, []); return; }
       where.teacherId = teacher.id;
+    } else if (role === 'PARENT') {
+      // Ota-ona faqat farzandlarining guruhlarini ko'radi
+      const children = await prisma.student.findMany({
+        where: { parentId: userId },
+        select: { id: true },
+      });
+      const childIds = children.map((c) => c.id);
+      if (childIds.length === 0) { sendSuccess(res, []); return; }
+      where.groupStudents = { some: { studentId: { in: childIds }, status: 'ACTIVE' } };
     }
     // ADMIN → barcha aktiv guruhlar
 

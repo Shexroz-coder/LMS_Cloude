@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { format } from 'date-fns';
-import { Users, ChevronRight, X, Star, Loader2 } from 'lucide-react';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Users, ChevronRight, X, Star, Loader2, AlertTriangle, CalendarOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import api from '../../api/axios';
@@ -32,12 +32,26 @@ const TeacherSchedulePage = () => {
   const [attendance, setAttendance] = useState<Record<number, AttStatus>>({});
   const [coins, setCoins] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
+  const [forcedLesson, setForcedLesson] = useState(false);
 
   const { data: groups = [] } = useQuery<Group[]>('teacher-schedule-groups', async () => {
     const r = await api.get('/groups?limit=100&status=ACTIVE');
     const d = r.data?.data;
     return Array.isArray(d) ? d : d?.groups || [];
   });
+
+  // Bayram/dam olish kunlarini olish (shu oy uchun)
+  const { data: holidayDates = [] } = useQuery<string[]>('holiday-dates-month', async () => {
+    const now = new Date();
+    const from = format(startOfMonth(now), 'yyyy-MM-dd');
+    const to = format(endOfMonth(now), 'yyyy-MM-dd');
+    const r = await api.get(`/holidays/dates?from=${from}&to=${to}`);
+    return r.data?.data?.dates || [];
+  });
+
+  // Bugungi sana bayramga to'g'ri keladimi?
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const isTodayHoliday = useMemo(() => holidayDates.includes(todayStr), [holidayDates, todayStr]);
 
   // Build day → sessions map
   const dayMap: Record<number, { group: Group; schedule: Schedule }[]> = {};
@@ -73,6 +87,7 @@ const TeacherSchedulePage = () => {
       setAttendance(initAtt);
       setCoins(initCoins);
       setTopic('');
+      setForcedLesson(isTodayHoliday);
     } catch {
       toast.error("O'quvchilar ma'lumotini olishda xato");
     } finally {
@@ -105,6 +120,7 @@ const TeacherSchedulePage = () => {
         date: today,
         topic: topic || undefined,
         attendanceList: attRecords,
+        ...(forcedLesson && { forcedLesson: true }),
       });
 
       // 3. Give coins (only if > 0)
@@ -151,7 +167,16 @@ const TeacherSchedulePage = () => {
 
       {/* Sessions for selected day */}
       <div className="space-y-3">
-        {selectedDay === todayNum && (
+        {selectedDay === todayNum && isTodayHoliday && (
+          <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <CalendarOff size={18} />
+            <div>
+              <span className="font-semibold">Bugun dam olish kuni!</span>
+              <span className="ml-1 text-red-500">Dars o'tkazish uchun "Majburiy dars" tugmasini bosing. Majburiy darsda pul yechilmaydi.</span>
+            </div>
+          </div>
+        )}
+        {selectedDay === todayNum && !isTodayHoliday && (
           <div className="flex items-center gap-2 text-sm text-indigo-600">
             <span className="w-2 h-2 rounded-full bg-indigo-500" />
             Bugungi darslar
@@ -189,6 +214,13 @@ const TeacherSchedulePage = () => {
               <div className="flex items-center gap-2 flex-shrink-0">
                 {loadingSession ? (
                   <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                ) : selectedDay === todayNum && isTodayHoliday ? (
+                  <>
+                    <span className="text-xs bg-red-50 text-red-500 px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                      <AlertTriangle size={12} /> Majburiy dars
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </>
                 ) : (
                   <>
                     <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full font-medium">Dars o'tkazish</span>
@@ -219,6 +251,16 @@ const TeacherSchedulePage = () => {
             </div>
 
             <div className="px-6 py-4 space-y-5">
+              {/* Holiday warning */}
+              {forcedLesson && (
+                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+                  <AlertTriangle size={18} className="flex-shrink-0" />
+                  <div>
+                    <span className="font-semibold">Majburiy dars!</span> Dam olish kunida dars o'tkazilmoqda.
+                    <span className="text-amber-600 ml-1">O'quvchilardan pul yechilmaydi.</span>
+                  </div>
+                </div>
+              )}
               {/* Topic */}
               <div>
                 <label className="label">Dars mavzusi (ixtiyoriy)</label>

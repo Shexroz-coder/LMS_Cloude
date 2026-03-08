@@ -5,6 +5,7 @@ import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { getIO } from '../services/io.service';
 import { sendNotificationToUser } from '../socket';
+import { sendAnnouncementToAll } from '../telegram/services/notify.service';
 
 
 // ─────────────────────────────────────────────────────────
@@ -121,6 +122,9 @@ export const createAnnouncement = async (req: AuthRequest, res: Response): Promi
 
     // Async notification yuborish (response'ni bloklama)
     notifyTargetUsers(title, body, roles, ann.id, req.user!.id).catch(console.error);
+
+    // Telegram ga ham e'lonni yuborish
+    sendAnnouncementToAll(title, body).catch(console.error);
 
   } catch (err) {
     console.error('createAnnouncement error:', err);

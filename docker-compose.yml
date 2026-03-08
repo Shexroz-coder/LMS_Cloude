@@ -5,13 +5,13 @@ services:
     container_name: lms_postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=lms_user
-      - POSTGRES_PASSWORD=lms_password  # <--- SHU QATORNI QO'SHING
-      - POSTGRES_DB=lms_robotic
+      - POSTGRES_USER=${POSTGRES_USER:-lms_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lms_password}
+      - POSTGRES_DB=${POSTGRES_DB:-lms_robotic}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # ports:
+    #   - "5432:5432"  # Production'da yopiq! Faqat docker ichki tarmog'ida
     networks:
       - lms_network
     healthcheck:
@@ -28,8 +28,8 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD:-redispassword}
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"  # Production'da yopiq! Faqat docker ichki tarmog'ida
     networks:
       - lms_network
     healthcheck:

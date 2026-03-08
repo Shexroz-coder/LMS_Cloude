@@ -29,6 +29,7 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.10",
+    "grammy": "^1.21.1",
     "socket.io": "^4.7.4",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
