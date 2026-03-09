@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# OpenSSL kerak Prisma uchun
+RUN apk add --no-cache openssl
+
 # Install dependencies
 COPY package*.json ./
 RUN npm ci --frozen-lockfile
@@ -20,6 +23,9 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 WORKDIR /app
+
+# OpenSSL kerak Prisma runtime uchun
+RUN apk add --no-cache openssl
 
 # Install only production dependencies
 COPY package*.json ./
