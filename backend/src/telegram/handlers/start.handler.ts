@@ -3,8 +3,8 @@
  * Telefon → OTP → Telegram account link
  */
 import { BotContext } from '../bot';
-import { getUserByChatId, getUserByPhone, linkTelegramAccount, createOtpSession, verifyOtp } from '../services/data.service';
-import { studentMainMenu, parentMainMenu, adminMenu } from '../utils/keyboards';
+import { getUserByChatId, getUserByPhone, linkTelegramAccount, createOtpSession, verifyOtp, findParentByChildInfo } from '../services/data.service';
+import { studentMainMenu, parentMainMenu, adminMenu, welcomeKeyboard } from '../utils/keyboards';
 import { escapeHtml, brandHeader, brandFooter } from '../utils/format';
 
 // ── OTP generatsiya ───────────────────────────────
@@ -20,7 +20,7 @@ function generateOtp(): string {
 //   93 541 29 30
 //   +998 93 541 29 30
 //   8935412930  (8 bilan boshlansa)
-function normalizePhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   // 1. Barcha bo'shliq, tire, qavs, nuqtalarni olib tashlash
   let digits = phone.replace(/[^\d+]/g, '');
 
@@ -99,11 +99,12 @@ export async function handleStart(ctx: BotContext) {
     let welcome = brandHeader('📱', 'RO\'YXATDAN O\'TISH');
     welcome += 'Xush kelibsiz! Bot orqali o\'quv jarayoningizni\n';
     welcome += 'kuzatib borishingiz mumkin.\n\n';
-    welcome += '📱 Telefon raqamingizni yuboring:\n\n';
-    welcome += '<i>Misol: +998901234567</i>';
+    welcome += '📱 <b>O\'quvchi/Ustoz</b> — telefon raqamingizni yuboring:\n';
+    welcome += '<i>Misol: +998901234567</i>\n\n';
+    welcome += '👨‍👩‍👧 <b>Ota-ona</b> — quyidagi tugmani bosing:';
     welcome += brandFooter();
 
-    await ctx.reply(welcome, { parse_mode: 'HTML' });
+    await ctx.reply(welcome, { parse_mode: 'HTML', reply_markup: welcomeKeyboard() });
   } catch (err) {
     console.error('❌ handleStart xatosi:', err);
     await ctx.reply('❌ Xatolik yuz berdi. Keyinroq qayta urinib ko\'ring.\n/start').catch(() => {});
@@ -234,5 +235,137 @@ export async function handleOtp(ctx: BotContext) {
   } catch (err) {
     console.error('❌ handleOtp xatosi:', err);
     await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
+  }
+}
+
+// ── Ota-ona registratsiyasi: "Men ota-onaman" tugmasi bosilganda ──
+export async function handleParentRegister(ctx: BotContext) {
+  try {
+    ctx.session.step = 'waiting_parent_child_name';
+    ctx.session.parentChildName = undefined;
+
+    let text = brandHeader('👨‍👩‍👧', 'OTA-ONA RO\'YXATDAN O\'TISH');
+    text += 'Farzandingiz orqali profilingizga kirish uchun\n';
+    text += 'quyidagi ma\'lumotlarni kiriting.\n\n';
+    text += '👶 <b>Farzandingizning to\'liq ismini yozing:</b>\n';
+    text += '<i>Misol: Aliyev Ali</i>';
+    text += brandFooter();
+
+    await ctx.editMessageText(text, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('❌ handleParentRegister xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
+  }
+}
+
+// ── Ota-ona: farzand ismini qabul qilish ──────────────────
+export async function handleParentChildName(ctx: BotContext) {
+  try {
+    if (ctx.session.step !== 'waiting_parent_child_name') return;
+
+    const text = ctx.message?.text?.trim();
+    if (!text || text.length < 3) {
+      await ctx.reply(
+        '❌ Iltimos, farzandingizning to\'liq ismini kiriting.\n<i>Misol: Aliyev Ali</i>',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
+    // Ismni saqlash va telefon so'rash
+    ctx.session.parentChildName = text;
+    ctx.session.step = 'waiting_parent_child_phone';
+
+    let msg = `✅ Farzand ismi: <b>${escapeHtml(text)}</b>\n\n`;
+    msg += '📱 Endi <b>farzandingizning telefon raqamini</b> kiriting:\n';
+    msg += '<i>Misol: +998901234567</i>';
+
+    await ctx.reply(msg, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('❌ handleParentChildName xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
+  }
+}
+
+// ── Ota-ona: farzand telefonini qabul qilish va profil ochish ──
+export async function handleParentChildPhone(ctx: BotContext) {
+  try {
+    if (ctx.session.step !== 'waiting_parent_child_phone') return;
+
+    const text = ctx.message?.text?.trim();
+    if (!text) return;
+
+    const phone = normalizePhone(text);
+
+    if (!/^\+998\d{9}$/.test(phone)) {
+      await ctx.reply(
+        '❌ Noto\'g\'ri format!\n📱 Farzandingizning telefon raqamini kiriting:\n<i>Misol: +998901234567</i>',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
+    const childName = ctx.session.parentChildName;
+    if (!childName) {
+      ctx.session.step = 'idle';
+      await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.');
+      return;
+    }
+
+    // Farzand + ota-ona topish
+    const result = await findParentByChildInfo(childName, phone);
+
+    if (!result) {
+      await ctx.reply(
+        '❌ <b>Ma\'lumotlar mos kelmadi.</b>\n\n' +
+        'Iltimos, tekshiring:\n' +
+        '• Farzandingizning <b>to\'liq ismi</b> to\'g\'ri kiritilganmi?\n' +
+        '• <b>Telefon raqam</b> tizimda ro\'yxatdan o\'tganmi?\n\n' +
+        'Qayta urinish uchun /start bosing.',
+        { parse_mode: 'HTML' }
+      );
+      ctx.session.step = 'idle';
+      return;
+    }
+
+    const { parent } = result;
+
+    if (!parent.isActive) {
+      await ctx.reply('❌ Hisobingiz faol emas. Admin bilan bog\'laning.');
+      ctx.session.step = 'idle';
+      return;
+    }
+
+    // Agar ota-ona allaqachon boshqa chatga ulangan bo'lsa
+    if (parent.telegramChatId && parent.telegramChatId !== String(ctx.chat?.id)) {
+      await ctx.reply(
+        '⚠️ Bu ota-ona profili allaqachon boshqa Telegram akkauntga bog\'langan.\n' +
+        'Yangilash uchun adminga murojaat qiling.'
+      );
+      ctx.session.step = 'idle';
+      return;
+    }
+
+    // ✅ OTP siz — to'g'ridan-to'g'ri ulash!
+    const chatId = String(ctx.chat?.id);
+    const username = ctx.from?.username;
+    await linkTelegramAccount(parent.phone, chatId, username);
+
+    ctx.session.step = 'idle';
+    ctx.session.parentChildName = undefined;
+
+    let menuText = brandHeader('✅', 'MUVAFFAQIYATLI!');
+    menuText += `🎉 <b>${escapeHtml(parent.fullName)}</b>, xush kelibsiz!\n\n`;
+    menuText += `👶 Farzandingiz: <b>${escapeHtml(result.childName)}</b>\n\n`;
+    menuText += 'Endi barcha imkoniyatlardan foydalanishingiz mumkin:';
+
+    await ctx.reply(menuText, {
+      parse_mode: 'HTML',
+      reply_markup: parentMainMenu(),
+    });
+  } catch (err) {
+    console.error('❌ handleParentChildPhone xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
+    ctx.session.step = 'idle';
   }
 }

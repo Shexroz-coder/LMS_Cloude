@@ -482,6 +482,40 @@ export async function unlinkTelegramAccount(chatId: string) {
   return user;
 }
 
+// ─── Farzand ismi va telefon raqami bo'yicha ota-onani topish ──
+export async function findParentByChildInfo(childName: string, childPhone: string) {
+  // Farzandni telefon raqami bo'yicha izlash
+  const childUser = await getUserByPhone(childPhone);
+  if (!childUser) return null;
+
+  // Bu user STUDENT bo'lishi kerak
+  if (childUser.role !== 'STUDENT') return null;
+
+  // Ism tekshirish (kichik harfda solishtirish, bo'sh joylarni tozalash)
+  const normalizedInput = childName.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizedDb = childUser.fullName.trim().toLowerCase().replace(/\s+/g, ' ');
+
+  if (normalizedInput !== normalizedDb) return null;
+
+  // Studentni topish va parentId olish
+  const student = await prisma.student.findUnique({
+    where: { userId: childUser.id },
+    include: {
+      parent: {
+        select: { id: true, phone: true, fullName: true, role: true, isActive: true, telegramChatId: true },
+      },
+    },
+  });
+
+  if (!student || !student.parent) return null;
+
+  return {
+    parent: student.parent,
+    childName: childUser.fullName,
+    studentId: student.id,
+  };
+}
+
 // ─── Boshqa raqam bilan tezkor login (re-link) ───────────
 export async function relinkTelegramAccount(phone: string, chatId: string, username?: string) {
   // Avval eski chat ID ni tozalash (agar boshqa user ulangan bo'lsa)

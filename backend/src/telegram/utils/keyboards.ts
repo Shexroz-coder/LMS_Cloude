@@ -97,6 +97,14 @@ export function savedAccountsList(accounts: { phone: string; fullName: string; r
 }
 
 // ══════════════════════════════════════════════════════
+//  WELCOME (Yangi foydalanuvchi) — Ota-ona uchun
+// ══════════════════════════════════════════════════════
+export function welcomeKeyboard(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('👨‍👩‍👧 Men ota-onaman', 'parent_register').row();
+}
+
+// ══════════════════════════════════════════════════════
 //  JADVAL TUGMALARI (bugungi / haftalik almashtirish)
 // ══════════════════════════════════════════════════════
 export function scheduleToggle(active: 'today' | 'week'): InlineKeyboard {

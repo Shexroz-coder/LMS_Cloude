@@ -173,8 +173,8 @@ export const getStudentById = async (req: AuthRequest, res: Response): Promise<v
 export const createStudent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const {
-      fullName, phone, email, password = '12345678',
-      parentPhone, birthDate, address, notes,
+      fullName, phone, password = '12345678',
+      parentName, parentPhone, birthDate, address, notes,
       discountType, discountValue,
       groupId, joinedAt, language = 'uz',
       status = 'LEAD', demoDate, leftAt, leftReason
@@ -201,12 +201,18 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
         const parentHash = await hashPassword('12345678');
         parentUser = await prisma.user.create({
           data: {
-            fullName: fullName + ' (Ota-ona)',
+            fullName: parentName || fullName + ' (Ota-ona)',
             phone: parentPhone,
             passwordHash: parentHash,
             role: Role.PARENT,
             language: language as 'uz' | 'ru',
           }
+        });
+      } else if (parentName && parentUser.fullName !== parentName) {
+        // Agar ota-ona ismi o'zgargan bo'lsa — yangilash
+        await prisma.user.update({
+          where: { id: parentUser.id },
+          data: { fullName: parentName }
         });
       }
       parentId = parentUser.id;
@@ -220,7 +226,6 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
         data: {
           fullName,
           phone,
-          email,
           passwordHash,
           role: Role.STUDENT,
           language: language as 'uz' | 'ru',
@@ -278,10 +283,10 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const id = parseInt(req.params.id);
     const {
-      fullName, phone, email, isActive,
+      fullName, phone, isActive,
       birthDate, address, notes,
       discountType, discountValue,
-      parentPhone, language,
+      parentName, parentPhone, language,
       status, demoDate, leftAt, leftReason
     } = req.body;
 
@@ -308,12 +313,18 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
         const parentHash = await hashPassword('12345678');
         parentUser = await prisma.user.create({
           data: {
-            fullName: (fullName || student.user.fullName) + ' (Ota-ona)',
+            fullName: parentName || (fullName || student.user.fullName) + ' (Ota-ona)',
             phone: parentPhone,
             passwordHash: parentHash,
             role: Role.PARENT,
             language: (language as 'uz' | 'ru') || 'uz',
           }
+        });
+      } else if (parentName && parentUser.fullName !== parentName) {
+        // Ota-ona ismini yangilash
+        await prisma.user.update({
+          where: { id: parentUser.id },
+          data: { fullName: parentName }
         });
       }
       parentId = parentUser.id;
@@ -325,7 +336,6 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
         data: {
           ...(fullName && { fullName }),
           ...(phone && { phone }),
-          ...(email !== undefined && { email }),
           ...(isActive !== undefined && { isActive }),
           ...(language && { language: language as 'uz' | 'ru' }),
         }

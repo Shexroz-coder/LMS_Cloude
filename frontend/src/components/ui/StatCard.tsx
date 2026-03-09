@@ -1,4 +1,5 @@
 import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 
 interface StatCardProps {
@@ -11,12 +12,15 @@ interface StatCardProps {
   changeLabel?: string;
   suffix?: string;
   loading?: boolean;
+  to?: string; // navigatsiya uchun yo'l
 }
 
 const StatCard = ({
   title, value, icon: Icon, iconColor, iconBg,
-  change, changeLabel, suffix, loading
+  change, changeLabel, suffix, loading, to
 }: StatCardProps) => {
+  const navigate = useNavigate();
+
   if (loading) {
     return (
       <div className="card animate-pulse">
@@ -32,7 +36,13 @@ const StatCard = ({
   }
 
   return (
-    <div className="card hover:shadow-card-hover transition-shadow duration-200">
+    <div
+      onClick={to ? () => navigate(to) : undefined}
+      className={clsx(
+        'card hover:shadow-card-hover transition-all duration-200',
+        to && 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+      )}
+    >
       <div className="flex items-start gap-4">
         <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
           <Icon className={clsx('w-6 h-6', iconColor)} />
@@ -55,6 +65,11 @@ const StatCard = ({
           )}
         </div>
       </div>
+      {to && (
+        <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-end">
+          <span className="text-xs text-primary-500 font-medium">Batafsil →</span>
+        </div>
+      )}
     </div>
   );
 };

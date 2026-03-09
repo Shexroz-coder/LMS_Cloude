@@ -427,8 +427,9 @@ const StudentsPage = () => {
 // Student Form Modal
 // ══════════════════════════════════════════════════
 interface FormState {
-  fullName: string; phone: string; email: string; password: string;
-  parentPhone: string; birthDate: string; address: string; notes: string;
+  fullName: string; phone: string; password: string;
+  parentName: string; parentPhone: string;
+  birthDate: string; address: string; notes: string;
   discountType: string; discountValue: string; language: string;
   status: string; demoDate: string; startDate: string; leftReason: string;
 }
@@ -440,8 +441,8 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
   const [form, setForm] = useState<FormState>({
     fullName: student?.user.fullName || '',
     phone: student?.user.phone || '',
-    email: student?.user.email || '',
     password: '',
+    parentName: student?.parent?.fullName || '',
     parentPhone: student?.parent?.phone || '',
     birthDate: student?.birthDate ? format(new Date(student.birthDate), 'yyyy-MM-dd') : '',
     address: student?.address || '',
@@ -474,8 +475,8 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
     try {
       const payload: Record<string, unknown> = { ...form };
       if (!payload.password) delete payload.password;
-      if (!payload.email) delete payload.email;
       if (!payload.parentPhone) delete payload.parentPhone;
+      if (!payload.parentName) delete payload.parentName;
       if (!payload.demoDate) delete payload.demoDate;
       if (!payload.leftReason) delete payload.leftReason;
       if (!payload.language) delete payload.language;
@@ -527,11 +528,6 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
                 className={clsx('input', errors.phone && 'border-red-300')} />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
-            <div>
-              <label className="label">Email</label>
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                placeholder="email@gmail.com" className="input" />
-            </div>
             {!isEdit && (
               <div>
                 <label className="label">Parol *</label>
@@ -541,6 +537,16 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
                 {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
               </div>
             )}
+
+            {/* ── Ota-ona ma'lumotlari ── */}
+            <div className="sm:col-span-2 pt-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Ota-ona ma'lumotlari</p>
+            </div>
+            <div>
+              <label className="label">Ota-ona ismi</label>
+              <input type="text" value={form.parentName} onChange={e => set('parentName', e.target.value)}
+                placeholder="Ota yoki ona FIO" className="input" />
+            </div>
             <div>
               <label className="label">Ota-ona telefoni</label>
               <input type="tel" value={form.parentPhone} onChange={e => set('parentPhone', e.target.value)}

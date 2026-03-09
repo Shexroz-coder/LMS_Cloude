@@ -3,6 +3,9 @@ import { useQuery, useMutation } from 'react-query';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import clsx from 'clsx';
+import { Wallet, TrendingUp, Banknote, Briefcase } from 'lucide-react';
+
+const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: '👑 Admin', TEACHER: '👨‍🏫 Ustoz', STUDENT: '🎓 O\'quvchi', PARENT: '👨‍👩‍👧 Ota-ona',
@@ -61,6 +64,20 @@ const ProfilePage = () => {
     pwMutation.mutate({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword });
   };
 
+  // Teacher salary query
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isTeacher = user?.role === 'TEACHER';
+
+  const { data: salaryData } = useQuery(
+    ['profile-salary', currentMonth],
+    async () => {
+      const r = await api.get(`/salaries/teacher/me/calculate?month=${currentMonth}`);
+      return r.data?.data;
+    },
+    { enabled: isTeacher, refetchInterval: 300000, retry: 1 }
+  );
+
   const initial = (profile?.fullName || user?.fullName || '?').charAt(0).toUpperCase();
 
   return (
@@ -84,6 +101,63 @@ const ProfilePage = () => {
           {ROLE_LABELS[profile?.role || user?.role || ''] || profile?.role}
         </span>
       </div>
+
+      {/* Teacher salary section */}
+      {isTeacher && salaryData && (
+        <div className="card">
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Wallet size={18} className="text-indigo-600" />
+            Oylik ma'lumotlari
+            <span className="text-xs text-gray-400 font-normal ml-auto">
+              {now.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
+            </span>
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-blue-50 rounded-xl p-3 text-center">
+              <Briefcase size={16} className="text-blue-500 mx-auto mb-1" />
+              <div className="text-xs text-blue-600 mb-0.5">Oylik turi</div>
+              <div className="text-sm font-bold text-blue-800">
+                {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? 'Foiz' : 'Soatlik'}
+              </div>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+              <TrendingUp size={16} className="text-emerald-500 mx-auto mb-1" />
+              <div className="text-xs text-emerald-600 mb-0.5">Umumiy tushum</div>
+              <div className="text-sm font-bold text-emerald-800">
+                {formatMoney(salaryData.totalRevenue || 0)}
+              </div>
+            </div>
+            <div className="bg-indigo-50 rounded-xl p-3 text-center col-span-2">
+              <Banknote size={16} className="text-indigo-500 mx-auto mb-1" />
+              <div className="text-xs text-indigo-600 mb-0.5">Hisoblangan oylik</div>
+              <div className="text-lg font-bold text-indigo-800">
+                {formatMoney(salaryData.calculatedSalary || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Per-group breakdown */}
+          {salaryData.groups?.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Guruhlar bo'yicha</div>
+              <div className="space-y-2">
+                {salaryData.groups.map((g: any) => (
+                  <div key={g.groupId} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                      <div className="text-sm font-medium text-gray-800">{g.groupName}</div>
+                      <div className="text-xs text-gray-400">{g.courseName}</div>
+                    </div>
+                    <div className="text-sm font-bold text-indigo-600">
+                      {formatMoney(g.salary || 0)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Profile info */}
       <div className="card">

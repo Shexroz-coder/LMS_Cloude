@@ -76,13 +76,26 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
 
     const groupRevenue = students.reduce((s, st) => s + st.expectedPayment, 0);
 
+    // Per-group salary hisoblash
+    let groupSalary = 0;
+    if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
+      groupSalary = Math.round(groupRevenue * salaryValue / 100);
+    } else {
+      // PER_LESSON_HOUR — lessonsPerMonth * salaryValue (taxminiy)
+      groupSalary = Math.round(lessonsPerMonth * salaryValue);
+    }
+
     return {
       id: g.id,
+      groupId: g.id,
       name: g.name,
+      groupName: g.name,
       courseName: g.course.name,
       lessonsPerMonth,
       studentCount: students.length,
       groupRevenue,
+      revenue: groupRevenue,
+      salary: groupSalary,
       students,
     };
   }));
@@ -180,6 +193,35 @@ export const calculateAllSalaries = async (req: AuthRequest, res: Response): Pro
     });
   } catch (err) {
     console.error('calculateAllSalaries error:', err);
+    sendError(res, 'Oylik hisoblashda xato.', 500);
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// GET /salaries/teacher/me/calculate?month=2026-03
+// Ustoz o'zining oyligini ko'radi
+// ─────────────────────────────────────────────────────────
+export const calculateMySalary = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const teacher = await prisma.teacher.findUnique({ where: { userId: req.user!.id } });
+    if (!teacher) {
+      sendError(res, 'Ustoz profili topilmadi.', 404);
+      return;
+    }
+
+    const { month } = req.query as Record<string, string>;
+    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    const [yr, mo] = targetMonth.split('-').map(Number);
+
+    const result = await calcTeacherSalaryForMonth(teacher.id, yr, mo - 1);
+    if (!result) {
+      sendError(res, 'Oylik hisoblashda xato.', 404);
+      return;
+    }
+
+    sendSuccess(res, result);
+  } catch (err) {
+    console.error('calculateMySalary error:', err);
     sendError(res, 'Oylik hisoblashda xato.', 500);
   }
 };

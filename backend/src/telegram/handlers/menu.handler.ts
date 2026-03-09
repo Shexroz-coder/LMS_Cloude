@@ -15,6 +15,7 @@ import { handleProfile } from './profile';
 import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
+import { handleParentRegister } from './start.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
 export async function handleMainMenu(ctx: BotContext) {
@@ -198,6 +199,9 @@ export async function routeCallback(ctx: BotContext) {
     if (data === 'leaderboard') { await handleLeaderboard(ctx); return; }
     if (data === 'notifications') { await handleNotifications(ctx); return; }
     if (data === 'profile') { await handleProfile(ctx); return; }
+
+    // ── Ota-ona registratsiya (yangi foydalanuvchi) ──
+    if (data === 'parent_register') { await handleParentRegister(ctx); return; }
 
     // ── Ota-ona ──
     if (data === 'parent_children') { await handleParentChildren(ctx); return; }

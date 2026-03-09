@@ -71,6 +71,17 @@ const TeacherDashboard = () => {
     { refetchInterval: 120000 }
   );
 
+  // Oylik ma'lumotlari
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const { data: salaryData } = useQuery(
+    ['teacher-salary', currentMonth],
+    async () => {
+      const r = await api.get(`/salaries/teacher/me/calculate?month=${currentMonth}`);
+      return r.data?.data;
+    },
+    { refetchInterval: 300000, retry: 1 }
+  );
+
   const debtors: DebtorStudent[] = debtorsData?.debtors || [];
   const totalDebt: number = debtorsData?.totalDebt || 0;
 
@@ -204,6 +215,65 @@ const TeacherDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* ── Oylik ma'lumotlari ──────────────────────────── */}
+      {salaryData && (
+        <div className="card">
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center text-sm">💰</span>
+            Oylik ma'lumotlari — {now.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
+          </h3>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="bg-violet-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-violet-600 font-medium uppercase">Oylik turi</p>
+              <p className="text-sm font-bold text-violet-800 mt-1">
+                {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+                  ? `${salaryData.salaryValue}% to'lovdan`
+                  : `${formatMoney(salaryData.salaryValue)} soatbay`}
+              </p>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-blue-600 font-medium uppercase">Umumiy tushum</p>
+              <p className="text-sm font-bold text-blue-800 mt-1">{formatMoney(salaryData.totalRevenue || 0)}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-emerald-600 font-medium uppercase">Hisoblangan</p>
+              <p className="text-sm font-bold text-emerald-800 mt-1">{formatMoney(salaryData.calculatedSalary || 0)}</p>
+            </div>
+            <div className={`rounded-xl p-3 text-center ${salaryData.isPaid ? 'bg-green-50' : 'bg-amber-50'}`}>
+              <p className={`text-[10px] font-medium uppercase ${salaryData.isPaid ? 'text-green-600' : 'text-amber-600'}`}>Holat</p>
+              <p className={`text-sm font-bold mt-1 ${salaryData.isPaid ? 'text-green-800' : 'text-amber-800'}`}>
+                {salaryData.isPaid ? '✅ To\'langan' : '⏳ Kutilmoqda'}
+              </p>
+            </div>
+          </div>
+
+          {/* Guruhlar bo'yicha tafsilot */}
+          {salaryData.groups && salaryData.groups.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Guruhlar bo'yicha</p>
+              {salaryData.groups.map((g: { groupId: number; groupName: string; courseName: string; studentCount: number; revenue: number }) => (
+                <div key={g.groupId} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 border border-gray-100">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{g.groupName}</p>
+                    <p className="text-[11px] text-gray-400">{g.courseName} · 👥 {g.studentCount} o'quvchi</p>
+                  </div>
+                  <span className="text-sm font-bold text-gray-700 flex-shrink-0 ml-2">
+                    {formatMoney(g.revenue)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {salaryData.isPaid && salaryData.paidAt && (
+            <p className="text-xs text-gray-400 mt-3 text-right">
+              To'langan: {new Date(salaryData.paidAt).toLocaleDateString('uz-UZ')} · {formatMoney(salaryData.paidSalary || 0)}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Qarzdor o'quvchilar ────────────────────────── */}
       {debtors.length > 0 && (

@@ -2,7 +2,7 @@
  * Barcha handlerlarni bot ga register qilish
  */
 import bot, { BotContext } from '../bot';
-import { handleStart, handlePhone, handleOtp } from './start.handler';
+import { handleStart, handlePhone, handleOtp, handleParentChildName, handleParentChildPhone } from './start.handler';
 import { routeCallback } from './menu.handler';
 
 export function registerHandlers() {
@@ -24,6 +24,17 @@ export function registerHandlers() {
 
     if (step === 'waiting_otp') {
       await handleOtp(ctx);
+      return;
+    }
+
+    // Ota-ona registratsiya flow
+    if (step === 'waiting_parent_child_name') {
+      await handleParentChildName(ctx);
+      return;
+    }
+
+    if (step === 'waiting_parent_child_phone') {
+      await handleParentChildPhone(ctx);
       return;
     }
 

@@ -158,6 +158,7 @@ const AdminDashboard = () => {
           icon={Users}
           iconColor="text-primary-600"
           iconBg="bg-primary-50"
+          to="/admin/students"
         />
         <StatCard
           title={t('dashboard.totalTeachers')}
@@ -165,6 +166,7 @@ const AdminDashboard = () => {
           icon={UserCheck}
           iconColor="text-emerald-600"
           iconBg="bg-emerald-50"
+          to="/admin/teachers"
         />
         <StatCard
           title="Faol guruhlar"
@@ -172,6 +174,7 @@ const AdminDashboard = () => {
           icon={BookOpen}
           iconColor="text-indigo-600"
           iconBg="bg-indigo-50"
+          to="/admin/groups"
         />
         <StatCard
           title={t('dashboard.monthlyIncome')}
@@ -179,6 +182,7 @@ const AdminDashboard = () => {
           icon={CreditCard}
           iconColor="text-violet-600"
           iconBg="bg-violet-50"
+          to="/admin/payments"
         />
         <StatCard
           title={t('dashboard.totalDebt')}
@@ -186,6 +190,7 @@ const AdminDashboard = () => {
           icon={AlertCircle}
           iconColor="text-red-500"
           iconBg="bg-red-50"
+          to="/admin/payments"
         />
         <StatCard
           title={t('dashboard.netProfit')}
@@ -193,6 +198,7 @@ const AdminDashboard = () => {
           icon={TrendingUp}
           iconColor="text-teal-600"
           iconBg="bg-teal-50"
+          to="/admin/finance"
         />
         <StatCard
           title={t('dashboard.attendanceRate')}
@@ -201,6 +207,7 @@ const AdminDashboard = () => {
           iconColor="text-green-600"
           iconBg="bg-green-50"
           suffix="%"
+          to="/admin/reports"
         />
         <StatCard
           title="Bugungi darslar"
@@ -208,6 +215,7 @@ const AdminDashboard = () => {
           icon={BookOpen}
           iconColor="text-amber-600"
           iconBg="bg-amber-50"
+          to="/admin/schedule"
         />
       </div>
 

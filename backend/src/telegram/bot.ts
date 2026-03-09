@@ -11,13 +11,15 @@ export interface LinkedAccount {
 
 export interface SessionData {
   /** Ro'yxatdan o'tish bosqichi */
-  step: 'idle' | 'waiting_phone' | 'waiting_otp';
+  step: 'idle' | 'waiting_phone' | 'waiting_otp' | 'waiting_parent_child_name' | 'waiting_parent_child_phone';
   /** Telefon raqam (OTP tekshirish uchun) */
   phone?: string;
   /** Ota-ona tanlagan bola ID */
   selectedChildId?: number;
   /** Eslab qolingan profillar (logout qilinganda saqlanadi) */
   linkedAccounts?: LinkedAccount[];
+  /** Ota-ona registratsiyasi: farzand ismi */
+  parentChildName?: string;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;
