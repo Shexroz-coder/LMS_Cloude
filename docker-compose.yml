@@ -4,14 +4,13 @@ services:
     image: postgres:16-alpine
     container_name: lms_postgres
     restart: unless-stopped
+    env_file: .env
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-lms_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lms_password}
       - POSTGRES_DB=${POSTGRES_DB:-lms_robotic}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # ports:
-    #   - "5432:5432"  # Production'da yopiq! Faqat docker ichki tarmog'ida
     networks:
       - lms_network
     healthcheck:
@@ -25,11 +24,10 @@ services:
     image: redis:7-alpine
     container_name: lms_redis
     restart: unless-stopped
+    env_file: .env
     command: redis-server --requirepass ${REDIS_PASSWORD:-redispassword}
     volumes:
       - redis_data:/data
-    # ports:
-    #   - "6379:6379"  # Production'da yopiq! Faqat docker ichki tarmog'ida
     networks:
       - lms_network
     healthcheck:
@@ -45,10 +43,11 @@ services:
       dockerfile: Dockerfile
     container_name: lms_backend
     restart: unless-stopped
+    env_file: .env
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-strongpassword123}@postgres:5432/${POSTGRES_DB:-lms_robotic}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-lms_password}@postgres:5432/${POSTGRES_DB:-lms_robotic}
       REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379
       JWT_SECRET: ${JWT_SECRET:-supersecretjwtkey_changeme_in_production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-superrefreshsecret_changeme_in_production}
@@ -56,6 +55,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       UPLOAD_DIR: /app/uploads
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ADMIN_ID: ${TELEGRAM_ADMIN_ID:-}
     volumes:
       - uploads_data:/app/uploads
     ports:
