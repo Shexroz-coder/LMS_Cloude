@@ -4,7 +4,7 @@
  */
 import { BotContext } from '../bot';
 import { getUserByChatId, getParentChildren, getBotStats, getUnreadNotificationCount } from '../services/data.service';
-import { studentMainMenu, parentMainMenu, adminMenu, childrenList, parentChildMenu, backToMenu } from '../utils/keyboards';
+import { studentMainMenu, parentMainMenu, adminMenu, teacherMainMenu, childrenList, parentChildMenu, backToMenu } from '../utils/keyboards';
 import { escapeHtml, formatMoney, brandHeader, brandFooter } from '../utils/format';
 import { handleScheduleToday, handleScheduleWeek } from './schedule';
 import { handleAttendance } from './attendance';
@@ -16,6 +16,8 @@ import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
+import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary } from './teacher.handler';
+import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminExpenses, handleAdminSalaries, handleAdminReports } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
 export async function handleMainMenu(ctx: BotContext) {
@@ -50,9 +52,14 @@ export async function handleMainMenu(ctx: BotContext) {
     menuText += `👋 Salom, <b>${name}</b>!${notifBadge}\n\n`;
     menuText += `Quyidagi menyudan foydalaning:`;
     keyboard = parentMainMenu();
+  } else if (role === 'TEACHER') {
+    menuText = brandHeader('👨‍🏫', 'O\'QITUVCHI KABINETI');
+    menuText += `👋 Salom, <b>${name}</b>!${notifBadge}\n\n`;
+    menuText += `Quyidagi menyudan foydalaning:`;
+    keyboard = teacherMainMenu();
   } else if (role === 'ADMIN') {
     menuText = brandHeader('👑', 'ADMIN PANEL');
-    menuText += `Salom, <b>${name}</b>!`;
+    menuText += `Salom, <b>${name}</b>!${notifBadge}`;
     keyboard = adminMenu();
   } else {
     menuText = `👋 Salom, <b>${name}</b>!\nRol: ${role}`;
@@ -265,7 +272,23 @@ export async function routeCallback(ctx: BotContext) {
       return;
     }
 
+    // ── Teacher ──
+    if (data === 'teacher_today_lessons') { await handleTeacherTodayLessons(ctx); return; }
+    if (data === 'teacher_week_schedule') { await handleTeacherWeekSchedule(ctx); return; }
+    if (data === 'teacher_groups') { await handleTeacherGroups(ctx); return; }
+    if (data === 'teacher_attendance') { await handleTeacherAttendance(ctx); return; }
+    if (data === 'teacher_salary') { await handleTeacherSalary(ctx); return; }
+
     // ── Admin ──
+    if (data === 'admin_dashboard') { await handleAdminDashboard(ctx); return; }
+    if (data === 'admin_students') { await handleAdminStudents(ctx); return; }
+    if (data === 'admin_teachers') { await handleAdminTeachers(ctx); return; }
+    if (data === 'admin_groups') { await handleAdminGroups(ctx); return; }
+    if (data === 'admin_courses') { await handleAdminCourses(ctx); return; }
+    if (data === 'admin_payments') { await handleAdminPayments(ctx); return; }
+    if (data === 'admin_expenses') { await handleAdminExpenses(ctx); return; }
+    if (data === 'admin_salaries') { await handleAdminSalaries(ctx); return; }
+    if (data === 'admin_reports') { await handleAdminReports(ctx); return; }
     if (data === 'admin_stats') { await handleAdminStats(ctx); return; }
     if (data === 'admin_broadcast') { await handleAdminBroadcast(ctx); return; }
 

@@ -3,7 +3,7 @@
  */
 import { BotContext, LinkedAccount } from '../bot';
 import { getUserByChatId, unlinkTelegramAccount, getUserByPhone, linkTelegramAccount } from '../services/data.service';
-import { backToMenu, logoutConfirm, savedAccountsList, studentMainMenu, parentMainMenu, adminMenu } from '../utils/keyboards';
+import { backToMenu, logoutConfirm, savedAccountsList, studentMainMenu, parentMainMenu, adminMenu, teacherMainMenu } from '../utils/keyboards';
 import { escapeHtml, brandHeader, brandFooter } from '../utils/format';
 
 // ── Chiqish so'rovi (tasdiqlash) ─────────────────
@@ -20,7 +20,7 @@ export async function handleLogout(ctx: BotContext) {
     let text = brandHeader('🚪', 'CHIQISH');
     text += `⚠️ <b>${escapeHtml(user.fullName)}</b>, rostdan ham\n`;
     text += `akkauntdan chiqmoqchimisiz?\n\n`;
-    text += `<i>Chiqsangiz, qayta telefon va OTP bilan kirishingiz kerak bo'ladi.</i>`;
+    text += `<i>Chiqsangiz, qayta telefon raqam bilan kirishingiz kerak bo'ladi.</i>`;
 
     await ctx.editMessageText(text, {
       parse_mode: 'HTML',
@@ -137,7 +137,7 @@ export async function handleSwitchAccount(ctx: BotContext) {
   }
 }
 
-// ── Tezkor login (saqlangan profil bilan) ────────
+// ── Tezkor login (saqlangan profil bilan — OTP siz) ────────
 export async function handleQuickLogin(ctx: BotContext, phone: string) {
   try {
     const chatId = String(ctx.chat?.id);
@@ -145,7 +145,6 @@ export async function handleQuickLogin(ctx: BotContext, phone: string) {
     // Telefon raqamni DB dan tekshirish
     const user = await getUserByPhone(phone);
     if (!user) {
-      // Profil DB dan o'chirilgan
       if (ctx.session.linkedAccounts) {
         ctx.session.linkedAccounts = ctx.session.linkedAccounts.filter(a => a.phone !== phone);
       }
@@ -161,24 +160,29 @@ export async function handleQuickLogin(ctx: BotContext, phone: string) {
       return;
     }
 
-    // Xavfsizlik: OTP talab qilish
-    // Tezkor login faqat session davomida ishlaydi (session saqlanib qolsa)
-    // Agar boshqa qurilmadan kirgan bo'lsa, eski session yo'q
-    const { createOtpSession } = await import('../services/data.service');
+    // ✅ OTP siz — to'g'ridan-to'g'ri ulash
+    const username = ctx.from?.username;
+    await linkTelegramAccount(user.phone, chatId, username);
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    await createOtpSession(chatId, user.phone, otp);
+    ctx.session.step = 'idle';
 
-    ctx.session.step = 'waiting_otp';
-    ctx.session.phone = user.phone;
+    let menuText = brandHeader('✅', 'MUVAFFAQIYATLI!');
+    menuText += `🎉 <b>${escapeHtml(user.fullName)}</b>, xush kelibsiz!`;
+    let keyboard;
 
-    let text = brandHeader('🔐', 'XAVFSIZLIK TASDIQLASH');
-    text += `📱 <b>${escapeHtml(user.fullName)}</b> profiliga kirish\n\n`;
-    text += `Tasdiqlash kodi:\n\n`;
-    text += `<code>${otp}</code>\n\n`;
-    text += `☝️ Kodni bosing va menga yuboring.`;
+    if (user.role === 'STUDENT') {
+      keyboard = studentMainMenu();
+    } else if (user.role === 'PARENT') {
+      keyboard = parentMainMenu();
+    } else if (user.role === 'TEACHER') {
+      keyboard = teacherMainMenu();
+    } else if (user.role === 'ADMIN') {
+      keyboard = adminMenu();
+    } else {
+      keyboard = studentMainMenu();
+    }
 
-    await ctx.editMessageText(text, { parse_mode: 'HTML' });
+    await ctx.editMessageText(menuText, { parse_mode: 'HTML', reply_markup: keyboard });
   } catch (err) {
     console.error('❌ handleQuickLogin xatosi:', err);
     await ctx.editMessageText('❌ Xatolik yuz berdi.', { reply_markup: backToMenu() }).catch(() => {});

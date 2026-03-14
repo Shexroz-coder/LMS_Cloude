@@ -7,6 +7,7 @@ import app from './app';
 import { setupSocketHandlers } from './socket';
 import { setIO } from './services/io.service';
 import { startTelegramBot, stopTelegramBot } from './telegram';
+import { startMonthlyDebtCron } from './cron/monthly-debt.cron';
 
 const PORT = process.env.PORT || 5000;
 
@@ -40,6 +41,9 @@ httpServer.listen(PORT, () => {
   startTelegramBot().catch(err => {
     console.error('❌ Telegram bot ishga tushirishda xato:', err);
   });
+
+  // Cron job'larni ishga tushirish
+  startMonthlyDebtCron();
 });
 
 // Kutilmagan xatoliklarni ushlash

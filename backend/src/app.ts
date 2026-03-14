@@ -18,22 +18,22 @@ app.use(cors({
 
 // ── Rate Limiting ──────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 daqiqa
-  max: 100, // 100 so'rov
+  windowMs: 1 * 60 * 1000, // 1 daqiqa
+  max: 200, // 200 so'rov/daqiqa (admin uzoq ishlashi uchun yetarli)
   message: {
     success: false,
-    message: 'Juda ko\'p so\'rov yuborildingiz. 15 daqiqadan so\'ng urinib ko\'ring.',
+    message: 'Juda ko\'p so\'rov yuborildingiz. 1 daqiqadan so\'ng urinib ko\'ring.',
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10, // Login uchun 10 urinish
+  windowMs: 5 * 60 * 1000, // 5 daqiqa
+  max: 15, // Login uchun 15 urinish/5 daqiqa
   message: {
     success: false,
-    message: 'Juda ko\'p kirish urinishlari. 15 daqiqadan so\'ng urinib ko\'ring.',
+    message: 'Juda ko\'p kirish urinishlari. 5 daqiqadan so\'ng urinib ko\'ring.',
   },
 });
 

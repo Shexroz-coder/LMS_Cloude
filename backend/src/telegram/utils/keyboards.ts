@@ -40,12 +40,30 @@ export function parentChildMenu(childId: number): InlineKeyboard {
 }
 
 // ══════════════════════════════════════════════════════
-//  ADMIN MENYUSI
+//  O'QITUVCHI ASOSIY MENYUSI
+// ══════════════════════════════════════════════════════
+export function teacherMainMenu(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text('📅 Bugungi darslar', 'teacher_today_lessons').text('🗓 Haftalik jadval', 'teacher_week_schedule').row()
+    .text('👥 Guruhlarim', 'teacher_groups').row()
+    .text('✅ Davomat belgilash', 'teacher_attendance').row()
+    .text('💰 Maoshim', 'teacher_salary').text('👤 Profil', 'profile').row()
+    .text('🔔 Bildirishnomalar', 'notifications').row()
+    .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
+}
+
+// ══════════════════════════════════════════════════════
+//  ADMIN MENYUSI (to'liq)
 // ══════════════════════════════════════════════════════
 export function adminMenu(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('📢 Broadcast xabar', 'admin_broadcast').row()
-    .text('📊 Bot statistika', 'admin_stats').row();
+    .text('📊 Dashboard', 'admin_dashboard').row()
+    .text('👥 O\'quvchilar', 'admin_students').text('👨‍🏫 O\'qituvchilar', 'admin_teachers').row()
+    .text('📚 Guruhlar', 'admin_groups').text('📖 Kurslar', 'admin_courses').row()
+    .text('💰 To\'lovlar', 'admin_payments').text('💸 Xarajatlar', 'admin_expenses').row()
+    .text('💼 Maoshlar', 'admin_salaries').text('📈 Hisobotlar', 'admin_reports').row()
+    .text('📢 Broadcast xabar', 'admin_broadcast').text('📊 Bot statistika', 'admin_stats').row()
+    .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
 }
 
 // ══════════════════════════════════════════════════════

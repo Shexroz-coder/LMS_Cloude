@@ -66,6 +66,24 @@ export async function getUserByPhone(phone: string) {
 
 // ─── Telegram chat ID ni foydalanuvchiga bog'lash ─────────
 export async function linkTelegramAccount(phone: string, chatId: string, username?: string) {
+  // 1. Agar bu chatId allaqachon boshqa userga ulangan bo'lsa — avval tozalash
+  const existingWithChatId = await prisma.user.findUnique({
+    where: { telegramChatId: chatId },
+  });
+  if (existingWithChatId && existingWithChatId.phone !== phone) {
+    await prisma.user.update({
+      where: { id: existingWithChatId.id },
+      data: { telegramChatId: null, telegramUsername: null, telegramLinkedAt: null },
+    });
+  }
+
+  // 2. Agar bu phone boshqa chatId ga ulangan bo'lsa — tozalash
+  const targetUser = await prisma.user.findUnique({ where: { phone } });
+  if (targetUser && targetUser.telegramChatId && targetUser.telegramChatId !== chatId) {
+    // Eski qurilmadagi ulanishni bekor qilish
+  }
+
+  // 3. Yangi ulanishni saqlash
   return prisma.user.update({
     where: { phone },
     data: {
@@ -483,6 +501,7 @@ export async function unlinkTelegramAccount(chatId: string) {
 }
 
 // ─── Farzand ismi va telefon raqami bo'yicha ota-onani topish ──
+// Endi tasdiqlash kodi kerak emas — faqat ism + telefon to'g'ri bo'lsa kirish mumkin
 export async function findParentByChildInfo(childName: string, childPhone: string) {
   // Farzandni telefon raqami bo'yicha izlash
   const childUser = await getUserByPhone(childPhone);
@@ -507,12 +526,44 @@ export async function findParentByChildInfo(childName: string, childPhone: strin
     },
   });
 
-  if (!student || !student.parent) return null;
+  if (!student) return null;
+
+  // Agar student ga parent biriktirilgan bo'lsa — shu parentni qaytarish
+  if (student.parent) {
+    return {
+      parent: student.parent,
+      childName: childUser.fullName,
+      studentId: student.id,
+    };
+  }
+
+  // Agar parent yo'q bo'lsa — chatId dagi userni PARENT sifatida izlash
+  // yoki null qaytarish (admin qo'lda parent biriktirishi kerak)
+  return null;
+}
+
+// ─── Ota-onani telefon + ism bo'yicha topish (tasdiqlash kodsiz) ──
+// Bir nechta bolaga bitta parent ulangan bo'lishi mumkin
+export async function findParentByPhone(parentPhone: string) {
+  const parentUser = await getUserByPhone(parentPhone);
+  if (!parentUser) return null;
+  if (parentUser.role !== 'PARENT') return null;
+
+  // Bu parentning barcha bolalarini topish
+  const children = await prisma.student.findMany({
+    where: { parentId: parentUser.id },
+    include: {
+      user: { select: { fullName: true, phone: true } },
+    },
+  });
 
   return {
-    parent: student.parent,
-    childName: childUser.fullName,
-    studentId: student.id,
+    parent: parentUser,
+    children: children.map(c => ({
+      studentId: c.id,
+      fullName: c.user.fullName,
+      phone: c.user.phone,
+    })),
   };
 }
 

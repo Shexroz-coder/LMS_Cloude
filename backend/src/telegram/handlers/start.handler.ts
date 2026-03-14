@@ -4,7 +4,7 @@
  */
 import { BotContext } from '../bot';
 import { getUserByChatId, getUserByPhone, linkTelegramAccount, createOtpSession, verifyOtp, findParentByChildInfo } from '../services/data.service';
-import { studentMainMenu, parentMainMenu, adminMenu, welcomeKeyboard } from '../utils/keyboards';
+import { studentMainMenu, parentMainMenu, adminMenu, teacherMainMenu, welcomeKeyboard } from '../utils/keyboards';
 import { escapeHtml, brandHeader, brandFooter } from '../utils/format';
 
 // ── OTP generatsiya ───────────────────────────────
@@ -77,6 +77,10 @@ export async function handleStart(ctx: BotContext) {
         menuText = brandHeader('👨‍👩‍👧', 'OTA-ONA KABINETI');
         menuText += `👋 Salom, <b>${name}</b>!\n\nQuyidagi menyudan foydalaning:`;
         keyboard = parentMainMenu();
+      } else if (role === 'TEACHER') {
+        menuText = brandHeader('👨‍🏫', 'O\'QITUVCHI KABINETI');
+        menuText += `👋 Salom, <b>${name}</b>!\n\nQuyidagi menyudan foydalaning:`;
+        keyboard = teacherMainMenu();
       } else if (role === 'ADMIN') {
         menuText = brandHeader('👑', 'ADMIN PANEL');
         menuText += `Salom, <b>${name}</b>!`;
@@ -147,31 +151,41 @@ export async function handlePhone(ctx: BotContext) {
       return;
     }
 
-    // Agar allaqachon boshqa chat ID ga bog'langan bo'lsa
+    // Agar allaqachon boshqa chat ID ga bog'langan bo'lsa — ogohlantirish
     if (user.telegramChatId && user.telegramChatId !== String(ctx.chat?.id)) {
       await ctx.reply(
-        '⚠️ Bu telefon raqam allaqachon boshqa Telegram akkauntga bog\'langan.\n' +
-        'Yangilash uchun adminga murojaat qiling.'
+        '⚠️ Bu raqam boshqa Telegram akkauntga ulangan edi.\n' +
+        'Eski ulanish o\'chiriladi va siz yangi qurilmadan kirasiz.'
       );
-      return;
     }
 
-    // OTP yaratish va saqlash
-    // user.phone — DB dagi haqiqiy format (masalan +998935412930)
-    const otp = generateOtp();
+    // ✅ Tasdiqlash kodsiz to'g'ridan-to'g'ri ulash
     const chatId = String(ctx.chat?.id);
-    await createOtpSession(chatId, user.phone, otp);
+    const username = ctx.from?.username;
+    await linkTelegramAccount(user.phone, chatId, username);
 
-    ctx.session.step = 'waiting_otp';
-    ctx.session.phone = user.phone;
+    ctx.session.step = 'idle';
 
-    await ctx.reply(
-      `📩 <b>${user.fullName}</b>, tasdiqlash kodi:\n\n` +
-      `<code>${otp}</code>\n\n` +
-      '☝️ Kodni bosing (nusxa olish) va menga yuboring.\n' +
-      '<i>Kod 10 daqiqa amal qiladi.</i>',
-      { parse_mode: 'HTML' }
-    );
+    let menuText = brandHeader('✅', 'MUVAFFAQIYATLI!');
+    menuText += `🎉 <b>${escapeHtml(user.fullName)}</b>, xush kelibsiz!\n\nEndi barcha imkoniyatlardan foydalanishingiz mumkin:`;
+    let keyboard;
+
+    if (user.role === 'STUDENT') {
+      keyboard = studentMainMenu();
+    } else if (user.role === 'PARENT') {
+      keyboard = parentMainMenu();
+    } else if (user.role === 'ADMIN') {
+      keyboard = adminMenu();
+    } else if (user.role === 'TEACHER') {
+      keyboard = teacherMainMenu();
+    } else {
+      keyboard = studentMainMenu();
+    }
+
+    await ctx.reply(menuText, {
+      parse_mode: 'HTML',
+      reply_markup: keyboard,
+    });
   } catch (err) {
     console.error('❌ handlePhone xatosi:', err);
     await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
@@ -222,6 +236,8 @@ export async function handleOtp(ctx: BotContext) {
       keyboard = studentMainMenu();
     } else if (user.role === 'PARENT') {
       keyboard = parentMainMenu();
+    } else if (user.role === 'TEACHER') {
+      keyboard = teacherMainMenu();
     } else if (user.role === 'ADMIN') {
       keyboard = adminMenu();
     } else {
@@ -336,14 +352,12 @@ export async function handleParentChildPhone(ctx: BotContext) {
       return;
     }
 
-    // Agar ota-ona allaqachon boshqa chatga ulangan bo'lsa
+    // Agar ota-ona allaqachon boshqa chatga ulangan bo'lsa — qayta ulash
     if (parent.telegramChatId && parent.telegramChatId !== String(ctx.chat?.id)) {
       await ctx.reply(
-        '⚠️ Bu ota-ona profili allaqachon boshqa Telegram akkauntga bog\'langan.\n' +
-        'Yangilash uchun adminga murojaat qiling.'
+        '⚠️ Bu profil boshqa Telegram akkauntga ulangan edi.\n' +
+        'Eski ulanish o\'chiriladi va siz yangi qurilmadan kirasiz.'
       );
-      ctx.session.step = 'idle';
-      return;
     }
 
     // ✅ OTP siz — to'g'ridan-to'g'ri ulash!
