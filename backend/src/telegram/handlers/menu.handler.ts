@@ -16,7 +16,7 @@ import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
-import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary } from './teacher.handler';
+import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleAttGroupSelect, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
 import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminExpenses, handleAdminSalaries, handleAdminReports } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
@@ -278,6 +278,36 @@ export async function routeCallback(ctx: BotContext) {
     if (data === 'teacher_groups') { await handleTeacherGroups(ctx); return; }
     if (data === 'teacher_attendance') { await handleTeacherAttendance(ctx); return; }
     if (data === 'teacher_salary') { await handleTeacherSalary(ctx); return; }
+
+    // ── Teacher: Davomat belgilash ──
+    if (data.startsWith('att_group_')) {
+      const groupId = parseInt(data.replace('att_group_', ''));
+      await handleAttGroupSelect(ctx, groupId);
+      return;
+    }
+    if (data.startsWith('att_mark_')) {
+      const parts = data.replace('att_mark_', '').split('_');
+      const lessonId = parseInt(parts[0]);
+      const studentId = parseInt(parts[1]);
+      const status = parts[2];
+      await handleAttMark(ctx, lessonId, studentId, status);
+      return;
+    }
+    if (data.startsWith('att_all_present_')) {
+      const parts = data.replace('att_all_present_', '').split('_');
+      const lessonId = parseInt(parts[0]);
+      const groupId = parseInt(parts[1]);
+      await handleAttAllPresent(ctx, lessonId, groupId);
+      return;
+    }
+    if (data.startsWith('att_complete_')) {
+      const parts = data.replace('att_complete_', '').split('_');
+      const lessonId = parseInt(parts[0]);
+      const groupId = parseInt(parts[1]);
+      await handleAttComplete(ctx, lessonId, groupId);
+      return;
+    }
+    if (data === 'att_noop') { return; }
 
     // ── Admin ──
     if (data === 'admin_dashboard') { await handleAdminDashboard(ctx); return; }
