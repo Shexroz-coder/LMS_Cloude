@@ -3,11 +3,13 @@
  * Dashboard, o'quvchilar, guruhlar, moliya, hisobotlar
  */
 import { BotContext } from '../bot';
+import bot from '../bot';
 import { getUserByChatId } from '../services/data.service';
 import { adminMenu, backToMenu } from '../utils/keyboards';
 import { escapeHtml, formatMoney, brandHeader, brandFooter } from '../utils/format';
 import prisma from '../../lib/prisma';
 import { InlineKeyboard } from 'grammy';
+import { sendAdminReport } from '../../cron/lesson-reminder.cron';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -714,4 +716,229 @@ export async function handleAdminCourses(ctx: BotContext) {
   }
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminMenu() });
+}
+
+// ══════════════════════════════════════════════════════
+//  BROADCAST — Xabar yuborish tizimi
+// ══════════════════════════════════════════════════════
+
+export async function handleAdminBroadcast(ctx: BotContext) {
+  if (!(await checkAdmin(ctx))) return;
+
+  let text = `📢 <b>BROADCAST XABAR</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  text += `Kimga xabar yubormoqchisiz?\n`;
+
+  const kb = new InlineKeyboard();
+  kb.text('🎓 Barcha o\'quvchilar', 'broadcast_students').row();
+  kb.text('👨‍👩‍👧 Barcha ota-onalar', 'broadcast_parents').row();
+  kb.text('👨‍🏫 Barcha ustozlar', 'broadcast_teachers').row();
+  kb.text('👥 Hammaga', 'broadcast_all').row();
+  kb.text('📋 Yuborilgan xabarlar', 'broadcast_history').row();
+  kb.text('⬅️ Asosiy menyu', 'main_menu');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+export async function handleBroadcastTarget(ctx: BotContext, target: string) {
+  if (!(await checkAdmin(ctx))) return;
+
+  const targetLabel = target === 'students' ? 'O\'quvchilar' :
+    target === 'parents' ? 'Ota-onalar' :
+      target === 'teachers' ? 'Ustozlar' : 'Hammaga';
+
+  ctx.session.step = 'waiting_broadcast_text';
+  ctx.session.broadcastTarget = target;
+
+  let text = `📢 <b>BROADCAST — ${targetLabel}</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  text += `Yubormoqchi bo'lgan xabaringizni yozing:\n\n`;
+  text += `<i>Matn yozib yuboring...</i>`;
+
+  const kb = new InlineKeyboard();
+  kb.text('❌ Bekor qilish', 'admin_broadcast');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+export async function handleBroadcastSend(ctx: BotContext) {
+  const messageText = ctx.message?.text;
+  const target = ctx.session.broadcastTarget;
+
+  ctx.session.step = 'idle';
+  ctx.session.broadcastTarget = undefined;
+
+  if (!messageText || !target) {
+    await ctx.reply('❌ Xabar yoki target topilmadi.');
+    return;
+  }
+
+  // Admin tekshirish
+  const chatId = String(ctx.chat?.id);
+  const adminUser = await getUserByChatId(chatId);
+  if (!adminUser || adminUser.role !== 'ADMIN') {
+    await ctx.reply('❌ Faqat admin uchun.');
+    return;
+  }
+
+  await ctx.reply('⏳ Xabarlar yuborilmoqda...');
+
+  // Target bo'yicha foydalanuvchilarni topish
+  let whereClause: any = { telegramChatId: { not: null }, isActive: true };
+  if (target === 'students') whereClause.role = 'STUDENT';
+  else if (target === 'parents') whereClause.role = 'PARENT';
+  else if (target === 'teachers') whereClause.role = 'TEACHER';
+
+  const users = await prisma.user.findMany({
+    where: whereClause,
+    select: { id: true, fullName: true, telegramChatId: true, role: true },
+  });
+
+  let sentCount = 0;
+  let failCount = 0;
+  const sentMessages: { chatId: string; messageId: number; name: string; role: string }[] = [];
+  const failedUsers: { name: string; error: string }[] = [];
+
+  for (const user of users) {
+    if (!user.telegramChatId) continue;
+    try {
+      const sent = await bot.api.sendMessage(user.telegramChatId, `📢 <b>Xabar</b>\n\n${messageText}`, { parse_mode: 'HTML' });
+      sentMessages.push({ chatId: user.telegramChatId, messageId: sent.message_id, name: user.fullName, role: user.role });
+      sentCount++;
+    } catch (e: any) {
+      failCount++;
+      failedUsers.push({ name: user.fullName, error: e.message?.slice(0, 50) || 'unknown' });
+    }
+  }
+
+  // E'lonni saqlash
+  const targetRoles = target === 'students' ? ['STUDENT'] :
+    target === 'parents' ? ['PARENT'] :
+      target === 'teachers' ? ['TEACHER'] :
+        ['STUDENT', 'PARENT', 'TEACHER', 'ADMIN'];
+
+  await prisma.announcement.create({
+    data: {
+      title: 'Broadcast xabar',
+      body: messageText,
+      targetRoles: targetRoles as any,
+      createdBy: adminUser.id,
+    },
+  });
+
+  // Admin'ga hisobot
+  const targetLabel = target === 'students' ? 'O\'quvchilar' :
+    target === 'parents' ? 'Ota-onalar' :
+      target === 'teachers' ? 'Ustozlar' : 'Hammaga';
+
+  let report = `📋 <b>BROADCAST HISOBOTI</b>\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `📌 Target: <b>${targetLabel}</b>\n`;
+  report += `📅 ${new Date().toLocaleString('uz')}\n\n`;
+  report += `✅ Yuborildi: <b>${sentCount}</b>\n`;
+  if (failCount > 0) report += `❌ Xato: <b>${failCount}</b>\n`;
+  report += '\n';
+
+  report += `<b>📝 Xabar:</b>\n`;
+  report += `<i>${escapeHtml(messageText.slice(0, 200))}${messageText.length > 200 ? '...' : ''}</i>\n\n`;
+
+  if (sentMessages.length > 0) {
+    report += `<b>✅ Ro'yxat:</b>\n`;
+    for (const m of sentMessages.slice(0, 25)) {
+      const icon = m.role === 'STUDENT' ? '🎓' : m.role === 'PARENT' ? '👨‍👩‍👧' : '👨‍🏫';
+      report += `${icon} ${escapeHtml(m.name)}\n`;
+    }
+    if (sentMessages.length > 25) report += `<i>... va yana ${sentMessages.length - 25} ta</i>\n`;
+  }
+
+  if (failedUsers.length > 0) {
+    report += `\n<b>❌ Xatoliklar:</b>\n`;
+    for (const f of failedUsers.slice(0, 10)) {
+      report += `⚠️ ${escapeHtml(f.name)}: ${f.error}\n`;
+    }
+  }
+
+  // Sessionga saqlash (o'chirish uchun)
+  (ctx.session as any).lastBroadcastMessages = sentMessages;
+
+  const kb = new InlineKeyboard();
+  if (sentMessages.length > 0) {
+    kb.text('🗑 Barcha xabarlarni o\'chirish', 'broadcast_delete_all').row();
+    kb.text('🔄 Qayta yuborish', `broadcast_resend_${target}`).row();
+  }
+  kb.text('⬅️ Broadcast menyu', 'admin_broadcast');
+
+  await ctx.reply(report, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+export async function handleBroadcastDeleteAll(ctx: BotContext) {
+  const chatId = String(ctx.chat?.id);
+  const user = await getUserByChatId(chatId);
+  if (!user || user.role !== 'ADMIN') return;
+
+  const messages = (ctx.session as any).lastBroadcastMessages as
+    { chatId: string; messageId: number; name: string }[] | undefined;
+
+  if (!messages || messages.length === 0) {
+    await ctx.editMessageText('❌ O\'chiriladigan xabarlar topilmadi.', { reply_markup: backToMenu() });
+    return;
+  }
+
+  let deleted = 0;
+  let failed = 0;
+
+  for (const m of messages) {
+    try {
+      await bot.api.deleteMessage(m.chatId, m.messageId);
+      deleted++;
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  delete (ctx.session as any).lastBroadcastMessages;
+
+  let text = `🗑 <b>XABARLAR O'CHIRILDI</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  text += `✅ O'chirildi: <b>${deleted}</b>\n`;
+  if (failed > 0) text += `❌ Xato: <b>${failed}</b>\n`;
+
+  const kb = new InlineKeyboard();
+  kb.text('⬅️ Broadcast menyu', 'admin_broadcast');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+export async function handleBroadcastResend(ctx: BotContext, target: string) {
+  await handleBroadcastTarget(ctx, target);
+}
+
+export async function handleBroadcastHistory(ctx: BotContext) {
+  if (!(await checkAdmin(ctx))) return;
+
+  const announcements = await prisma.announcement.findMany({
+    include: { creator: { select: { fullName: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+
+  let text = `📋 <b>YUBORILGAN E'LONLAR</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  if (announcements.length === 0) {
+    text += '<i>Hali e\'lonlar yo\'q</i>';
+  } else {
+    for (const a of announcements) {
+      const date = new Date(a.createdAt).toLocaleDateString('uz');
+      const roles = a.targetRoles.join(', ');
+      text += `📢 <b>${escapeHtml(a.title)}</b>\n`;
+      text += `   📅 ${date} | 🎯 ${roles}\n`;
+      text += `   <i>${escapeHtml(a.body.slice(0, 80))}${a.body.length > 80 ? '...' : ''}</i>\n\n`;
+    }
+  }
+
+  const kb = new InlineKeyboard();
+  kb.text('⬅️ Broadcast menyu', 'admin_broadcast');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }

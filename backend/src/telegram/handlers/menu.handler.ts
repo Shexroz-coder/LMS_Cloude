@@ -17,7 +17,7 @@ import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
 import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
-import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport } from './admin.handler';
+import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport, handleAdminBroadcast, handleBroadcastTarget, handleBroadcastDeleteAll, handleBroadcastResend, handleBroadcastHistory } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
 export async function handleMainMenu(ctx: BotContext) {
@@ -171,15 +171,6 @@ export async function handleAdminStats(ctx: BotContext) {
   });
 }
 
-// ── Admin: broadcast (placeholder) ─────────────────
-export async function handleAdminBroadcast(ctx: BotContext) {
-  await ctx.editMessageText(
-    brandHeader('📢', 'BROADCAST XABAR') +
-    'Xabar yuboring va men uni barcha foydalanuvchilarga yuboraman.\n\n' +
-    '<i>Xabaringizni yozing:</i>',
-    { parse_mode: 'HTML', reply_markup: backToMenu() }
-  );
-}
 
 // ══════════════════════════════════════════════════════
 //  CALLBACK QUERY ROUTER
@@ -373,6 +364,19 @@ export async function routeCallback(ctx: BotContext) {
       const year = parseInt(parts[0]);
       const month = parseInt(parts[1]);
       await handleAdminPayMonth(ctx, year, month);
+      return;
+    }
+
+    // ── Admin: Broadcast ──
+    if (data === 'broadcast_students' || data === 'broadcast_parents' || data === 'broadcast_teachers' || data === 'broadcast_all') {
+      await handleBroadcastTarget(ctx, data.replace('broadcast_', ''));
+      return;
+    }
+    if (data === 'broadcast_history') { await handleBroadcastHistory(ctx); return; }
+    if (data === 'broadcast_delete_all') { await handleBroadcastDeleteAll(ctx); return; }
+    if (data.startsWith('broadcast_resend_')) {
+      const target = data.replace('broadcast_resend_', '');
+      await handleBroadcastResend(ctx, target);
       return;
     }
 

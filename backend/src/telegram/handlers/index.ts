@@ -5,6 +5,7 @@ import bot, { BotContext } from '../bot';
 import { handleStart, handlePhone, handleOtp, handleParentChildName, handleParentChildPhone } from './start.handler';
 import { routeCallback } from './menu.handler';
 import { handleLateAttReason } from './teacher.handler';
+import { handleBroadcastSend } from './admin.handler';
 
 export function registerHandlers() {
   // ── /start komandasi ────────────────────────────
@@ -42,6 +43,12 @@ export function registerHandlers() {
     // Kechikkan davomat sababi
     if (step === 'waiting_late_att_reason') {
       await handleLateAttReason(ctx);
+      return;
+    }
+
+    // Admin broadcast xabar matni
+    if (step === 'waiting_broadcast_text') {
+      await handleBroadcastSend(ctx);
       return;
     }
 
