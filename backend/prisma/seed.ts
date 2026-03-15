@@ -13,11 +13,11 @@ async function main() {
 
   // ── 1. ADMIN ──────────────────────────────────────────
   const admin = await prisma.user.upsert({
-    where: { phone: '+998901234567' },
+    where: { phone: '+998935422930' },
     update: {},
     create: {
       fullName: 'Super Admin',
-      phone: '+998901234567',
+      phone: '+998935422930',
       passwordHash: adminHash,
       role: Role.ADMIN,
       language: Language.uz,
@@ -360,7 +360,7 @@ async function main() {
   console.log('🎉 Seed muvaffaqiyatli yakunlandi!');
   console.log('═'.repeat(50));
   console.log('\n📋 Kirish ma\'lumotlari:');
-  console.log('  👑 Admin:   +998901234567  / admin123');
+  console.log('  👑 Admin:   +998935422930  / admin123');
   console.log('  👨‍🏫 Ustoz 1: +998901234568  / teacher123');
   console.log('  👨‍🏫 Ustoz 2: +998901234575  / teacher123');
   console.log('  🎓 O\'quvchi: +998901234570  / student123');
