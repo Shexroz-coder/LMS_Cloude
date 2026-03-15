@@ -11,7 +11,7 @@ export interface LinkedAccount {
 
 export interface SessionData {
   /** Ro'yxatdan o'tish bosqichi */
-  step: 'idle' | 'waiting_phone' | 'waiting_otp' | 'waiting_parent_child_name' | 'waiting_parent_child_phone';
+  step: 'idle' | 'waiting_phone' | 'waiting_otp' | 'waiting_parent_child_name' | 'waiting_parent_child_phone' | 'waiting_late_att_reason';
   /** Telefon raqam (OTP tekshirish uchun) */
   phone?: string;
   /** Ota-ona tanlagan bola ID */
@@ -20,6 +20,9 @@ export interface SessionData {
   linkedAccounts?: LinkedAccount[];
   /** Ota-ona registratsiyasi: farzand ismi */
   parentChildName?: string;
+  /** Kechikkan davomat uchun */
+  lateAttGroupId?: number;
+  lateAttDate?: string;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;

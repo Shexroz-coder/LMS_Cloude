@@ -159,6 +159,18 @@ export async function handleTeacherGroups(ctx: BotContext) {
 //  DAVOMAT BELGILASH TIZIMI
 // ══════════════════════════════════════════════════════
 
+// Yordamchi: ikkita sanani solishtirish (faqat kun)
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function daysBetween(a: Date, b: Date): number {
+  const msPerDay = 86400000;
+  const d1 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const d2 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((d2.getTime() - d1.getTime()) / msPerDay);
+}
+
 // ── 1-qadam: Guruh tanlash ───────────────────────────
 export async function handleTeacherAttendance(ctx: BotContext) {
   const teacher = await getTeacher(ctx);
@@ -192,12 +204,123 @@ export async function handleTeacherAttendance(ctx: BotContext) {
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }
 
-// ── 2-qadam: Darsni topish yoki yaratish + o'quvchilar ko'rsatish ──
+// ── 2-qadam: Guruh tanlanganda — shu oyning dars kunlarini ko'rsatish ──
 export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
-  // Guruhni tekshirish (bu teacher'ga tegishlimi)
+  const group = await prisma.group.findFirst({
+    where: { id: groupId, teacherId: teacher.id },
+    include: {
+      course: { select: { name: true } },
+      schedules: true,
+    },
+  });
+
+  if (!group) {
+    await ctx.editMessageText('❌ Guruh topilmadi.', { reply_markup: teacherMainMenu() });
+    return;
+  }
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const monthName = MONTH_NAMES[now.getMonth()];
+
+  // Shu oyning darslarini topish
+  const lessons = await prisma.lesson.findMany({
+    where: { groupId, date: { gte: monthStart, lte: monthEnd } },
+    include: { attendance: true },
+    orderBy: { date: 'asc' },
+  });
+
+  // Schedule dan dars kunlarini hisoblash (lessonlar yo'q bo'lgan kunlar uchun)
+  const scheduledDays: Date[] = [];
+  const current = new Date(monthStart);
+  while (current <= monthEnd) {
+    const dayOfWeek = current.getDay();
+    const hasSchedule = group.schedules.some(s => s.daysOfWeek.includes(dayOfWeek));
+    if (hasSchedule) {
+      scheduledDays.push(new Date(current));
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let text = brandHeader('✅', `DAVOMAT — ${escapeHtml(group.name)}`);
+  text += `📚 ${group.course.name} | 📅 ${monthName}\n\n`;
+
+  const kb = new InlineKeyboard();
+  let unmarkedCount = 0;
+
+  for (const scheduledDate of scheduledDays) {
+    const lesson = lessons.find(l => isSameDay(new Date(l.date), scheduledDate));
+    const dateStr = `${scheduledDate.getDate()}-${monthName.slice(0, 3)}`;
+    const dayName = DAY_NAMES[scheduledDate.getDay()].slice(0, 3);
+    const isFuture = scheduledDate > today;
+    const isToday = isSameDay(scheduledDate, today);
+    const daysAgo = daysBetween(scheduledDate, today);
+
+    if (isFuture) {
+      // Kelajak kun — disable
+      text += `🔒 <code>${dateStr}</code> (${dayName}) — <i>hali kelmagan</i>\n`;
+      kb.text(`🔒 ${dateStr} ${dayName}`, 'att_noop').row();
+    } else if (lesson) {
+      // Dars mavjud — davomat holatini ko'rsatish
+      const totalStudents = lesson.attendance.length;
+      const present = lesson.attendance.filter(a => a.status === 'PRESENT').length;
+      const absent = lesson.attendance.filter(a => a.status === 'ABSENT').length;
+      const late = lesson.attendance.filter(a => a.status === 'LATE').length;
+
+      if (lesson.status === 'COMPLETED') {
+        text += `✅ <code>${dateStr}</code> (${dayName}) — ✅${present} ❌${absent} ⏰${late}\n`;
+      } else {
+        text += `📝 <code>${dateStr}</code> (${dayName}) — belgilanmoqda (${totalStudents} ta)\n`;
+      }
+
+      if (isToday) {
+        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      } else if (daysAgo === 1) {
+        // Kecha — sababsiz tahrirlash mumkin
+        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      } else {
+        // Eski kun — sabab kerak
+        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      }
+    } else {
+      // Dars yaratilmagan (o'tib ketgan kun)
+      unmarkedCount++;
+      if (isToday) {
+        text += `⬜ <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan</b>\n`;
+        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      } else if (daysAgo === 1) {
+        text += `⬜ <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan</b>\n`;
+        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      } else {
+        text += `🔴 <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan!</b>\n`;
+        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+      }
+    }
+  }
+
+  if (unmarkedCount > 0) {
+    text += `\n⚠️ <b>${unmarkedCount}</b> ta dars belgilanmagan!`;
+  }
+
+  text += '\n\n<i>📝 — tahrirlash | 🔒 — hali kelmagan | ⚠️ — kechikkan (sabab kerak)</i>';
+
+  kb.text('⬅️ Guruhlar', 'teacher_attendance').text('🏠 Menyu', 'main_menu').row();
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+// ── 3-qadam: Kunni tanlash — o'quvchilar davomat sahifasi ──
+export async function handleAttDay(ctx: BotContext, groupId: number, dateStr: string) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
   const group = await prisma.group.findFirst({
     where: { id: groupId, teacherId: teacher.id },
     include: {
@@ -215,24 +338,28 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
     return;
   }
 
-  // Bugungi darsni topish yoki yaratish
+  const lessonDate = new Date(dateStr + 'T00:00:00');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Kelajak kunni blok qilish
+  if (lessonDate > today) {
+    await ctx.editMessageText('🔒 Hali kelmagan kunga davomat qilib bo\'lmaydi.', { reply_markup: teacherMainMenu() });
+    return;
+  }
+
+  // Darsni topish yoki yaratish
   let lesson = await prisma.lesson.findFirst({
-    where: { groupId, date: today },
+    where: { groupId, date: lessonDate },
     include: { attendance: true },
   });
 
-  // Agar bugun dars yo'q bo'lsa — yaratish
   if (!lesson) {
-    // Schedule dan vaqtni olish
-    const todayDay = new Date().getDay();
-    const schedule = group.schedules.find(s => s.daysOfWeek.includes(todayDay));
+    const dayOfWeek = lessonDate.getDay();
+    const schedule = group.schedules.find(s => s.daysOfWeek.includes(dayOfWeek));
     const startTime = schedule?.startTime || '09:00';
     const endTime = schedule?.endTime || '10:00';
 
-    // Soatlar farqi
     const [sh, sm] = startTime.split(':').map(Number);
     const [eh, em] = endTime.split(':').map(Number);
     const duration = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
@@ -240,7 +367,7 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
     lesson = await prisma.lesson.create({
       data: {
         groupId,
-        date: today,
+        date: lessonDate,
         startTime,
         endTime,
         status: 'SCHEDULED',
@@ -250,9 +377,11 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
     });
   }
 
-  // O'quvchilar ro'yxatini ko'rsatish davomat holati bilan
+  const dayName = DAY_NAMES[lessonDate.getDay()];
+  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
+
   let text = brandHeader('✅', `DAVOMAT — ${escapeHtml(group.name)}`);
-  text += `📅 ${today.toLocaleDateString('uz')} | 🕐 ${lesson.startTime}-${lesson.endTime}\n`;
+  text += `📅 ${dateDisplay} (${dayName}) | 🕐 ${lesson.startTime}-${lesson.endTime}\n`;
   text += `📚 ${group.course.name}\n\n`;
 
   const kb = new InlineKeyboard();
@@ -265,33 +394,157 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
 
     text += `${statusIcon} ${escapeHtml(gs.student.user.fullName)}\n`;
 
-    // Har bir o'quvchi uchun 3 ta tugma: Keldi / Kelmadi / Kechikdi
     kb.text(att?.status === 'PRESENT' ? '✅' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
       .text(att?.status === 'ABSENT' ? '❌' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
       .text(att?.status === 'LATE' ? '⏰' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_LATE`)
-      .text(`${gs.student.user.fullName.split(' ')[0]}`, `att_noop`)
+      .text(`${gs.student.user.fullName.split(' ')[0]}`, 'att_noop')
       .row();
   }
 
   text += '\n<i>✅ Keldi | ❌ Kelmadi | ⏰ Kechikdi</i>';
 
-  // Barchani PRESENT qilish va darsni tugatish tugmalari
   kb.text('✅ Barchasi keldi', `att_all_present_${lesson.id}_${groupId}`).row();
   kb.text('📝 Darsni tugatish', `att_complete_${lesson.id}_${groupId}`).row();
-  kb.text('⬅️ Guruhlar', 'teacher_attendance').text('🏠 Menyu', 'main_menu').row();
+  kb.text('⬅️ Kunlar', `att_group_${groupId}`).text('🏠 Menyu', 'main_menu').row();
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }
 
-// ── 3-qadam: Individual davomat belgilash ────────────
+// ── Kechikkan davomat (sabab kiritish kerak) ──────────
+export async function handleAttLateDay(ctx: BotContext, groupId: number, dateStr: string) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
+  // Sessionga saqlash — sabab kutish
+  ctx.session.step = 'waiting_late_att_reason';
+  ctx.session.lateAttGroupId = groupId;
+  ctx.session.lateAttDate = dateStr;
+
+  const lessonDate = new Date(dateStr + 'T00:00:00');
+  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
+  const dayName = DAY_NAMES[lessonDate.getDay()];
+
+  let text = brandHeader('⚠️', 'KECHIKKAN DAVOMAT');
+  text += `📅 <b>${dateDisplay} (${dayName})</b>\n\n`;
+  text += `Bu dars 1 kundan ko'proq oldin o'tgan.\n`;
+  text += `Kechiktirishning sababini yozing:\n\n`;
+  text += `<i>Masalan: "Kasal edim", "Ishda edim" va h.k.</i>`;
+
+  const kb = new InlineKeyboard();
+  kb.text('❌ Bekor qilish', `att_group_${groupId}`).row();
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+// ── Kechikkan davomat sababini qabul qilish (text handler'da chaqiriladi) ──
+export async function handleLateAttReason(ctx: BotContext) {
+  const reason = ctx.message?.text;
+  const groupId = ctx.session.lateAttGroupId;
+  const dateStr = ctx.session.lateAttDate;
+
+  // Sessiyani tozalash
+  ctx.session.step = 'idle';
+  ctx.session.lateAttGroupId = undefined;
+  ctx.session.lateAttDate = undefined;
+
+  if (!reason || !groupId || !dateStr) {
+    await ctx.reply('❌ Xatolik. /start — qaytadan boshlang.');
+    return;
+  }
+
+  // Sabab bilan darsga o'tish
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
+  const group = await prisma.group.findFirst({
+    where: { id: groupId, teacherId: teacher.id },
+    include: {
+      course: { select: { name: true } },
+      schedules: true,
+      groupStudents: {
+        where: { status: 'ACTIVE' },
+        include: { student: { include: { user: { select: { fullName: true } } } } },
+      },
+    },
+  });
+
+  if (!group) {
+    await ctx.reply('❌ Guruh topilmadi.');
+    return;
+  }
+
+  const lessonDate = new Date(dateStr + 'T00:00:00');
+
+  // Darsni topish yoki yaratish
+  let lesson = await prisma.lesson.findFirst({
+    where: { groupId, date: lessonDate },
+    include: { attendance: true },
+  });
+
+  if (!lesson) {
+    const dayOfWeek = lessonDate.getDay();
+    const schedule = group.schedules.find(s => s.daysOfWeek.includes(dayOfWeek));
+    const startTime = schedule?.startTime || '09:00';
+    const endTime = schedule?.endTime || '10:00';
+
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const duration = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+
+    lesson = await prisma.lesson.create({
+      data: {
+        groupId,
+        date: lessonDate,
+        startTime,
+        endTime,
+        status: 'SCHEDULED',
+        durationHours: duration > 0 ? duration : 1,
+      },
+      include: { attendance: true },
+    });
+  }
+
+  const dayName = DAY_NAMES[lessonDate.getDay()];
+  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
+
+  let text = brandHeader('⚠️', `KECHIKKAN DAVOMAT — ${escapeHtml(group.name)}`);
+  text += `📅 ${dateDisplay} (${dayName}) | 🕐 ${lesson.startTime}-${lesson.endTime}\n`;
+  text += `📚 ${group.course.name}\n`;
+  text += `📝 Sabab: <i>${escapeHtml(reason)}</i>\n\n`;
+
+  const kb = new InlineKeyboard();
+
+  for (const gs of group.groupStudents) {
+    const att = lesson.attendance.find(a => a.studentId === gs.studentId);
+    const statusIcon = att
+      ? att.status === 'PRESENT' ? '✅' : att.status === 'ABSENT' ? '❌' : att.status === 'LATE' ? '⏰' : '📋'
+      : '⬜';
+
+    text += `${statusIcon} ${escapeHtml(gs.student.user.fullName)}\n`;
+
+    kb.text(att?.status === 'PRESENT' ? '✅' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
+      .text(att?.status === 'ABSENT' ? '❌' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
+      .text(att?.status === 'LATE' ? '⏰' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_LATE`)
+      .text(`${gs.student.user.fullName.split(' ')[0]}`, 'att_noop')
+      .row();
+  }
+
+  text += '\n<i>✅ Keldi | ❌ Kelmadi | ⏰ Kechikdi</i>';
+
+  kb.text('✅ Barchasi keldi', `att_all_present_${lesson.id}_${groupId}`).row();
+  kb.text('📝 Darsni tugatish', `att_complete_${lesson.id}_${groupId}`).row();
+  kb.text('⬅️ Kunlar', `att_group_${groupId}`).text('🏠 Menyu', 'main_menu').row();
+
+  await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+// ── 4-qadam: Individual davomat belgilash ────────────
 export async function handleAttMark(ctx: BotContext, lessonId: number, studentId: number, status: string) {
-  // Validatsiya
   if (!['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'].includes(status)) return;
 
   const attStatus = status as 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 
   try {
-    // Upsert — mavjud bo'lsa yangilash, yo'q bo'lsa yaratish
     await prisma.attendance.upsert({
       where: {
         lessonId_studentId: { lessonId, studentId },
@@ -308,18 +561,19 @@ export async function handleAttMark(ctx: BotContext, lessonId: number, studentId
       },
     });
 
-    // Darsning groupId sini topish va sahifani yangilash
+    // Darsning groupId va sanasini topish
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
-      select: { groupId: true },
+      select: { groupId: true, date: true },
     });
 
     if (lesson) {
-      await handleAttGroupSelect(ctx, lesson.groupId);
+      // Sahifani yangilash — handleAttDay chaqirish
+      const dateStr = new Date(lesson.date).toISOString().slice(0, 10);
+      await handleAttDay(ctx, lesson.groupId, dateStr);
     }
   } catch (err) {
     console.error('❌ Davomat belgilashda xatolik:', err);
-    // Xatolik bo'lsa ham sahifani yangilamaslik
   }
 }
 
@@ -328,13 +582,11 @@ export async function handleAttAllPresent(ctx: BotContext, lessonId: number, gro
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
-  // Guruhning barcha faol o'quvchilarini olish
   const groupStudents = await prisma.groupStudent.findMany({
     where: { groupId, status: 'ACTIVE' },
     select: { studentId: true },
   });
 
-  // Barchaga PRESENT belgilash
   for (const gs of groupStudents) {
     await prisma.attendance.upsert({
       where: {
@@ -353,8 +605,16 @@ export async function handleAttAllPresent(ctx: BotContext, lessonId: number, gro
     });
   }
 
-  // Sahifani yangilash
-  await handleAttGroupSelect(ctx, groupId);
+  // Darsning sanasini topib sahifani yangilash
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { date: true },
+  });
+
+  if (lesson) {
+    const dateStr = new Date(lesson.date).toISOString().slice(0, 10);
+    await handleAttDay(ctx, groupId, dateStr);
+  }
 }
 
 // ── Darsni tugatish (COMPLETED) ──────────────────────
@@ -362,7 +622,6 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
-  // Darsni COMPLETED qilish
   await prisma.lesson.update({
     where: { id: lessonId },
     data: { status: 'COMPLETED' },
@@ -415,21 +674,21 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
     text += `${icon} ${escapeHtml(a.student.user.fullName)}\n`;
   }
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: teacherMainMenu() });
+  const kb = new InlineKeyboard();
+  kb.text('⬅️ Kunlar', `att_group_${groupId}`).text('🏠 Menyu', 'main_menu').row();
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }
 
-// ── Maosh ────────────────────────────────────────────
+// ── Maosh (hozirgi oy) ─────────────────────────────────
 export async function handleTeacherSalary(ctx: BotContext) {
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
-  const salaries = await prisma.teacherSalary.findMany({
-    where: { teacherId: teacher.id },
-    orderBy: { month: 'desc' },
-    take: 6,
-  });
-
-  let text = brandHeader('💰', 'MAOSH MA\'LUMOTLARI');
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const monthName = MONTH_NAMES[now.getMonth()];
 
   const salaryTypeText = teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
     ? `${Number(teacher.salaryValue)}% to'lovlardan`
@@ -437,20 +696,92 @@ export async function handleTeacherSalary(ctx: BotContext) {
       ? `${formatMoney(Number(teacher.salaryValue))}/soat`
       : `${formatMoney(Number(teacher.salaryValue))}/oy`;
 
+  // Hozirgi oy maoshi
+  const currentSalary = await prisma.teacherSalary.findFirst({
+    where: { teacherId: teacher.id, month: { gte: monthStart, lte: monthEnd } },
+  });
+
+  // Hozirgi oyda nechta dars o'tdi
+  const lessonCount = await prisma.lesson.count({
+    where: {
+      group: { teacherId: teacher.id },
+      date: { gte: monthStart, lte: monthEnd },
+      status: 'COMPLETED',
+    },
+  });
+
+  let text = brandHeader('💰', `MAOSHIM — ${monthName} ${now.getFullYear()}`);
+  text += `📋 Hisoblash turi: <b>${salaryTypeText}</b>\n\n`;
+
+  text += `<b>📅 ${monthName} oyi:</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `📚 O'tilgan darslar: <b>${lessonCount}</b>\n`;
+
+  if (currentSalary) {
+    const statusIcon = currentSalary.status === 'PAID' ? '✅' : '⏳';
+    text += `${statusIcon} Hisoblangan: <b>${formatMoney(Number(currentSalary.calculatedSalary))}</b>\n`;
+    text += `💵 To'langan: <b>${formatMoney(Number(currentSalary.paidSalary))}</b>\n`;
+    const diff = Number(currentSalary.calculatedSalary) - Number(currentSalary.paidSalary);
+    if (diff > 0) {
+      text += `🔴 Qoldiq: <b>${formatMoney(diff)}</b>\n`;
+    }
+  } else {
+    text += `⏳ Hali hisoblanmagan\n`;
+  }
+
+  const kb = new InlineKeyboard();
+  kb.text('📂 Arxiv (barcha oylar)', `salary_archive_${teacher.id}`).row();
+  kb.text('⬅️ Asosiy menyu', 'main_menu');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+// ── Maosh arxivi ─────────────────────────────────────
+export async function handleTeacherSalaryArchive(ctx: BotContext, teacherId: number) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher || teacher.id !== teacherId) return;
+
+  const salaries = await prisma.teacherSalary.findMany({
+    where: { teacherId: teacher.id },
+    orderBy: { month: 'desc' },
+  });
+
+  const salaryTypeText = teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+    ? `${Number(teacher.salaryValue)}% to'lovlardan`
+    : teacher.salaryType === 'PER_LESSON_HOUR'
+      ? `${formatMoney(Number(teacher.salaryValue))}/soat`
+      : `${formatMoney(Number(teacher.salaryValue))}/oy`;
+
+  let text = brandHeader('📂', 'MAOSH ARXIVI');
   text += `📋 Hisoblash turi: <b>${salaryTypeText}</b>\n\n`;
 
   if (salaries.length === 0) {
     text += '<i>Maosh tarixi yo\'q</i>';
   } else {
-    text += '<b>Oxirgi maoshlar:</b>\n\n';
+    let totalPaid = 0;
+    let totalOwed = 0;
+
     for (const s of salaries) {
       const month = new Date(s.month);
       const statusIcon = s.status === 'PAID' ? '✅' : '⏳';
       text += `${statusIcon} <b>${MONTH_NAMES[month.getMonth()]} ${month.getFullYear()}</b>\n`;
       text += `   Hisoblangan: ${formatMoney(Number(s.calculatedSalary))}\n`;
       text += `   To'langan: ${formatMoney(Number(s.paidSalary))}\n\n`;
+
+      totalPaid += Number(s.paidSalary);
+      totalOwed += Number(s.calculatedSalary) - Number(s.paidSalary);
+    }
+
+    text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `💵 Jami to'langan: <b>${formatMoney(totalPaid)}</b>\n`;
+    if (totalOwed > 0) {
+      text += `🔴 Jami qoldiq: <b>${formatMoney(totalOwed)}</b>\n`;
     }
   }
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: teacherMainMenu() });
+  const kb = new InlineKeyboard();
+  kb.text('⬅️ Hozirgi oy', 'teacher_salary').row();
+  kb.text('⬅️ Asosiy menyu', 'main_menu');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }

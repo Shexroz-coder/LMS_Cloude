@@ -9,14 +9,14 @@ import { escapeHtml, formatMoney, brandHeader, brandFooter } from '../utils/form
 import { handleScheduleToday, handleScheduleWeek } from './schedule';
 import { handleAttendance } from './attendance';
 import { handleGrades } from './grades';
-import { handlePayments } from './payments';
+import { handlePayments, handlePaymentsArchive } from './payments';
 import { handleCoins } from './coins';
 import { handleProfile } from './profile';
 import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
-import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleAttGroupSelect, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
+import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
 import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminExpenses, handleAdminSalaries, handleAdminReports } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
@@ -307,7 +307,40 @@ export async function routeCallback(ctx: BotContext) {
       await handleAttComplete(ctx, lessonId, groupId);
       return;
     }
+    if (data.startsWith('att_day_')) {
+      const parts = data.replace('att_day_', '').split('_');
+      const groupId = parseInt(parts[0]);
+      const dateStr = parts.slice(1).join('-'); // 2026-03-15
+      await handleAttDay(ctx, groupId, dateStr);
+      return;
+    }
+    if (data.startsWith('att_late_day_')) {
+      const parts = data.replace('att_late_day_', '').split('_');
+      const groupId = parseInt(parts[0]);
+      const dateStr = parts.slice(1).join('-');
+      await handleAttLateDay(ctx, groupId, dateStr);
+      return;
+    }
     if (data === 'att_noop') { return; }
+
+    // ── To'lovlar arxiv ──
+    if (data.startsWith('payments_archive_')) {
+      const studentId = parseInt(data.replace('payments_archive_', ''));
+      await handlePaymentsArchive(ctx, studentId);
+      return;
+    }
+    if (data.startsWith('payments_current_')) {
+      const studentId = parseInt(data.replace('payments_current_', ''));
+      await handlePayments(ctx, studentId);
+      return;
+    }
+
+    // ── Teacher maosh arxiv ──
+    if (data.startsWith('salary_archive_')) {
+      const teacherId = parseInt(data.replace('salary_archive_', ''));
+      await handleTeacherSalaryArchive(ctx, teacherId);
+      return;
+    }
 
     // ── Admin ──
     if (data === 'admin_dashboard') { await handleAdminDashboard(ctx); return; }
