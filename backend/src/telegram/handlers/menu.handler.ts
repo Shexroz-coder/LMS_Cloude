@@ -17,7 +17,7 @@ import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
 import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
-import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminExpenses, handleAdminSalaries, handleAdminReports } from './admin.handler';
+import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
 export async function handleMainMenu(ctx: BotContext) {
@@ -349,11 +349,32 @@ export async function routeCallback(ctx: BotContext) {
     if (data === 'admin_groups') { await handleAdminGroups(ctx); return; }
     if (data === 'admin_courses') { await handleAdminCourses(ctx); return; }
     if (data === 'admin_payments') { await handleAdminPayments(ctx); return; }
+    if (data === 'admin_payments_archive') { await handleAdminPaymentsArchive(ctx); return; }
     if (data === 'admin_expenses') { await handleAdminExpenses(ctx); return; }
     if (data === 'admin_salaries') { await handleAdminSalaries(ctx); return; }
+    if (data === 'admin_salaries_archive') { await handleAdminSalariesArchive(ctx); return; }
+    if (data === 'admin_debtors') { await handleAdminDebtors(ctx); return; }
     if (data === 'admin_reports') { await handleAdminReports(ctx); return; }
     if (data === 'admin_stats') { await handleAdminStats(ctx); return; }
     if (data === 'admin_broadcast') { await handleAdminBroadcast(ctx); return; }
+
+    // ── Admin: Oylik hisobot (tanlangan oy) ──
+    if (data.startsWith('admin_report_')) {
+      const parts = data.replace('admin_report_', '').split('_');
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      await handleAdminMonthReport(ctx, year, month);
+      return;
+    }
+
+    // ── Admin: To'lovlar arxiv (tanlangan oy) ──
+    if (data.startsWith('admin_pay_month_')) {
+      const parts = data.replace('admin_pay_month_', '').split('_');
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]);
+      await handleAdminPayMonth(ctx, year, month);
+      return;
+    }
 
   } catch (err) {
     console.error('Telegram callback error:', err);

@@ -61,8 +61,9 @@ export function adminMenu(): InlineKeyboard {
     .text('👥 O\'quvchilar', 'admin_students').text('👨‍🏫 O\'qituvchilar', 'admin_teachers').row()
     .text('📚 Guruhlar', 'admin_groups').text('📖 Kurslar', 'admin_courses').row()
     .text('💰 To\'lovlar', 'admin_payments').text('💸 Xarajatlar', 'admin_expenses').row()
-    .text('💼 Maoshlar', 'admin_salaries').text('📈 Hisobotlar', 'admin_reports').row()
-    .text('📢 Broadcast xabar', 'admin_broadcast').text('📊 Bot statistika', 'admin_stats').row()
+    .text('💼 Maoshlar', 'admin_salaries').text('🔴 Qarzdorlar', 'admin_debtors').row()
+    .text('📈 Oylik hisobotlar', 'admin_reports').row()
+    .text('📢 Broadcast', 'admin_broadcast').text('📊 Statistika', 'admin_stats').row()
     .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
 }
 
