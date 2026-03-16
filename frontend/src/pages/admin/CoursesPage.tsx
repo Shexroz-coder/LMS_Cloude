@@ -47,7 +47,7 @@ function CourseCard({
   return (
     <div className={clsx(
       "card border transition hover:shadow-md",
-      course.isActive ? "border-transparent" : "border-gray-200 opacity-75"
+      course.isActive ? "border-transparent" : "border-gray-200 dark:border-gray-700 opacity-75"
     )}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -56,7 +56,7 @@ function CourseCard({
             🎓
           </div>
           <div>
-            <h3 className="font-semibold text-gray-800">{course.name}</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{course.name}</h3>
             <span className={clsx(
               "text-xs px-2 py-0.5 rounded-full font-medium",
               course.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
@@ -89,24 +89,24 @@ function CourseCard({
 
       {/* Description */}
       {course.description && (
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{course.description}</p>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
         <div className="text-center">
-          <p className="text-xs text-gray-400">Oylik narx</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Oylik narx</p>
           <p className="text-sm font-bold text-indigo-600 mt-0.5">{formatMoney(course.monthlyPrice)}</p>
         </div>
-        <div className="text-center border-x border-gray-100">
-          <p className="text-xs text-gray-400">Davomiylik</p>
-          <p className="text-sm font-bold text-gray-700 mt-0.5">
+        <div className="text-center border-x border-gray-100 dark:border-gray-700">
+          <p className="text-xs text-gray-400 dark:text-gray-500">Davomiylik</p>
+          <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mt-0.5">
             {course.durationMonths ? `${course.durationMonths} oy` : '—'}
           </p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-gray-400">Guruhlar</p>
-          <p className="text-sm font-bold text-gray-700 mt-0.5">{course._count?.groups ?? 0}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Guruhlar</p>
+          <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mt-0.5">{course._count?.groups ?? 0}</p>
         </div>
       </div>
     </div>
@@ -148,12 +148,12 @@ function CourseModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {course ? 'Kursni tahrirlash' : 'Yangi kurs'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
             <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -327,8 +327,8 @@ export default function CoursesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Kurslar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Kurslar</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {activeCourses.length} ta faol kurs · {totalGroups} ta guruh
           </p>
         </div>
@@ -353,8 +353,8 @@ export default function CoursesPage() {
               {item.icon}
             </div>
             <div>
-              <p className="text-xs text-gray-400">{item.label}</p>
-              <p className="font-bold text-gray-800">{item.value}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{item.label}</p>
+              <p className="font-bold text-gray-800 dark:text-gray-200">{item.value}</p>
             </div>
           </div>
         ))}
@@ -388,7 +388,7 @@ export default function CoursesPage() {
       {isLoading && (
         <div className="card text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       )}
 
@@ -396,8 +396,8 @@ export default function CoursesPage() {
       {!isLoading && courses.length === 0 && (
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">🎓</div>
-          <h2 className="text-lg font-semibold text-gray-700">Kurslar topilmadi</h2>
-          <p className="text-gray-400 text-sm mt-1 mb-4">Birinchi kursni qo'shing</p>
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Kurslar topilmadi</h2>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 mb-4">Birinchi kursni qo'shing</p>
           <button
             onClick={() => { setEditCourse(null); setShowModal(true); }}
             className="btn-primary mx-auto"
@@ -434,11 +434,11 @@ export default function CoursesPage() {
       {/* Delete Confirm */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="text-center mb-4">
               <div className="text-4xl mb-3">⚠️</div>
-              <h3 className="text-lg font-bold text-gray-900">Kursni o'chirish</h3>
-              <p className="text-gray-500 text-sm mt-2">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Kursni o'chirish</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
                 <strong>{deleteTarget.name}</strong> kursini o'chirmoqchimisiz?
                 {(deleteTarget._count?.groups ?? 0) > 0 && (
                   <span className="text-red-500 block mt-1">

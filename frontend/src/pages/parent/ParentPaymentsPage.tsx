@@ -107,7 +107,7 @@ function OnlinePayModal({
         <div className="p-5 space-y-4">
           {/* Quick amounts */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Tez tanlash:</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Tez tanlash:</p>
             <div className="grid grid-cols-3 gap-2">
               {quickAmounts.map(opt => (
                 <button
@@ -117,7 +117,7 @@ function OnlinePayModal({
                     'py-2.5 rounded-xl text-xs font-semibold border transition',
                     numAmount === opt.value
                       ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'border-gray-200 text-gray-700 hover:border-indigo-300 hover:bg-indigo-50'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 dark:hover:border-indigo-600 dark:hover:bg-indigo-900/30 hover:border-indigo-300 hover:bg-indigo-50'
                   )}
                 >
                   {opt.label}
@@ -137,8 +137,8 @@ function OnlinePayModal({
               className={clsx(
                 'w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition',
                 numAmount === calcData.debtAmount
-                  ? 'bg-red-50 border-red-500 text-red-700'
-                  : 'border-red-200 text-red-600 hover:bg-red-50'
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-700 text-red-700 dark:text-red-300'
+                  : 'border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 dark:hover:bg-red-900/20 hover:bg-red-50'
               )}
             >
               <span className="flex items-center gap-1.5">
@@ -150,7 +150,7 @@ function OnlinePayModal({
 
           {/* Custom amount */}
           <div>
-            <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 block">
               Yoki o'zingiz kiriting:
             </label>
             <div className="relative">
@@ -161,10 +161,10 @@ function OnlinePayModal({
                 placeholder="Summa (so'm)"
                 min={1000}
                 step={1000}
-                className="w-full px-4 py-2.5 pr-14 rounded-xl border border-gray-200 text-sm
+                className="w-full px-4 py-2.5 pr-14 rounded-xl border border-gray-200 dark:border-gray-600 text-sm bg-white dark:bg-gray-700 dark:text-gray-100
                   focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">so'm</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">so'm</span>
             </div>
           </div>
 
@@ -219,7 +219,7 @@ function OnlinePayModal({
             Bekor qilish
           </button>
 
-          <p className="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center flex items-center justify-center gap-1">
             <Info size={11} />
             To'lov miqdori istalgancha belgilanishi mumkin
           </p>
@@ -281,10 +281,10 @@ function BulkPayModal({
   if (debtors.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6 text-center">
           <div className="text-5xl mb-3">✅</div>
-          <h3 className="font-bold text-gray-800 text-lg mb-1">Barcha farzandlar uchun qarz yo'q!</h3>
-          <p className="text-sm text-gray-400 mb-4">Hamma to'lovlar bajarilgan.</p>
+          <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-1">Barcha farzandlar uchun qarz yo'q!</h3>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">Hamma to'lovlar bajarilgan.</p>
           <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm">
             Yopish
           </button>
@@ -309,7 +309,7 @@ function BulkPayModal({
         <div className="p-5 space-y-4">
           {/* Provider */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">To'lov tizimi:</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">To'lov tizimi:</p>
             <div className="grid grid-cols-2 gap-2">
               {(['PAYME', 'UZUM'] as const).map(p => (
                 <button
@@ -337,13 +337,13 @@ function BulkPayModal({
               const calc = childCalcs[child.id];
               const isPaying = payingIds.has(child.id);
               return (
-                <div key={child.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100">
-                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-base font-bold text-red-600 flex-shrink-0">
+                <div key={child.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-700">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-base font-bold text-red-600 dark:text-red-400 flex-shrink-0">
                     {child.user.fullName.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{child.user.fullName}</p>
-                    <p className="text-xs text-red-500 font-medium">Qarz: {fmt(calc?.debtAmount || 0)}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{child.user.fullName}</p>
+                    <p className="text-xs text-red-500 dark:text-red-400 font-medium">Qarz: {fmt(calc?.debtAmount || 0)}</p>
                   </div>
                   <button
                     onClick={() => payOne(child)}
@@ -545,15 +545,15 @@ const ParentPaymentsPage = () => {
       {children.length === 0 ? (
         <div className="card text-center py-10">
           <div className="text-4xl mb-3">👶</div>
-          <p className="text-gray-500 font-medium">Farzandlar topilmadi</p>
-          <p className="text-sm text-gray-400 mt-1">Admin orqali farzandingizni biriktiring</p>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Farzandlar topilmadi</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Admin orqali farzandingizni biriktiring</p>
         </div>
       ) : (
         <>
           {/* Child selector */}
           {children.length > 1 && (
             <div className="card p-3">
-              <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
                 <Users size={11} /> Farzandni tanlang
               </p>
               <div className="space-y-2">
@@ -573,18 +573,18 @@ const ParentPaymentsPage = () => {
           {children.length === 1 && selectedChild && (
             <div className="card">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-base font-bold text-indigo-600">
+                <div className="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-base font-bold text-indigo-600 dark:text-indigo-400">
                   {selectedChild.user.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">{selectedChild.user.fullName}</p>
-                  <p className="text-xs text-gray-400">{selectedChild.user.phone}</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">{selectedChild.user.fullName}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{selectedChild.user.phone}</p>
                 </div>
                 <span className={clsx(
                   'ml-auto text-xs px-2.5 py-1 rounded-full font-medium',
                   Number(balance?.debt) > 0
-                    ? 'bg-red-100 text-red-600'
-                    : 'bg-emerald-100 text-emerald-600'
+                    ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'
+                    : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
                 )}>
                   {Number(balance?.debt) > 0 ? `Qarz: ${fmt(Number(balance.debt))}` : "✅ Qarz yo'q"}
                 </span>
@@ -598,23 +598,23 @@ const ParentPaymentsPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className={clsx(
                   'card p-4',
-                  Number(balance?.debt) > 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'
+                  Number(balance?.debt) > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-700' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-700'
                 )}>
-                  <p className={clsx('text-xs mb-1', Number(balance?.debt) > 0 ? 'text-red-400' : 'text-emerald-400')}>
+                  <p className={clsx('text-xs mb-1', Number(balance?.debt) > 0 ? 'text-red-400 dark:text-red-300' : 'text-emerald-400 dark:text-emerald-300')}>
                     <TrendingDown size={11} className="inline mr-1" />
                     Qarz
                   </p>
                   <p className={clsx('font-bold text-lg',
-                    Number(balance?.debt) > 0 ? 'text-red-600' : 'text-emerald-600')}>
+                    Number(balance?.debt) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
                     {Number(balance?.debt) > 0 ? fmt(Number(balance.debt)) : "Yo'q ✅"}
                   </p>
                 </div>
-                <div className="card p-4 bg-blue-50 border-blue-100">
-                  <p className="text-xs text-blue-400 mb-1">
+                <div className="card p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-700">
+                  <p className="text-xs text-blue-400 dark:text-blue-300 mb-1">
                     <Wallet size={11} className="inline mr-1" />
                     Balans
                   </p>
-                  <p className="font-bold text-lg text-blue-600">{fmt(Number(balance?.balance || 0))}</p>
+                  <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{fmt(Number(balance?.balance || 0))}</p>
                 </div>
               </div>
 
@@ -622,24 +622,24 @@ const ParentPaymentsPage = () => {
               {calcData && !calcData.message && (
                 <div className="card space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                       <Calculator size={15} className="text-indigo-500" />
                       To'lov hisob-kitobi
                     </h3>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 rounded-full">
                       {calcData.groupName}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
-                      <p className="text-xs text-indigo-500 mb-1 font-medium">Oylik to'lov</p>
-                      <p className="text-base font-bold text-indigo-700">{fmt(calcData.monthlyAmount)}</p>
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 border border-indigo-100 dark:border-indigo-700">
+                      <p className="text-xs text-indigo-500 dark:text-indigo-400 mb-1 font-medium">Oylik to'lov</p>
+                      <p className="text-base font-bold text-indigo-700 dark:text-indigo-400">{fmt(calcData.monthlyAmount)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                      <p className="text-xs text-gray-500 mb-1 font-medium">Joriy qarz</p>
+                    <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Joriy qarz</p>
                       <p className={clsx('text-base font-bold',
-                        calcData.debtAmount > 0 ? 'text-red-600' : 'text-emerald-600')}>
+                        calcData.debtAmount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
                         {calcData.debtAmount > 0 ? fmt(calcData.debtAmount) : "Yo'q ✅"}
                       </p>
                     </div>
@@ -660,7 +660,7 @@ const ParentPaymentsPage = () => {
               {/* Monthly fees */}
               {fees.length > 0 && (
                 <div className="card">
-                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                     <Clock size={15} className="text-indigo-500" />
                     Oylik to'lov holati
                   </h3>
@@ -669,19 +669,19 @@ const ParentPaymentsPage = () => {
                       id: number; month: string; baseAmount: number;
                       finalAmount: number; attendedCount: number; lessonsCount: number
                     }) => (
-                      <div key={fee.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div key={fee.id} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-semibold text-gray-700">
+                          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                             {new Date(fee.month).toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
                           </p>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                             <Clock size={11} />
                             {fee.attendedCount}/{fee.lessonsCount} dars
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-500">To'lov summasi</span>
-                          <span className="font-bold text-gray-800">
+                          <span className="text-gray-500 dark:text-gray-400">To'lov summasi</span>
+                          <span className="font-bold text-gray-800 dark:text-gray-100">
                             {fmt(Number(fee.finalAmount || fee.baseAmount))}
                           </span>
                         </div>
@@ -702,19 +702,19 @@ const ParentPaymentsPage = () => {
 
               {/* Payment history */}
               <div className="card">
-                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                   <CheckCircle size={15} className="text-emerald-500" />
                   To'lov tarixi — {selectedChild.user.fullName}
                 </h3>
                 {isLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
                   </div>
                 ) : payments.length === 0 ? (
-                  <div className="text-center py-10 text-gray-300">
+                  <div className="text-center py-10 text-gray-300 dark:text-gray-600">
                     <div className="text-5xl mb-3">💰</div>
-                    <p className="text-sm text-gray-400">To'lovlar topilmadi</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">To'lovlar topilmadi</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -723,15 +723,15 @@ const ParentPaymentsPage = () => {
                       paidAt: string; status: string; provider?: string;
                     }) => (
                       <div key={p.id}
-                        className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition border border-transparent hover:border-gray-100"
+                        className="flex items-center justify-between p-3 rounded-xl dark:hover:bg-gray-700/30 hover:bg-gray-50 transition border border-transparent dark:hover:border-gray-700 hover:border-gray-100"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-lg flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-lg flex-shrink-0">
                             {p.provider === 'PAYME' ? '🔵' : p.provider === 'UZUM' ? '🟠' : '💳'}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-emerald-600">{fmt(Number(p.amount))}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(Number(p.amount))}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                               {METHOD_LABELS[p.paymentMethod] || p.paymentMethod}
                               {p.provider ? ` · ${p.provider}` : ''}
                               {p.paidAt

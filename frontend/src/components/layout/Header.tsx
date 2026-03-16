@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
+import ThemeToggle from '../ui/ThemeToggle';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import api from '../../api/axios';
@@ -50,24 +51,27 @@ const Header = ({ title }: HeaderProps) => {
   }, [accessToken, qc]);
 
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center px-5 gap-4 flex-shrink-0">
+    <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-5 gap-4 flex-shrink-0 transition-colors duration-300">
       {/* Title */}
       {title && (
-        <h1 className="text-base font-semibold text-gray-800 mr-auto">{title}</h1>
+        <h1 className="text-base font-semibold text-gray-800 dark:text-gray-100 mr-auto">{title}</h1>
       )}
 
       {/* Search */}
       <div className="relative flex-1 max-w-xs ml-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           placeholder={t('common.search') + '...'}
-          className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+          className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
         />
       </div>
 
       {/* Language */}
       <LanguageSwitcher />
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Notifications */}
       <button
@@ -76,7 +80,7 @@ const Header = ({ title }: HeaderProps) => {
           setUnreadCount(0);
           qc.invalidateQueries(['notifications-count']);
         }}
-        className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+        className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -91,12 +95,12 @@ const Header = ({ title }: HeaderProps) => {
         onClick={() => navigate(`${basePath}/profile`)}
         className="flex items-center gap-2 pl-2"
       >
-        <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm">
+        <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 flex items-center justify-center font-bold text-sm">
           {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
         </div>
         <div className="hidden sm:block text-left">
-          <div className="text-sm font-medium text-gray-800 leading-tight">{user?.fullName}</div>
-          <div className="text-xs text-gray-400 leading-tight">{user?.phone}</div>
+          <div className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-tight">{user?.fullName}</div>
+          <div className="text-xs text-gray-400 dark:text-gray-500 leading-tight">{user?.phone}</div>
         </div>
       </button>
     </header>

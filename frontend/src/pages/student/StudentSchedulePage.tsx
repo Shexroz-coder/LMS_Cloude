@@ -76,7 +76,7 @@ const StudentSchedulePage = () => {
   const todayCount = byDay[today]?.length || 0;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in dark:bg-gray-900 dark:text-gray-100">
       {/* Header */}
       <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-red-600 via-red-700 to-black p-5 text-white">
         <div className="flex items-center gap-3 mb-4">
@@ -119,10 +119,10 @@ const StudentSchedulePage = () => {
                 isSelected
                   ? 'bg-red-600 text-white border-red-600 shadow-md'
                   : isToday
-                  ? 'bg-red-50 text-red-700 border-red-200'
+                  ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'
                   : hasLesson
-                  ? 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'
-                  : 'bg-gray-50 text-gray-300 border-gray-100 cursor-default'
+                  ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-300 hover:bg-red-50 dark:hover:bg-gray-700'
+                  : 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 border-gray-100 dark:border-gray-700 cursor-default'
               )}
             >
               <span>{day}</span>
@@ -139,9 +139,9 @@ const StudentSchedulePage = () => {
 
       {/* Loading */}
       {isLoading && (
-        <div className="card text-center py-12">
+        <div className="card dark:bg-gray-800 dark:border-gray-700 text-center py-12">
           <div className="animate-spin w-7 h-7 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       )}
 
@@ -152,11 +152,11 @@ const StudentSchedulePage = () => {
           <div className="flex items-center gap-3">
             <div className={clsx(
               'w-2 h-2 rounded-full',
-              selectedDay === today ? 'bg-red-500' : 'bg-gray-300'
+              selectedDay === today ? 'bg-red-500' : 'bg-gray-300 dark:bg-gray-600'
             )} />
             <h2 className={clsx(
               'font-bold text-base',
-              selectedDay === today ? 'text-red-700' : 'text-gray-700'
+              selectedDay === today ? 'text-red-700' : 'text-gray-700 dark:text-gray-300'
             )}>
               {DAYS[selectedDay]}
             </h2>
@@ -165,20 +165,20 @@ const StudentSchedulePage = () => {
                 Bugun
               </span>
             )}
-            <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-xs text-gray-400">
+            <div className="flex-1 h-px bg-gray-100 dark:bg-gray-700" />
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedEntries.length > 0 ? `${selectedEntries.length} ta dars` : 'Dars yo\'q'}
             </span>
           </div>
 
           {/* No lessons for selected day */}
           {selectedEntries.length === 0 && (
-            <div className="card text-center py-14">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                <Calendar size={28} className="text-gray-300" />
+            <div className="card dark:bg-gray-800 dark:border-gray-700 text-center py-14">
+              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+                <Calendar size={28} className="text-gray-300 dark:text-gray-600" />
               </div>
-              <h3 className="font-semibold text-gray-600 text-sm">Bu kunda dars yo'q</h3>
-              <p className="text-gray-400 text-xs mt-1">
+              <h3 className="font-semibold text-gray-600 dark:text-gray-400 text-sm">Bu kunda dars yo'q</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
                 {daysWithSchedule.length > 0
                   ? `Darslar: ${daysWithSchedule.map(d => DAYS_SHORT[d]).join(', ')}`
                   : 'Jadval hali belgilanmagan'}
@@ -194,17 +194,17 @@ const StudentSchedulePage = () => {
                 className={clsx(
                   'rounded-2xl border p-4 flex items-start gap-4 transition',
                   selectedDay === today
-                    ? 'border-red-100 bg-gradient-to-r from-red-50/60 to-white'
-                    : 'border-gray-100 bg-white hover:border-gray-200'
+                    ? 'border-red-100 dark:border-red-900 bg-gradient-to-r from-red-50/60 dark:from-red-900/20 to-white dark:to-gray-800'
+                    : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-600'
                 )}
               >
                 {/* Time block */}
                 <div className={clsx(
                   'flex-shrink-0 w-16 rounded-xl py-3 flex flex-col items-center text-center',
-                  selectedDay === today ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'
+                  selectedDay === today ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 )}>
                   <p className="text-sm font-bold leading-tight">{entry.startTime}</p>
-                  <div className={clsx('w-4 h-px my-1', selectedDay === today ? 'bg-red-300' : 'bg-gray-300')} />
+                  <div className={clsx('w-4 h-px my-1', selectedDay === today ? 'bg-red-300' : 'bg-gray-300 dark:bg-gray-600')} />
                   <p className="text-xs opacity-80">{entry.endTime}</p>
                 </div>
 
@@ -212,15 +212,15 @@ const StudentSchedulePage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-900 truncate">{entry.group.name}</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{entry.group.name}</p>
                       <div className="flex items-center gap-1.5 mt-1">
                         <BookOpen size={12} className="text-red-400 flex-shrink-0" />
-                        <p className="text-sm text-gray-500 truncate">{entry.group.course.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{entry.group.course.name}</p>
                       </div>
                     </div>
                     <div className={clsx(
                       'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold',
-                      selectedDay === today ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                      selectedDay === today ? 'bg-red-100 text-red-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                     )}>
                       {idx + 1}
                     </div>
@@ -228,17 +228,17 @@ const StudentSchedulePage = () => {
 
                   <div className="flex items-center flex-wrap gap-3 mt-2.5">
                     {entry.group.teacher && (
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         👨‍🏫 {entry.group.teacher.fullName}
                       </span>
                     )}
                     {entry.room && (
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <MapPin size={11} className="text-gray-400" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <MapPin size={11} className="text-gray-400 dark:text-gray-500" />
                         {entry.room}
                       </span>
                     )}
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                       <Clock size={11} />
                       {entry.startTime} – {entry.endTime}
                     </span>
@@ -252,8 +252,8 @@ const StudentSchedulePage = () => {
 
       {/* Full week overview (if has lessons) */}
       {!isLoading && daysWithSchedule.length > 0 && (
-        <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-3 text-sm">Haftalik jadval xulasasi</h3>
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3 text-sm">Haftalik jadval xulasasi</h3>
           <div className="space-y-2">
             {daysWithSchedule.map(dayNum => (
               <div
@@ -262,8 +262,8 @@ const StudentSchedulePage = () => {
                 className={clsx(
                   'flex items-center gap-3 p-3 rounded-xl cursor-pointer transition',
                   selectedDay === dayNum
-                    ? 'bg-red-50 border border-red-100'
-                    : 'hover:bg-gray-50 border border-transparent'
+                    ? 'bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent'
                 )}
               >
                 <div className={clsx(
@@ -271,24 +271,24 @@ const StudentSchedulePage = () => {
                   dayNum === today
                     ? 'bg-red-600 text-white'
                     : selectedDay === dayNum
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                 )}>
                   {DAYS_SHORT[dayNum]}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={clsx(
                     'text-sm font-medium',
-                    dayNum === today ? 'text-red-700' : 'text-gray-700'
+                    dayNum === today ? 'text-red-700' : 'text-gray-700 dark:text-gray-300'
                   )}>
                     {DAYS[dayNum]}
                     {dayNum === today && <span className="ml-1.5 text-xs text-red-400">(Bugun)</span>}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {byDay[dayNum].map(e => `${e.startTime} – ${e.group.name}`).join(' · ')}
                   </p>
                 </div>
-                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                   {byDay[dayNum].length} dars
                 </span>
               </div>
@@ -299,12 +299,12 @@ const StudentSchedulePage = () => {
 
       {/* Empty state */}
       {!isLoading && scheduleEntries.length === 0 && (
-        <div className="card text-center py-16">
-          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <Calendar size={36} className="text-red-300" />
+        <div className="card dark:bg-gray-800 dark:border-gray-700 text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+            <Calendar size={36} className="text-red-300 dark:text-red-700" />
           </div>
-          <h2 className="text-lg font-bold text-gray-700">Jadval topilmadi</h2>
-          <p className="text-gray-400 text-sm mt-1">Guruhingiz uchun jadval hali belgilanmagan</p>
+          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300">Jadval topilmadi</h2>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Guruhingiz uchun jadval hali belgilanmagan</p>
         </div>
       )}
     </div>

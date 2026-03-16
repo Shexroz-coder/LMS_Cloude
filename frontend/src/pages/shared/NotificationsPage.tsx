@@ -36,6 +36,10 @@ const NotificationsPage = () => {
     { refetchInterval: 30000 }
   );
 
+  const PageWrapper = (props: any) => (
+    <div className="space-y-4 animate-fade-in dark:bg-gray-900 dark:text-gray-100" {...props} />
+  );
+
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
 
@@ -67,24 +71,24 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in dark:bg-gray-900 dark:text-gray-100">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">🔔 Bildirishnomalar</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">🔔 Bildirishnomalar</h1>
           {unreadCount > 0 && (
-            <p className="text-sm text-red-600 mt-0.5 font-medium">{unreadCount} ta o'qilmagan</p>
+            <p className="text-sm text-red-600 dark:text-red-400 mt-0.5 font-medium">{unreadCount} ta o'qilmagan</p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             {(['all', 'unread'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={clsx(
                   "px-3 py-1.5 text-sm font-medium transition",
-                  filter === f ? "bg-red-600 text-white" : "text-gray-600 hover:bg-gray-50"
+                  filter === f ? "bg-red-600 text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                 )}
               >
                 {f === 'all' ? 'Barchasi' : "O'qilmagan"}
@@ -95,7 +99,7 @@ const NotificationsPage = () => {
             <button
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isLoading}
-              className="text-xs text-red-600 hover:text-red-800 font-medium transition"
+              className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium transition"
             >
               Barchasini o'qilgan deb belgilash
             </button>
@@ -105,20 +109,20 @@ const NotificationsPage = () => {
 
       {/* Loading */}
       {isLoading && (
-        <div className="card text-center py-12">
+        <div className="card dark:bg-gray-800 dark:border-gray-700 text-center py-12">
           <div className="animate-spin w-7 h-7 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       )}
 
       {/* Empty */}
       {!isLoading && notifications.length === 0 && (
-        <div className="card text-center py-16">
+        <div className="card dark:bg-gray-800 dark:border-gray-700 text-center py-16">
           <div className="text-5xl mb-4">🔔</div>
-          <h2 className="text-lg font-semibold text-gray-700">
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
             {filter === 'unread' ? "O'qilmagan bildirishnomalar yo'q" : "Bildirishnomalar yo'q"}
           </h2>
-          <p className="text-gray-400 text-sm mt-1">Bildirishnomalar bu yerda ko'rsatiladi</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Bildirishnomalar bu yerda ko'rsatiladi</p>
         </div>
       )}
 
@@ -130,16 +134,16 @@ const NotificationsPage = () => {
               key={n.id}
               onClick={() => !n.isRead && markReadMutation.mutate(n.id)}
               className={clsx(
-                "card flex items-start gap-4 cursor-pointer transition hover:shadow-md",
+                "card dark:bg-gray-800 dark:border-gray-700 flex items-start gap-4 cursor-pointer transition hover:shadow-md",
                 !n.isRead
-                  ? "border-l-4 border-red-500 bg-red-50/30"
-                  : "hover:bg-gray-50 border-l-4 border-transparent"
+                  ? "border-l-4 border-red-500 bg-red-50/30 dark:bg-red-900/20 dark:border-l-4 dark:border-red-600"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-700 border-l-4 border-transparent"
               )}
             >
               {/* Icon */}
               <div className={clsx(
                 "w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-sm",
-                !n.isRead ? "bg-red-50 border border-red-100" : "bg-white border border-gray-100"
+                !n.isRead ? "bg-red-50 dark:bg-red-900/50 border border-red-100 dark:border-red-900" : "bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600"
               )}>
                 {TYPE_ICONS[n.type] || '🔔'}
               </div>

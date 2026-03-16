@@ -224,17 +224,17 @@ const GradesPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-violet-600" /> Baholar Jurnali
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {gradebook ? `${rows.length} ta o'quvchi · ${lessons.length} ta dars` : 'Guruh tanlang'}
           </p>
         </div>
         {selectedGroupId && (
           <button onClick={() => setShowStats(!showStats)}
             className={clsx('flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors',
-              showStats ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}>
+              showStats ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-600 dark:bg-violet-900/30 dark:text-violet-300' : 'border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 hover:border-gray-300')}>
             <BarChart2 className="w-4 h-4" /> Statistika
           </button>
         )}
@@ -256,7 +256,7 @@ const GradesPage = () => {
               <option key={g.id} value={g.id}>{g.name} — {g.course?.name}</option>
             ))}
           </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
         </div>
 
         {/* Month */}
@@ -269,7 +269,7 @@ const GradesPage = () => {
           {GRADE_TYPES.map(gt => (
             <button key={gt.value} onClick={() => setGradeType(gt.value)}
               className={clsx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors',
-                gradeType === gt.value ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+                gradeType === gt.value ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-600 dark:bg-violet-900/30 dark:text-violet-300' : 'border-gray-200 text-gray-500 dark:border-gray-700 dark:text-gray-500 dark:hover:border-gray-600 hover:border-gray-300')}>
               <span>{gt.emoji}</span> {gt.label}
             </button>
           ))}
@@ -278,7 +278,7 @@ const GradesPage = () => {
         {/* Bulk mode info */}
         {bulkMode && (
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
+            <span className="text-xs text-amber-600 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-lg border border-amber-200 dark:border-amber-700">
               ✏️ Ommaviy kiritish rejimi
             </span>
             <button onClick={saveBulk} disabled={bulkMutation.isLoading}
@@ -286,7 +286,7 @@ const GradesPage = () => {
               <Save className="w-3.5 h-3.5" /> Saqlash
             </button>
             <button onClick={cancelBulk}
-              className="text-xs text-gray-500 hover:text-red-500 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              className="text-xs text-gray-500 dark:text-gray-400 dark:hover:text-red-400 hover:text-red-500 px-2 py-1.5 rounded-lg dark:hover:bg-gray-700 hover:bg-gray-100 transition-colors">
               Bekor
             </button>
           </div>
@@ -297,10 +297,10 @@ const GradesPage = () => {
       {showStats && stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "O'rtacha baho", value: stats.avgScore, suffix: '', color: 'text-violet-600', bg: 'bg-violet-50' },
-            { label: 'Jami baholar', value: stats.total, suffix: ' ta', color: 'text-primary-600', bg: 'bg-primary-50' },
-            { label: 'Eng yuqori', value: stats.maxScore, suffix: '', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Eng past', value: stats.minScore, suffix: '', color: 'text-red-500', bg: 'bg-red-50' },
+            { label: "O'rtacha baho", value: stats.avgScore, suffix: '', color: 'text-violet-600 dark:text-violet-300', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+            { label: 'Jami baholar', value: stats.total, suffix: ' ta', color: 'text-primary-600 dark:text-primary-300', bg: 'bg-primary-50 dark:bg-primary-900/20' },
+            { label: 'Eng yuqori', value: stats.maxScore, suffix: '', color: 'text-emerald-600 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+            { label: 'Eng past', value: stats.minScore, suffix: '', color: 'text-red-500 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20' },
           ].map((s, i) => (
             <div key={i} className={clsx('card py-3 flex items-center gap-3', s.bg)}>
               <div>
@@ -312,7 +312,7 @@ const GradesPage = () => {
           {/* Distribution */}
           {stats.distribution && stats.distribution.length > 0 && (
             <div className="col-span-2 md:col-span-4 card py-3">
-              <p className="text-xs font-semibold text-gray-500 mb-2">Baholar taqsimoti</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Baholar taqsimoti</p>
               <div className="flex gap-2">
                 {stats.distribution.map((d: { range: string; label: string; count: number; color: string }) => (
                   <div key={d.range} className="flex-1 text-center">
@@ -323,7 +323,7 @@ const GradesPage = () => {
                       }} />
                     </div>
                     <div className="text-xs font-bold" style={{ color: d.color }}>{d.count}</div>
-                    <div className="text-xs text-gray-400">{d.range}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{d.range}</div>
                   </div>
                 ))}
               </div>
@@ -335,26 +335,26 @@ const GradesPage = () => {
       {/* No group */}
       {!selectedGroupId && (
         <div className="card text-center py-16">
-          <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-          <p className="text-gray-400 font-medium">Guruh tanlang</p>
-          <p className="text-sm text-gray-300 mt-1">Baholar jurnalini ko'rish uchun guruh tanlang</p>
+          <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
+          <p className="text-gray-400 dark:text-gray-500 font-medium">Guruh tanlang</p>
+          <p className="text-sm text-gray-300 dark:text-gray-600 mt-1">Baholar jurnalini ko'rish uchun guruh tanlang</p>
         </div>
       )}
 
       {/* Loading */}
       {selectedGroupId && isLoading && (
         <div className="card animate-pulse">
-          <div className="h-8 bg-gray-100 rounded w-full mb-2" />
-          {[...Array(5)].map((_, i) => <div key={i} className="h-10 bg-gray-50 rounded w-full mb-1" />)}
+          <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded w-full mb-2" />
+          {[...Array(5)].map((_, i) => <div key={i} className="h-10 bg-gray-50 dark:bg-gray-700 rounded w-full mb-1" />)}
         </div>
       )}
 
       {/* No lessons hint */}
       {selectedGroupId && !isLoading && gradebook && lessons.length === 0 && (
-        <div className="card text-center py-12 bg-amber-50 border border-amber-100">
-          <FileText className="w-10 h-10 mx-auto mb-2 text-amber-300" />
-          <p className="text-amber-700 font-medium">Bu oyda darslar yo'q</p>
-          <p className="text-sm text-amber-500 mt-1">Avval <strong>Davomat</strong> sahifasida dars va davomat belgilang</p>
+        <div className="card text-center py-12 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-700">
+          <FileText className="w-10 h-10 mx-auto mb-2 text-amber-300 dark:text-amber-500" />
+          <p className="text-amber-700 dark:text-amber-300 font-medium">Bu oyda darslar yo'q</p>
+          <p className="text-sm text-amber-500 dark:text-amber-400 mt-1">Avval <strong>Davomat</strong> sahifasida dars va davomat belgilang</p>
         </div>
       )}
 
@@ -362,16 +362,16 @@ const GradesPage = () => {
       {selectedGroupId && !isLoading && gradebook && lessons.length > 0 && (
         <div className="card p-0 overflow-hidden">
           {/* Group stats header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-100">
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border-b border-violet-100 dark:border-violet-700">
             <div className="flex items-center gap-3">
-              <Award className="w-4 h-4 text-violet-600" />
-              <span className="text-sm font-semibold text-violet-800">
+              <Award className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+              <span className="text-sm font-semibold text-violet-800 dark:text-violet-300">
                 {currentMonth} · {GRADE_TYPES.find(g => g.value === gradeType)?.emoji} {GRADE_TYPES.find(g => g.value === gradeType)?.label} baholari
               </span>
             </div>
             {groupAvg !== null && (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-violet-500">Guruh o'rtachasi:</span>
+                <span className="text-xs text-violet-500 dark:text-violet-400">Guruh o'rtachasi:</span>
                 <span className={clsx('text-base font-bold', getScoreColor(groupAvg))}>{groupAvg}</span>
               </div>
             )}
@@ -379,30 +379,30 @@ const GradesPage = () => {
 
           <div className="overflow-auto max-h-[65vh]">
             <table className="w-full text-sm border-collapse">
-              <thead className="sticky top-0 z-10 bg-white shadow-sm">
+              <thead className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm">
                 <tr>
-                  <th className="sticky left-0 z-20 bg-white border-b border-r border-gray-100 px-3 py-2.5 text-left font-semibold text-gray-600 text-xs w-8">#</th>
-                  <th className="sticky left-8 z-20 bg-white border-b border-r border-gray-100 px-3 py-2.5 text-left font-semibold text-gray-600 text-xs min-w-[160px]">O'quvchi</th>
-                  <th className="sticky left-[168px] z-20 bg-white border-b border-r border-gray-200 px-3 py-2.5 text-center font-semibold text-violet-600 text-xs w-16">O'rtacha</th>
-                  <th className="border-b border-r border-gray-100 px-2 py-2.5 text-center font-semibold text-emerald-600 text-xs w-14">Davomat</th>
+                  <th className="sticky left-0 z-20 bg-white dark:bg-gray-800 border-b border-r border-gray-100 dark:border-gray-700 px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-400 text-xs w-8">#</th>
+                  <th className="sticky left-8 z-20 bg-white dark:bg-gray-800 border-b border-r border-gray-100 dark:border-gray-700 px-3 py-2.5 text-left font-semibold text-gray-600 dark:text-gray-400 text-xs min-w-[160px]">O'quvchi</th>
+                  <th className="sticky left-[168px] z-20 bg-white dark:bg-gray-800 border-b border-r border-gray-200 dark:border-gray-700 px-3 py-2.5 text-center font-semibold text-violet-600 dark:text-violet-400 text-xs w-16">O'rtacha</th>
+                  <th className="border-b border-r border-gray-100 dark:border-gray-700 px-2 py-2.5 text-center font-semibold text-emerald-600 dark:text-emerald-400 text-xs w-14">Davomat</th>
 
                   {/* Lesson columns */}
                   {lessons.map(lesson => (
                     <th key={lesson.id}
                       className={clsx(
-                        'border-b border-r border-gray-100 px-1 py-1.5 text-center text-xs font-medium min-w-[52px] cursor-pointer transition-colors',
+                        'border-b border-r border-gray-100 dark:border-gray-700 px-1 py-1.5 text-center text-xs font-medium min-w-[52px] cursor-pointer transition-colors',
                         selectedLessonId === lesson.id
-                          ? 'bg-amber-50 text-amber-700 border-b-amber-300'
-                          : 'text-gray-500 hover:bg-gray-50'
+                          ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-b-amber-300 dark:border-b-amber-700'
+                          : 'text-gray-500 dark:text-gray-400 dark:hover:bg-gray-700 hover:bg-gray-50'
                       )}
                       onClick={() => !bulkMode ? startBulkLesson(lesson.id) : undefined}
                       title={`${lesson.topic || 'Dars'} — Ommaviy baho kiritish uchun bosing`}
                     >
                       <div className="font-semibold">{format(new Date(lesson.date), 'd')}</div>
-                      <div className="text-gray-400 text-[10px]">{format(new Date(lesson.date), 'MMM')}</div>
-                      {lesson.topic && <div className="text-gray-300 text-[9px] truncate max-w-[48px] mx-auto" title={lesson.topic}>{lesson.topic.slice(0, 8)}</div>}
+                      <div className="text-gray-400 dark:text-gray-500 text-[10px]">{format(new Date(lesson.date), 'MMM')}</div>
+                      {lesson.topic && <div className="text-gray-300 dark:text-gray-600 text-[9px] truncate max-w-[48px] mx-auto" title={lesson.topic}>{lesson.topic.slice(0, 8)}</div>}
                       {selectedLessonId === lesson.id && bulkMode && (
-                        <div className="text-[10px] text-amber-600 font-bold">✏️</div>
+                        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">✏️</div>
                       )}
                     </th>
                   ))}
@@ -411,7 +411,7 @@ const GradesPage = () => {
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={4 + lessons.length} className="text-center py-12 text-gray-400">
+                    <td colSpan={4 + lessons.length} className="text-center py-12 text-gray-400 dark:text-gray-500">
                       <Layers className="w-10 h-10 mx-auto mb-2 opacity-20" />
                       O'quvchilar yo'q
                     </td>
@@ -420,33 +420,33 @@ const GradesPage = () => {
                   rows.map((row, idx) => (
                     <tr key={row.studentId} className={clsx(
                       'transition-colors',
-                      idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40',
-                      'hover:bg-violet-50/20'
+                      idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/40 dark:bg-gray-700/20',
+                      'dark:hover:bg-violet-900/10 hover:bg-violet-50/20'
                     )}>
                       {/* # */}
-                      <td className="sticky left-0 z-10 border-b border-r border-gray-100 px-3 py-2 text-xs text-gray-400 bg-inherit">{idx + 1}</td>
+                      <td className="sticky left-0 z-10 border-b border-r border-gray-100 dark:border-gray-700 px-3 py-2 text-xs text-gray-400 dark:text-gray-500 bg-inherit">{idx + 1}</td>
 
                       {/* Student name */}
-                      <td className="sticky left-8 z-10 border-b border-r border-gray-100 px-3 py-2 bg-inherit">
+                      <td className="sticky left-8 z-10 border-b border-r border-gray-100 dark:border-gray-700 px-3 py-2 bg-inherit">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                             {getInitials(row.fullName)}
                           </div>
-                          <span className="text-gray-800 font-medium text-xs truncate max-w-[120px]">{row.fullName}</span>
+                          <span className="text-gray-800 dark:text-gray-100 font-medium text-xs truncate max-w-[120px]">{row.fullName}</span>
                         </div>
                       </td>
 
                       {/* Avg score */}
-                      <td className="sticky left-[168px] z-10 border-b border-r border-gray-200 px-2 py-2 text-center bg-inherit">
+                      <td className="sticky left-[168px] z-10 border-b border-r border-gray-200 dark:border-gray-700 px-2 py-2 text-center bg-inherit">
                         {row.avgScore !== null ? (
                           <span className={clsx('text-sm', getScoreColor(row.avgScore))}>
                             {row.avgScore}
                           </span>
-                        ) : <span className="text-gray-300 text-xs">—</span>}
+                        ) : <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>}
                       </td>
 
                       {/* Attendance rate */}
-                      <td className="border-b border-r border-gray-100 px-2 py-2 text-center">
+                      <td className="border-b border-r border-gray-100 dark:border-gray-700 px-2 py-2 text-center">
                         <span className={clsx('text-xs font-medium',
                           row.attendanceRate >= 80 ? 'text-emerald-600' :
                           row.attendanceRate >= 60 ? 'text-amber-500' : 'text-red-400')}>
@@ -463,9 +463,9 @@ const GradesPage = () => {
                         return (
                           <td key={cell.lessonId}
                             className={clsx(
-                              'border-b border-r border-gray-100 text-center p-0 relative',
-                              isBulkLesson ? 'bg-amber-50' : '',
-                              !isBulkLesson && !isEditing ? 'cursor-pointer hover:bg-violet-50' : ''
+                              'border-b border-r border-gray-100 dark:border-gray-700 text-center p-0 relative',
+                              isBulkLesson ? 'bg-amber-50 dark:bg-amber-900/20' : '',
+                              !isBulkLesson && !isEditing ? 'cursor-pointer dark:hover:bg-violet-900/10 hover:bg-violet-50' : ''
                             )}
                             onClick={() => {
                               if (!isBulkLesson && !isEditing) {
@@ -485,7 +485,7 @@ const GradesPage = () => {
                                 onChange={e => setBulkGrades(prev => ({ ...prev, [row.studentId]: e.target.value }))}
                                 placeholder="—"
                                 min="0" max="100" step="1"
-                                className="w-full h-9 text-center text-sm font-medium bg-transparent border-none outline-none focus:ring-1 focus:ring-amber-400 px-1"
+                                className="w-full h-9 text-center text-sm font-medium bg-transparent dark:text-gray-100 border-none outline-none focus:ring-1 focus:ring-amber-400 px-1"
                               />
                             ) : isEditing ? (
                               <input
@@ -499,7 +499,7 @@ const GradesPage = () => {
                                 }}
                                 autoFocus
                                 min="0" max="100"
-                                className="w-full h-9 text-center text-sm font-bold border-2 border-violet-400 rounded outline-none bg-white px-1"
+                                className="w-full h-9 text-center text-sm font-bold border-2 border-violet-400 rounded outline-none bg-white dark:bg-gray-700 dark:text-gray-100 px-1"
                               />
                             ) : (
                               <div className="h-9 flex items-center justify-center gap-0.5">
@@ -513,9 +513,9 @@ const GradesPage = () => {
                                     {cell.grade.score}
                                   </span>
                                 ) : cell.attendance === 'ABSENT' ? (
-                                  <span className="text-xs text-red-300">—</span>
+                                  <span className="text-xs text-red-300 dark:text-red-400">—</span>
                                 ) : (
-                                  <span className="text-gray-200 text-xs">+</span>
+                                  <span className="text-gray-200 dark:text-gray-600 text-xs">+</span>
                                 )}
                               </div>
                             )}
@@ -530,18 +530,18 @@ const GradesPage = () => {
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center gap-4 px-4 py-2 border-t border-gray-100 bg-gray-50/50">
-            <span className="text-xs text-gray-400">Legenda:</span>
+          <div className="flex flex-wrap items-center gap-4 px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+            <span className="text-xs text-gray-400 dark:text-gray-500">Legenda:</span>
             {Object.entries(ATTENDANCE_ICONS).map(([status, { icon: Icon, color }]) => (
               <div key={status} className="flex items-center gap-1">
                 <Icon className={clsx('w-3 h-3', color)} />
-                <span className="text-[11px] text-gray-500">{
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">{
                   status === 'PRESENT' ? 'Keldi' : status === 'ABSENT' ? 'Kelmadi' :
                   status === 'LATE' ? 'Kechikdi' : 'Sababli'
                 }</span>
               </div>
             ))}
-            <span className="text-[11px] text-gray-400 ml-auto">
+            <span className="text-[11px] text-gray-400 dark:text-gray-500 ml-auto">
               Katakchani bosing — baho kiriting · Sana sarlavhasini bosing — ommaviy kiritish
             </span>
           </div>
@@ -550,12 +550,12 @@ const GradesPage = () => {
 
       {/* Quick Grade Entry Panel (bulk mode floating panel) */}
       {bulkMode && selectedLessonId && gradebook && (
-        <div className="fixed bottom-4 right-4 z-30 bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 w-72">
+        <div className="fixed bottom-4 right-4 z-30 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-72">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-bold text-sm text-gray-800 flex items-center gap-1.5">
+            <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
               <Edit3 className="w-4 h-4 text-amber-500" /> Ommaviy baho
             </h4>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {lessons.find(l => l.id === selectedLessonId)
                 ? format(new Date(lessons.find(l => l.id === selectedLessonId)!.date), 'd-MMMM')
                 : ''}
@@ -564,7 +564,7 @@ const GradesPage = () => {
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {rows.map(row => (
               <div key={row.studentId} className="flex items-center gap-2">
-                <span className="text-xs text-gray-600 flex-1 truncate">{row.fullName.split(' ')[0]}</span>
+                <span className="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate">{row.fullName.split(' ')[0]}</span>
                 <input
                   type="number" min="0" max="100"
                   value={bulkGrades[row.studentId] || ''}
@@ -576,7 +576,7 @@ const GradesPage = () => {
             ))}
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={cancelBulk} className="flex-1 border border-gray-200 text-gray-600 text-xs py-2 rounded-lg hover:bg-gray-50 transition-colors">Bekor</button>
+            <button onClick={cancelBulk} className="flex-1 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-xs py-2 rounded-lg dark:hover:bg-gray-700 hover:bg-gray-50 transition-colors">Bekor</button>
             <button onClick={saveBulk} disabled={bulkMutation.isLoading}
               className="flex-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium py-2 rounded-lg transition-colors disabled:opacity-60">
               {bulkMutation.isLoading ? '...' : 'Saqlash'}

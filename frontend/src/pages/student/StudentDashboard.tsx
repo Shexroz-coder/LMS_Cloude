@@ -136,7 +136,7 @@ const StudentDashboard = () => {
   const myRank = (leaderboard as { id: number }[]).findIndex(s => s.id === studentId) + 1;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in dark:bg-gray-900 dark:text-gray-100">
 
       {/* ── Hero Header ──────────────────────────── */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 via-red-700 to-black text-white px-6 py-5">
@@ -173,9 +173,9 @@ const StudentDashboard = () => {
       </div>
 
       {/* ── Bugungi darslar ──────────────────────── */}
-      <div className="card">
+      <div className="card dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900 flex items-center gap-2">
+          <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-primary-600" />
             </div>
@@ -187,7 +187,7 @@ const StudentDashboard = () => {
         </div>
 
         {todayLessons.length === 0 ? (
-          <div className="text-center py-6 text-gray-400">
+          <div className="text-center py-6 text-gray-400 dark:text-gray-500">
             <div className="text-3xl mb-2">☕</div>
             <p className="text-sm">Bugun dars yo'q</p>
             {tomorrowLessons.length > 0 && (
@@ -199,19 +199,19 @@ const StudentDashboard = () => {
         ) : (
           <div className="space-y-2">
             {todayLessons.map((sc, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-primary-50 border border-primary-100">
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-primary-50 dark:bg-gray-700 border border-primary-100 dark:border-gray-600">
                 <div className="w-14 text-center bg-primary-600 text-white rounded-xl py-2 flex-shrink-0">
                   <p className="text-xs font-bold">{sc.startTime}</p>
                   <p className="text-[10px] opacity-80">{sc.endTime}</p>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm">{sc.groupName}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{sc.groupName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {sc.courseName} · {sc.teacherName}
                   </p>
                 </div>
                 {sc.room && (
-                  <span className="text-[11px] bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full flex-shrink-0">
+                  <span className="text-[11px] bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded-full flex-shrink-0">
                     🚪 {sc.room}
                   </span>
                 )}
@@ -224,9 +224,9 @@ const StudentDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* ── Guruhlarim ──────────────────────────── */}
-        <div className="card">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
                 <BookOpen className="w-4 h-4 text-gray-600" />
               </div>
@@ -235,18 +235,18 @@ const StudentDashboard = () => {
           </div>
 
           {groups.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Guruh topilmadi</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Guruh topilmadi</p>
           ) : (
             <div className="space-y-2">
               {groups.map(g => {
                 const days = [...new Set((g.schedules || []).flatMap(sc => sc.daysOfWeek))].sort();
                 const times = (g.schedules || []).map(sc => `${sc.startTime}–${sc.endTime}`).join(', ');
                 return (
-                  <div key={g.id} className="p-3 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition">
+                  <div key={g.id} className="p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-primary-200 hover:bg-primary-50/30 dark:hover:bg-gray-700 transition">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-sm text-gray-900">{g.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{g.course?.name}</p>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{g.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{g.course?.name}</p>
                       </div>
                       <span className="text-[11px] bg-black text-white px-2 py-0.5 rounded-full flex-shrink-0">
                         {g.teacher?.user?.fullName?.split(' ')[0]}
@@ -266,7 +266,7 @@ const StudentDashboard = () => {
                             </span>
                           ))}
                         </div>
-                        {times && <span className="text-[11px] text-gray-400">{times}</span>}
+                        {times && <span className="text-[11px] text-gray-400 dark:text-gray-500">{times}</span>}
                       </div>
                     )}
                   </div>
@@ -277,9 +277,9 @@ const StudentDashboard = () => {
         </div>
 
         {/* ── So'nggi baholar ─────────────────────── */}
-        <div className="card">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
                 <Star className="w-4 h-4 text-amber-600" />
               </div>
@@ -291,34 +291,34 @@ const StudentDashboard = () => {
           </div>
 
           {avgScore > 0 && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 mb-3">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700 mb-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                 {avgScore.toFixed(0)}
               </div>
               <div>
-                <p className="text-xs text-gray-500">O'rtacha ball</p>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1.5 w-28">
+                <p className="text-xs text-gray-500 dark:text-gray-400">O'rtacha ball</p>
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1.5 w-28">
                   <div className="h-1.5 rounded-full bg-primary-600 transition-all" style={{ width: `${avgScore}%` }} />
                 </div>
               </div>
               {attStats && (
                 <div className="ml-auto text-right">
-                  <p className="text-xs text-gray-500">Davomat</p>
-                  <p className="font-bold text-sm text-gray-800">{attendancePct}%</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Davomat</p>
+                  <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{attendancePct}%</p>
                 </div>
               )}
             </div>
           )}
 
           {recentGrades.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Hali baho yo'q</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Hali baho yo'q</p>
           ) : (
             <div className="space-y-2">
               {recentGrades.map(g => (
-                <div key={g.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div key={g.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700 last:border-0">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-800 font-medium truncate">{g.lesson.topic || '—'}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">{g.lesson.topic || '—'}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {g.lesson.group?.name} ·{' '}
                       {new Date(g.lesson.date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })}
                     </p>
@@ -334,9 +334,9 @@ const StudentDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* ── To'lov holati ───────────────────────── */}
-        <div className="card">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-primary-600" />
               </div>
@@ -348,13 +348,13 @@ const StudentDashboard = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="p-3 rounded-xl bg-gray-50 text-center">
-              <p className="text-xs text-gray-500 mb-1">Balans</p>
-              <p className="font-bold text-emerald-600">{fmt(bal)} so'm</p>
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Balans</p>
+              <p className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(bal)} so'm</p>
             </div>
-            <div className={clsx('p-3 rounded-xl text-center', debt > 0 ? 'bg-red-50' : 'bg-gray-50')}>
-              <p className="text-xs text-gray-500 mb-1">Qarz</p>
-              <p className={clsx('font-bold', debt > 0 ? 'text-red-600' : 'text-gray-400')}>
+            <div className={clsx('p-3 rounded-xl text-center', debt > 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-gray-50 dark:bg-gray-700')}>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Qarz</p>
+              <p className={clsx('font-bold', debt > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500')}>
                 {debt > 0 ? `${fmt(debt)} so'm` : '—'}
               </p>
             </div>
@@ -370,12 +370,12 @@ const StudentDashboard = () => {
           {calcData && !calcData.message && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Oylik to'lov:</span>
-                <span className="font-semibold text-gray-800">{fmt(calcData.monthlyAmount)} so'm</span>
+                <span className="text-gray-500 dark:text-gray-400">Oylik to'lov:</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-200">{fmt(calcData.monthlyAmount)} so'm</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Dars narxi:</span>
-                <span className="text-gray-600">{fmt(calcData.pricePerLesson)} so'm</span>
+                <span className="text-gray-500 dark:text-gray-400">Dars narxi:</span>
+                <span className="text-gray-600 dark:text-gray-300">{fmt(calcData.pricePerLesson)} so'm</span>
               </div>
             </div>
           )}
@@ -390,9 +390,9 @@ const StudentDashboard = () => {
         </div>
 
         {/* ── Coin & Reyting ──────────────────────── */}
-        <div className="card">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
                 <Coins className="w-4 h-4 text-amber-600" />
               </div>
@@ -404,18 +404,18 @@ const StudentDashboard = () => {
           </div>
 
           {/* Coin balance */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 mb-3">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 dark:from-amber-900/40 to-orange-50 dark:to-orange-900/40 border border-amber-100 dark:border-amber-800 mb-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm">
               <span className="text-2xl">🪙</span>
             </div>
             <div>
-              <p className="text-xs text-amber-600 font-medium">Joriy coin</p>
-              <p className="text-2xl font-black text-amber-700">{fmt(coinBalance)}</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Joriy coin</p>
+              <p className="text-2xl font-black text-amber-700 dark:text-amber-300">{fmt(coinBalance)}</p>
             </div>
             {myRank > 0 && (
               <div className="ml-auto text-right">
-                <p className="text-xs text-gray-500">Reytingim</p>
-                <p className="font-black text-xl text-gray-800">#{myRank}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Reytingim</p>
+                <p className="font-black text-xl text-gray-800 dark:text-gray-200">#{myRank}</p>
               </div>
             )}
           </div>
@@ -428,12 +428,12 @@ const StudentDashboard = () => {
               return (
                 <div key={s.id} className={clsx(
                   'flex items-center gap-3 py-2 px-3 rounded-xl transition',
-                  isMe ? 'bg-primary-50 border border-primary-200' : 'hover:bg-gray-50'
+                  isMe ? 'bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                 )}>
                   <span className="w-6 text-center text-sm">
-                    {medal || <span className="text-xs text-gray-400">{i + 1}</span>}
+                    {medal || <span className="text-xs text-gray-400 dark:text-gray-500">{i + 1}</span>}
                   </span>
-                  <span className={clsx('text-sm flex-1 truncate', isMe ? 'font-bold text-primary-700' : 'text-gray-700')}>
+                  <span className={clsx('text-sm flex-1 truncate', isMe ? 'font-bold text-primary-700 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300')}>
                     {isMe ? 'Men' : s.fullName}
                   </span>
                   <span className="text-xs font-semibold text-amber-600">🪙 {s.coinBalance}</span>

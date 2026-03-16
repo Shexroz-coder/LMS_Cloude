@@ -7,6 +7,7 @@ import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { User } from '../../types';
 import LanguageSwitcher from '../../components/ui/LanguageSwitcher';
+import ThemeToggle from '../../components/ui/ThemeToggle';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -54,10 +55,11 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4 transition-colors duration-300">
 
-      {/* Language switcher */}
-      <div className="absolute top-4 right-4">
+      {/* Top controls */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeToggle variant="light" />
         <LanguageSwitcher variant="light" />
       </div>
 
@@ -68,12 +70,12 @@ const LoginPage = () => {
             <Bot className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white">{t('app.name')}</h1>
-          <p className="text-primary-200 mt-1 text-sm">{t('app.tagline')}</p>
+          <p className="text-primary-200 dark:text-gray-400 mt-1 text-sm">{t('app.tagline')}</p>
         </div>
 
         {/* Login card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 transition-colors duration-300">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
             {t('auth.login')}
           </h2>
 
@@ -107,7 +109,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -132,14 +134,14 @@ const LoginPage = () => {
           </form>
 
           {/* Roles info */}
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center mb-3">Rollar:</p>
+          <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-3">Rollar:</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { role: 'Admin', icon: '👑', color: 'bg-primary-50 text-primary-700' },
-                { role: 'Ustoz', icon: '👨‍🏫', color: 'bg-success-50 text-success-700' },
-                { role: "O'quvchi", icon: '🎓', color: 'bg-purple-50 text-purple-700' },
-                { role: 'Ota-ona', icon: '👨‍👩‍👧', color: 'bg-orange-50 text-orange-700' },
+                { role: 'Admin', icon: '👑', color: 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300' },
+                { role: 'Ustoz', icon: '👨‍🏫', color: 'bg-success-50 text-success-700 dark:bg-success-600/20 dark:text-success-500' },
+                { role: "O'quvchi", icon: '🎓', color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+                { role: 'Ota-ona', icon: '👨‍👩‍👧', color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' },
               ].map((r) => (
                 <div key={r.role} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${r.color}`}>
                   <span>{r.icon}</span>
@@ -150,7 +152,7 @@ const LoginPage = () => {
           </div>
         </div>
 
-        <p className="text-center text-primary-300 text-xs mt-6">
+        <p className="text-center text-primary-300 dark:text-gray-500 text-xs mt-6">
           © 2026 Robotic Edu. Barcha huquqlar himoyalangan.
         </p>
       </div>

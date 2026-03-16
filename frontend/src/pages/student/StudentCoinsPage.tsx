@@ -57,7 +57,7 @@ const StudentCoinsPage = () => {
   const spent   = Math.abs(transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0));
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 animate-fade-in dark:bg-gray-900 dark:text-gray-100">
 
       {/* Hero balance card */}
       <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 p-5 text-white shadow-lg">
@@ -105,10 +105,10 @@ const StudentCoinsPage = () => {
 
       {/* Leaderboard */}
       {leaderboard.length > 0 && (
-        <div className="card">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={16} className="text-amber-500" />
-            <h3 className="font-bold text-gray-800">Reyting Jadvali</h3>
+            <h3 className="font-bold text-gray-800 dark:text-gray-100">Reyting Jadvali</h3>
           </div>
 
           {/* Top 3 podium */}
@@ -134,7 +134,7 @@ const StudentCoinsPage = () => {
                       )}>
                         {s.fullName.charAt(0).toUpperCase()}
                       </div>
-                      <p className="text-xs font-semibold text-gray-700 text-center truncate max-w-full px-1">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center truncate max-w-full px-1">
                         {s.fullName.split(' ')[0]}
                         {isMe && <span className="text-red-500"> (Men)</span>}
                       </p>
@@ -162,8 +162,8 @@ const StudentCoinsPage = () => {
                   className={clsx(
                     'flex items-center justify-between px-3 py-2.5 rounded-xl transition',
                     isMe
-                      ? 'bg-red-50 border border-red-100'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ const StudentCoinsPage = () => {
                     </span>
                     <span className={clsx(
                       'text-sm font-medium',
-                      isMe ? 'text-red-700' : 'text-gray-700'
+                      isMe ? 'text-red-700 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
                     )}>
                       {s.fullName}
                       {isMe && <span className="ml-1 text-xs text-red-400">(Men)</span>}
@@ -192,12 +192,12 @@ const StudentCoinsPage = () => {
       )}
 
       {/* Transaction history */}
-      <div className="card">
+      <div className="card dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-4">
           <Coins size={16} className="text-amber-500" />
-          <h3 className="font-bold text-gray-800">Tranzaksiyalar tarixi</h3>
+          <h3 className="font-bold text-gray-800 dark:text-gray-100">Tranzaksiyalar tarixi</h3>
           {transactions.length > 0 && (
-            <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {transactions.length} ta
             </span>
           )}
@@ -206,12 +206,12 @@ const StudentCoinsPage = () => {
         {isLoading ? (
           <div className="text-center py-10">
             <div className="animate-spin w-7 h-7 border-2 border-amber-400 border-t-transparent rounded-full mx-auto mb-2" />
-            <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="text-center py-10 text-gray-300">
+          <div className="text-center py-10 text-gray-300 dark:text-gray-600">
             <div className="text-5xl mb-3">🪙</div>
-            <p className="text-sm text-gray-400">Hali tranzaksiyalar yo'q</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Hali tranzaksiyalar yo'q</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -221,22 +221,22 @@ const StudentCoinsPage = () => {
                 className={clsx(
                   'flex items-center justify-between p-3 rounded-xl border transition',
                   t.amount > 0
-                    ? 'border-emerald-100 bg-emerald-50/50 hover:bg-emerald-50'
-                    : 'border-red-100 bg-red-50/50 hover:bg-red-50'
+                    ? 'border-emerald-100 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/20 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                    : 'border-red-100 dark:border-red-900 bg-red-50/50 dark:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/30'
                 )}
               >
                 <div className="flex items-center gap-3">
                   <div className={clsx(
                     'w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0',
-                    t.amount > 0 ? 'bg-emerald-100' : 'bg-red-100'
+                    t.amount > 0 ? 'bg-emerald-100 dark:bg-emerald-900/50' : 'bg-red-100 dark:bg-red-900/50'
                   )}>
                     {TYPE_ICONS[t.type] || '🪙'}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                       {t.reason || TYPE_LABELS[t.type] || t.type}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {t.giver ? `${t.giver.fullName} · ` : ''}
                       {new Date(t.createdAt).toLocaleDateString('uz-UZ', {
                         day: 'numeric', month: 'short', year: 'numeric'

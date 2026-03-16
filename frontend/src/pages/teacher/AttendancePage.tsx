@@ -126,10 +126,10 @@ const AttendancePage = () => {
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           <CheckCircle className="w-6 h-6 text-emerald-600" /> Davomat Belgilash
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">{format(new Date(), 'd-MMMM, yyyy')}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{format(new Date(), 'd-MMMM, yyyy')}</p>
       </div>
 
       {/* Settings */}
@@ -154,7 +154,7 @@ const AttendancePage = () => {
                   <option key={g.id} value={g.id}>{g.name} — {g.course?.name}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
           </div>
 
@@ -162,7 +162,7 @@ const AttendancePage = () => {
           <div>
             <label className="label">Sana *</label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
               <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input pl-9" />
             </div>
           </div>
@@ -177,8 +177,8 @@ const AttendancePage = () => {
 
         {/* Quick mark all */}
         {groupDetail && students.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Hammani belgilash:</span>
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Hammani belgilash:</span>
             {(Object.keys(STATUS_CONFIG) as AttendanceStatus[]).map(status => (
               <button key={status} onClick={() => markAll(status)}
                 className={clsx(
@@ -196,9 +196,9 @@ const AttendancePage = () => {
       {/* No group selected */}
       {!selectedGroupId && (
         <div className="card text-center py-16">
-          <Users className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-          <p className="text-gray-400">Guruh tanlang</p>
-          <p className="text-xs text-gray-300 mt-1">Davomat belgilash uchun yuqoridan guruh tanlang</p>
+          <Users className="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
+          <p className="text-gray-400 dark:text-gray-500">Guruh tanlang</p>
+          <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">Davomat belgilash uchun yuqoridan guruh tanlang</p>
         </div>
       )}
 
@@ -206,15 +206,15 @@ const AttendancePage = () => {
       {selectedGroupId && groupLoading && (
         <div className="card text-center py-12">
           <RefreshCw className="w-8 h-8 mx-auto mb-2 text-indigo-400 animate-spin" />
-          <p className="text-sm text-gray-400">O'quvchilar yuklanmoqda...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">O'quvchilar yuklanmoqda...</p>
         </div>
       )}
 
       {/* No students in group */}
       {selectedGroupId && !groupLoading && groupDetail && students.length === 0 && (
         <div className="card text-center py-12">
-          <Users className="w-10 h-10 mx-auto mb-2 text-gray-200" />
-          <p className="text-gray-400">Bu guruhda faol o'quvchilar yo'q</p>
+          <Users className="w-10 h-10 mx-auto mb-2 text-gray-200 dark:text-gray-600" />
+          <p className="text-gray-400 dark:text-gray-500">Bu guruhda faol o'quvchilar yo'q</p>
         </div>
       )}
 
@@ -223,13 +223,13 @@ const AttendancePage = () => {
         <>
           {/* Stats bar */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div className="flex-1 h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
               {totalCount > 0 && (
                 <div className="h-full bg-emerald-500 rounded-full transition-all"
                   style={{ width: `${(presentCount / totalCount) * 100}%` }} />
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500 flex-shrink-0">
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
               <span className="text-emerald-600 font-semibold">{presentCount} keldi</span>
               <span className="text-red-500 font-semibold">{absentCount} kelmadi</span>
               <span>/ {totalCount} ta</span>
@@ -252,7 +252,7 @@ const AttendancePage = () => {
                   )}>
                   <div className="flex items-center gap-3">
                     {/* Number */}
-                    <span className="text-xs text-gray-400 w-5 flex-shrink-0 text-center">{index + 1}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 w-5 flex-shrink-0 text-center">{index + 1}</span>
 
                     {/* Avatar */}
                     <div className={clsx(
@@ -266,7 +266,7 @@ const AttendancePage = () => {
 
                     {/* Name */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-800 text-sm">{student.user.fullName}</div>
+                      <div className="font-medium text-gray-800 dark:text-gray-100 text-sm">{student.user.fullName}</div>
                     </div>
 
                     {/* Score input */}
@@ -296,7 +296,7 @@ const AttendancePage = () => {
                               'w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all text-xs font-bold',
                               status === s
                                 ? sc.color + ' scale-110'
-                                : 'border-gray-200 text-gray-400 hover:border-gray-300'
+                                : 'border-gray-200 dark:border-gray-500 text-gray-400 dark:text-gray-400 dark:hover:border-gray-400 hover:border-gray-300'
                             )}
                           >
                             <Icon className="w-3.5 h-3.5" />

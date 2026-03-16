@@ -132,20 +132,20 @@ const HolidaysPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <CalendarOff className="text-red-500" size={28} />
             Bayramlar va dam olish kunlari
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Dam olish kunlarida darslar avtomatik disable bo'ladi</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Dam olish kunlarida darslar avtomatik disable bo'ladi</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Year selector */}
-          <div className="flex items-center gap-1 bg-white rounded-lg border px-2 py-1.5">
-            <button onClick={() => setYear(y => y - 1)} className="p-1 hover:bg-gray-100 rounded">
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 px-2 py-1.5">
+            <button onClick={() => setYear(y => y - 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
               <Calendar size={14} />
             </button>
-            <span className="text-sm font-semibold px-2">{year}</span>
-            <button onClick={() => setYear(y => y + 1)} className="p-1 hover:bg-gray-100 rounded">
+            <span className="text-sm font-semibold px-2 dark:text-gray-200">{year}</span>
+            <button onClick={() => setYear(y => y + 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
               <Calendar size={14} />
             </button>
           </div>
@@ -161,49 +161,49 @@ const HolidaysPage = () => {
 
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
               <Sun size={20} className="text-red-500" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{holidays.filter(h => h.type === 'HOLIDAY').length}</div>
-              <div className="text-gray-500 text-xs">Bayramlar</div>
+              <div className="text-2xl font-bold dark:text-gray-100">{holidays.filter(h => h.type === 'HOLIDAY').length}</div>
+              <div className="text-gray-500 dark:text-gray-400 text-xs">Bayramlar</div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
               <Umbrella size={20} className="text-blue-500" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{holidays.filter(h => h.type === 'VACATION').length}</div>
-              <div className="text-gray-500 text-xs">Dam olish kunlari</div>
+              <div className="text-2xl font-bold dark:text-gray-100">{holidays.filter(h => h.type === 'VACATION').length}</div>
+              <div className="text-gray-500 dark:text-gray-400 text-xs">Dam olish kunlari</div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
               <Repeat size={20} className="text-purple-500" />
             </div>
             <div>
-              <div className="text-2xl font-bold">{holidays.filter(h => h.isRecurring).length}</div>
-              <div className="text-gray-500 text-xs">Har yili takrorlanuvchi</div>
+              <div className="text-2xl font-bold dark:text-gray-100">{holidays.filter(h => h.isRecurring).length}</div>
+              <div className="text-gray-500 dark:text-gray-400 text-xs">Har yili takrorlanuvchi</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400">
+          <div className="flex items-center justify-center py-16 text-gray-400 dark:text-gray-500">
             <RefreshCw size={20} className="animate-spin mr-2" /> Yuklanmoqda...
           </div>
         ) : holidays.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-400 dark:text-gray-500">
             <CalendarOff size={48} className="mx-auto mb-3 opacity-50" />
             <p className="font-medium">Bayramlar topilmadi</p>
             <p className="text-sm">Yangi bayram yoki dam olish kuni qo'shing</p>
@@ -211,7 +211,7 @@ const HolidaysPage = () => {
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <tr className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
                 <th className="px-5 py-3">Nomi</th>
                 <th className="px-5 py-3">Turi</th>
                 <th className="px-5 py-3">Boshlanishi</th>
@@ -220,15 +220,15 @@ const HolidaysPage = () => {
                 <th className="px-5 py-3 text-right">Amallar</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {holidays.map(h => {
                 const TypeIcon = typeIcons[h.type] || Calendar;
                 return (
-                  <tr key={h.id} className="hover:bg-gray-50 transition">
+                  <tr key={h.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <TypeIcon size={16} className={clsx(h.type === 'HOLIDAY' ? 'text-red-500' : h.type === 'VACATION' ? 'text-blue-500' : 'text-gray-500')} />
-                        <span className="font-medium text-gray-900">{h.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{h.name}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
@@ -236,29 +236,29 @@ const HolidaysPage = () => {
                         {typeLabels[h.type] || h.type}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{formatDate(h.date)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{h.endDate ? formatDate(h.endDate) : '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-400">{formatDate(h.date)}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600 dark:text-gray-400">{h.endDate ? formatDate(h.endDate) : '—'}</td>
                     <td className="px-5 py-3.5">
                       {h.isRecurring ? (
-                        <span className="flex items-center gap-1 text-purple-600 text-xs font-medium">
+                        <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-medium">
                           <Repeat size={13} /> Har yili
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-xs">Yo'q</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">Yo'q</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEdit(h)}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition"
+                          className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition"
                           title="Tahrirlash"
                         >
                           <Edit3 size={15} />
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(h)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition"
+                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition"
                           title="O'chirish"
                         >
                           <Trash2 size={15} />
@@ -276,12 +276,12 @@ const HolidaysPage = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {editingHoliday ? 'Bayramni tahrirlash' : 'Yangi bayram qo\'shish'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 <X size={20} />
               </button>
             </div>
@@ -289,18 +289,18 @@ const HolidaysPage = () => {
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nomi</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nomi</label>
                 <input
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                   placeholder="Masalan: Navro'z bayrami"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                 />
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Turi</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Turi</label>
                 <div className="flex gap-2">
                   {(['HOLIDAY', 'VACATION', 'CUSTOM'] as const).map(t => (
                     <button
@@ -309,8 +309,8 @@ const HolidaysPage = () => {
                       className={clsx(
                         'flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition',
                         formType === t
-                          ? 'bg-gray-900 text-white border-gray-900'
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                          ? 'bg-gray-900 dark:bg-gray-700 text-white border-gray-900 dark:border-gray-600'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                       )}
                     >
                       {typeLabels[t]}
@@ -322,21 +322,21 @@ const HolidaysPage = () => {
               {/* Dates */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Boshlanish sanasi</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Boshlanish sanasi</label>
                   <input
                     type="date"
                     value={formDate}
                     onChange={e => setFormDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                    className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tugash sanasi <span className="text-gray-400">(ixtiyoriy)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tugash sanasi <span className="text-gray-400 dark:text-gray-500">(ixtiyoriy)</span></label>
                   <input
                     type="date"
                     value={formEndDate}
                     onChange={e => setFormEndDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                    className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   />
                 </div>
               </div>
@@ -352,7 +352,7 @@ const HolidaysPage = () => {
                   />
                   <div className={clsx(
                     'w-10 h-5 rounded-full transition',
-                    formIsRecurring ? 'bg-purple-600' : 'bg-gray-200'
+                    formIsRecurring ? 'bg-purple-600' : 'bg-gray-200 dark:bg-gray-600'
                   )} />
                   <div className={clsx(
                     'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform',
@@ -360,17 +360,17 @@ const HolidaysPage = () => {
                   )} />
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Har yili takrorlansin</span>
-                  <p className="text-xs text-gray-400">Bayram har yil avtomatik takrorlanadi</p>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Har yili takrorlansin</span>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Bayram har yil avtomatik takrorlanadi</p>
                 </div>
               </label>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
                 Bekor qilish
               </button>
@@ -389,18 +389,18 @@ const HolidaysPage = () => {
       {/* Delete confirmation modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
               <Trash2 size={24} className="text-red-500" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">Bayramni o'chirish</h3>
-            <p className="text-sm text-gray-500 mb-5">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">Bayramni o'chirish</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               <strong>"{deleteConfirm.name}"</strong> ni o'chirishni tasdiqlaysizmi?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
                 Bekor qilish
               </button>

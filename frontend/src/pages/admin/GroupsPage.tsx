@@ -96,8 +96,8 @@ const GroupsPage = () => {
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Guruhlar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{stats.total} ta guruh · {stats.students} ta o'quvchi</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Guruhlar</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{stats.total} ta guruh · {stats.students} ta o'quvchi</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-1.5 text-sm">
           <Plus className="w-4 h-4" /> Yangi guruh
@@ -111,25 +111,25 @@ const GroupsPage = () => {
           { label: 'Faol guruh', value: stats.active, icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: "Jami o'quvchi", value: stats.students, icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
         ].map(s => (
-          <div key={s.label} className="card flex items-center gap-3">
+          <div key={s.label} className="card dark:bg-gray-800 flex items-center gap-3">
             <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", s.bg)}>
               <s.icon className={clsx("w-5 h-5", s.color)} />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-800">{s.value}</p>
-              <p className="text-xs text-gray-400">{s.label}</p>
+              <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{s.value}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{s.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Filter + Search */}
-      <div className="card flex flex-col sm:flex-row gap-3">
-        <input className="input flex-1" placeholder="🔍 Qidirish..." value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="card dark:bg-gray-800 flex flex-col sm:flex-row gap-3">
+        <input className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 flex-1" placeholder="🔍 Qidirish..." value={search} onChange={e => setSearch(e.target.value)} />
         <div className="flex gap-1">
           {[{ v: '', l: 'Barchasi' }, { v: 'ACTIVE', l: 'Faol' }, { v: 'PAUSED', l: "To'xtatilgan" }, { v: 'COMPLETED', l: 'Tugagan' }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)}
-              className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition", statusFilter === f.v ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200")}>
+              className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition", statusFilter === f.v ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600")}>
               {f.l}
             </button>
           ))}
@@ -138,15 +138,15 @@ const GroupsPage = () => {
 
       {/* Groups grid */}
       {isLoading ? (
-        <div className="card text-center py-12">
+        <div className="card dark:bg-gray-800 text-center py-12">
           <div className="animate-spin w-7 h-7 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-16">
+        <div className="card dark:bg-gray-800 text-center py-16">
           <div className="text-5xl mb-4">👥</div>
-          <h2 className="text-lg font-semibold text-gray-700">Guruh topilmadi</h2>
-          <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-indigo-600 hover:underline">+ Yangi guruh yaratish</button>
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Guruh topilmadi</h2>
+          <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">+ Yangi guruh yaratish</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -170,10 +170,10 @@ const GroupsPage = () => {
       )}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="font-bold text-gray-900 text-lg mb-2">Guruhni yopish</h3>
-            <p className="text-gray-500 text-sm mb-1">
-              <span className="font-semibold text-gray-700">{deleteConfirm.name}</span> guruhi yopiladi.
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">Guruhni yopish</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{deleteConfirm.name}</span> guruhi yopiladi.
             </p>
             {deleteConfirm._count.groupStudents > 0 && (
               <p className="text-amber-600 text-sm mb-3">⚠️ {deleteConfirm._count.groupStudents} ta o'quvchi bor!</p>
@@ -202,11 +202,11 @@ const GroupCard = ({ group: g, onView, onEdit, onDelete }: {
   const st = STATUS_MAP[g.status] || { label: g.status, cls: 'bg-gray-100 text-gray-600' };
 
   return (
-    <div className="card hover:shadow-md transition cursor-pointer" onClick={onView}>
+    <div className="card dark:bg-gray-800 hover:shadow-md transition cursor-pointer" onClick={onView}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">{g.name}</h3>
-          <p className="text-sm text-gray-500 truncate">{g.course?.name}</p>
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{g.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{g.course?.name}</p>
         </div>
         <div className="flex items-center gap-1 ml-2">
           <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", st.cls)}>{st.label}</span>
@@ -219,7 +219,7 @@ const GroupCard = ({ group: g, onView, onEdit, onDelete }: {
         </div>
       </div>
 
-      <div className="space-y-2 text-sm text-gray-600">
+      <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
         <div className="flex items-center gap-2">
           <span>👤</span> <span className="truncate">{g.teacher?.user?.fullName}</span>
         </div>
@@ -228,11 +228,11 @@ const GroupCard = ({ group: g, onView, onEdit, onDelete }: {
 
       {/* Capacity bar */}
       <div className="mt-3">
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
           <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {g._count?.groupStudents}/{g.maxStudents}</span>
           <span>{capacity}%</span>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full">
+        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full">
           <div className={clsx("h-1.5 rounded-full", capacity >= 90 ? 'bg-red-400' : capacity >= 70 ? 'bg-amber-400' : 'bg-emerald-400')}
             style={{ width: `${Math.min(capacity, 100)}%` }} />
         </div>
@@ -433,24 +433,24 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {isEdit ? 'Guruhni tahrirlash' : 'Yangi guruh yaratish'}
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 px-6">
+        <div className="flex border-b border-gray-100 dark:border-gray-700 px-6">
           {([
             { key: 'info', label: 'Asosiy ma\'lumot', icon: '📋' },
             { key: 'schedule', label: 'Dars jadvali', icon: '📅' },
             { key: 'students', label: `O'quvchilar (${groupStudents.length})`, icon: '👥' },
           ] as { key: 'info' | 'schedule' | 'students'; label: string; icon: string }[]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={clsx("px-4 py-3 text-sm font-medium border-b-2 transition -mb-px", tab === t.key ? "border-indigo-600 text-indigo-700" : "border-transparent text-gray-500 hover:text-gray-700")}>
+              className={clsx("px-4 py-3 text-sm font-medium border-b-2 transition -mb-px", tab === t.key ? "border-indigo-600 text-indigo-700 dark:text-indigo-400" : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300")}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -523,7 +523,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
           {tab === 'schedule' && (
             <div className="px-6 py-4 space-y-5">
               {!isEdit && (
-                <div className="p-3 bg-amber-50 text-amber-700 rounded-xl text-sm">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm">
                   ⚠️ Jadval qo'shish uchun avval guruhni saqlang
                 </div>
               )}
@@ -531,14 +531,14 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               {/* Existing schedules */}
               {schedules.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-700">Mavjud jadvallar</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Mavjud jadvallar</h3>
                   {schedules.map(sc => (
-                    <div key={sc.id} className="flex items-center justify-between p-3 bg-indigo-50 rounded-xl">
+                    <div key={sc.id} className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
                       <div>
-                        <p className="text-sm font-semibold text-indigo-800">
+                        <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">
                           {sc.daysOfWeek.map(d => DAYS[d]).join(', ')}
                         </p>
-                        <p className="text-xs text-indigo-600 flex items-center gap-1">
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {sc.startTime} – {sc.endTime}
                           {sc.room && <span className="ml-2">🚪 {sc.room}</span>}
                         </p>
@@ -554,8 +554,8 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               )}
 
               {/* Add/Edit schedule form */}
-              <div className="border border-gray-200 rounded-xl p-4 space-y-4">
-                <h3 className="text-sm font-semibold text-gray-700">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   {editingSchedule ? 'Jadvalni tahrirlash' : '+ Yangi jadval qo\'shish'}
                 </h3>
 
@@ -605,8 +605,8 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                   </div>
                   <div>
                     <label className="label">Tugash vaqti</label>
-                    <div className="input bg-gray-50 text-gray-600 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
+                    <div className="input dark:bg-gray-700 dark:text-gray-300 bg-gray-50 text-gray-600 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       {endTimePreview}
                     </div>
                   </div>
@@ -639,7 +639,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
           {tab === 'students' && (
             <div className="px-6 py-4 space-y-4">
               {!isEdit && (
-                <div className="p-3 bg-amber-50 text-amber-700 rounded-xl text-sm">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm">
                   ⚠️ O'quvchi qo'shish uchun avval guruhni saqlang
                 </div>
               )}
@@ -655,17 +655,17 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               {/* Current students */}
               {groupStudents.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Guruh o'quvchilari ({groupStudents.length})</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Guruh o'quvchilari ({groupStudents.length})</h3>
                   <div className="space-y-2 max-h-52 overflow-y-auto">
                     {groupStudents.map(gs => (
-                      <div key={gs.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl">
+                      <div key={gs.id} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700">
                             {gs.student.user.fullName.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-800">{gs.student.user.fullName}</p>
-                            <p className="text-xs text-gray-400">{gs.student.user.phone}</p>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{gs.student.user.fullName}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{gs.student.user.phone}</p>
                           </div>
                         </div>
                         <div className="flex gap-1">
@@ -686,8 +686,8 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
               {/* Transfer modal */}
               {transferTarget && (
-                <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-blue-800">
+                <div className="border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-400">
                     <ArrowRightLeft className="w-4 h-4 inline mr-1" />
                     {transferTarget.student.user.fullName} → boshqa guruhga o'tkazish
                   </p>
@@ -707,17 +707,17 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               {/* Search + Add students */}
               {isEdit && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">O'quvchi qo'shish</h3>
-                  <input className="input mb-2" placeholder="🔍 Ism yoki telefon..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">O'quvchi qo'shish</h3>
+                  <input className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 mb-2" placeholder="🔍 Ism yoki telefon..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
                   {studentSearch.length > 1 && (
-                    <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-2">
+                    <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-2 dark:bg-gray-700">
                       {availableStudents.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-2">Topilmadi</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">Topilmadi</p>
                       ) : availableStudents.slice(0, 10).map(s => (
-                        <div key={s.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                        <div key={s.id} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg">
                           <div>
-                            <p className="text-sm font-medium text-gray-800">{s.user.fullName}</p>
-                            <p className="text-xs text-gray-400">{s.user.phone}</p>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{s.user.fullName}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{s.user.phone}</p>
                           </div>
                           <button onClick={() => { handleAddStudent(s.id); setStudentSearch(''); }}
                             className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">
@@ -735,7 +735,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
         {/* Footer */}
         {tab !== 'info' && (
-          <div className="px-6 py-4 border-t border-gray-100">
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
             <button onClick={onSuccess} className="btn-primary w-full">Yopish</button>
           </div>
         )}
@@ -760,15 +760,15 @@ const GroupDetailModal = ({ group, onClose, onEdit }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <div>
-            <h2 className="font-bold text-gray-900 text-lg">{g.name}</h2>
+            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{g.name}</h2>
             <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", st.cls)}>{st.label}</span>
           </div>
           <div className="flex gap-2">
             <button onClick={onEdit} className="btn-secondary text-sm">✏️ Tahrirlash</button>
-            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
           </div>
         </div>
 
@@ -781,9 +781,9 @@ const GroupDetailModal = ({ group, onClose, onEdit }: {
               { label: "O'quvchilar", value: `${g._count?.groupStudents || 0}/${g.maxStudents}` },
               { label: 'Xona', value: g.room || '—' },
             ].map(i => (
-              <div key={i.label} className="p-3 bg-gray-50 rounded-xl">
-                <p className="text-xs text-gray-400">{i.label}</p>
-                <p className="font-semibold text-gray-800 mt-0.5">{i.value}</p>
+              <div key={i.label} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <p className="text-xs text-gray-400 dark:text-gray-500">{i.label}</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{i.value}</p>
               </div>
             ))}
           </div>
@@ -791,17 +791,17 @@ const GroupDetailModal = ({ group, onClose, onEdit }: {
           {/* Schedules */}
           {g.schedules?.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">📅 Dars jadvali</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📅 Dars jadvali</h3>
               <div className="space-y-2">
                 {g.schedules.map((sc: Schedule) => (
-                  <div key={sc.id} className="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl">
+                  <div key={sc.id} className="flex items-center gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
                     <div className="flex gap-1 flex-wrap">
                       {sc.daysOfWeek.map(d => (
-                        <span key={d} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{DAYS_FULL[d]}</span>
+                        <span key={d} className="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full font-medium">{DAYS_FULL[d]}</span>
                       ))}
                     </div>
-                    <span className="text-sm font-mono text-indigo-700 ml-auto">{sc.startTime}–{sc.endTime}</span>
-                    {sc.room && <span className="text-xs text-indigo-500">🚪{sc.room}</span>}
+                    <span className="text-sm font-mono text-indigo-700 dark:text-indigo-400 ml-auto">{sc.startTime}–{sc.endTime}</span>
+                    {sc.room && <span className="text-xs text-indigo-500 dark:text-indigo-400">🚪{sc.room}</span>}
                   </div>
                 ))}
               </div>
@@ -811,14 +811,14 @@ const GroupDetailModal = ({ group, onClose, onEdit }: {
           {/* Students */}
           {g.groupStudents?.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">👥 O'quvchilar ({g.groupStudents.length})</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">👥 O'quvchilar ({g.groupStudents.length})</h3>
               <div className="space-y-1.5">
                 {g.groupStudents.map((gs: GroupStudent, i: number) => (
-                  <div key={gs.id} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                    <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">{i + 1}</div>
+                  <div key={gs.id} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">{i + 1}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{gs.student.user.fullName}</p>
-                      <p className="text-xs text-gray-400">{gs.student.user.phone}</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{gs.student.user.fullName}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{gs.student.user.phone}</p>
                     </div>
                     {Number(gs.student.balance?.debt || 0) > 0 && (
                       <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Qarz</span>

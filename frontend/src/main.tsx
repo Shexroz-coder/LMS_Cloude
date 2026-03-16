@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
+import { ThemeProvider } from './hooks/useTheme';
 import './i18n';
 import './index.css';
 
@@ -20,6 +21,7 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <BrowserRouter>
         <App />
         <Toaster
@@ -37,6 +39,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           }}
         />
       </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

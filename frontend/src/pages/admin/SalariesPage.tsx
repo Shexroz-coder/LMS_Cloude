@@ -213,8 +213,8 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
               {teacher.teacherName.charAt(0)}
             </div>
             <div>
-              <p className="font-semibold text-gray-800 text-sm">{teacher.teacherName}</p>
-              <p className="text-xs text-gray-400">{teacher.teacherPhone}</p>
+              <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{teacher.teacherName}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{teacher.teacherPhone}</p>
             </div>
           </div>
         </td>
@@ -225,9 +225,9 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
             {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? (
               <span className="text-red-600 font-semibold">{teacher.salaryValue}%</span>
             ) : (
-              <span className="text-gray-700 font-semibold">{fmt(teacher.salaryValue)}/soat</span>
+              <span className="text-gray-700 dark:text-gray-300 font-semibold">{fmt(teacher.salaryValue)}/soat</span>
             )}
-            <span className="text-gray-400 text-xs ml-1">
+            <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
               {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? "to'lovlardan" : 'soatbay'}
             </span>
           </div>
@@ -285,49 +285,49 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
 
       {/* Expanded: per-group breakdown */}
       {expanded && (
-        <tr className="bg-gray-50/80 border-b border-gray-100">
+        <tr className="bg-gray-50/80 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
           <td colSpan={6} className="px-6 py-4">
             <div className="space-y-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                 Guruhlar bo'yicha tafsilot — {teacher.teacherName}
               </p>
               {teacher.groups.length === 0 ? (
-                <p className="text-sm text-gray-400 italic">Faol guruh yo'q</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 italic">Faol guruh yo'q</p>
               ) : (
                 teacher.groups.map(g => (
-                  <div key={g.id} className="bg-white rounded-xl p-3 border border-gray-100">
+                  <div key={g.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <span className="font-semibold text-gray-800 text-sm">{g.name}</span>
-                        <span className="text-gray-400 text-xs ml-2">{g.courseName}</span>
-                        <span className="text-gray-300 text-xs ml-2">·</span>
-                        <span className="text-gray-400 text-xs ml-2">{g.lessonsPerMonth} dars/oy</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{g.name}</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs ml-2">{g.courseName}</span>
+                        <span className="text-gray-300 dark:text-gray-600 text-xs ml-2">·</span>
+                        <span className="text-gray-400 dark:text-gray-500 text-xs ml-2">{g.lessonsPerMonth} dars/oy</span>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-red-600">{fmt(g.groupRevenue)}</p>
-                        <p className="text-xs text-gray-400">{g.studentCount} o'quvchi</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{g.studentCount} o'quvchi</p>
                       </div>
                     </div>
                     {g.students.length > 0 && (
-                      <div className="space-y-1 border-t border-gray-50 pt-2">
+                      <div className="space-y-1 border-t border-gray-50 dark:border-gray-700 pt-2">
                         {g.students.map(s => (
                           <div key={s.id} className="flex items-center justify-between text-xs py-1">
-                            <span className="text-gray-600">{s.fullName}</span>
+                            <span className="text-gray-600 dark:text-gray-400">{s.fullName}</span>
                             <div className="flex items-center gap-3">
                               {s.discountType && (
-                                <span className="text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                                <span className="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded text-[10px] font-medium">
                                   {s.discountType === 'PERCENTAGE'
                                     ? `-${s.discountValue}%`
                                     : `-${fmt(s.discountValue || 0)}`}
                                 </span>
                               )}
-                              <span className="font-semibold text-gray-700">{fmt(s.expectedPayment)}</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">{fmt(s.expectedPayment)}</span>
                             </div>
                           </div>
                         ))}
-                        <div className="flex items-center justify-between text-xs py-1 border-t border-gray-100 mt-1">
-                          <span className="font-semibold text-gray-600">Guruh jami</span>
-                          <span className="font-bold text-gray-800">{fmt(g.groupRevenue)}</span>
+                        <div className="flex items-center justify-between text-xs py-1 border-t border-gray-100 dark:border-gray-700 mt-1">
+                          <span className="font-semibold text-gray-600 dark:text-gray-400">Guruh jami</span>
+                          <span className="font-bold text-gray-800 dark:text-gray-200">{fmt(g.groupRevenue)}</span>
                         </div>
                       </div>
                     )}
@@ -336,18 +336,18 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
               )}
 
               {/* Summary for teacher */}
-              <div className="bg-red-50 rounded-xl p-3 flex items-center justify-between border border-red-100">
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 flex items-center justify-between border border-red-100 dark:border-red-900">
                 <div>
-                  <p className="text-xs text-gray-500">Jami kutilayotgan daromad</p>
-                  <p className="font-bold text-gray-800">{fmt(teacher.totalRevenue)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Jami kutilayotgan daromad</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-200">{fmt(teacher.totalRevenue)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                       ? `${teacher.salaryValue}% foiz`
                       : `${teacher.totalHours.toFixed(1)} soat × ${fmt(teacher.salaryValue)}`}
                   </p>
-                  <p className="font-bold text-red-700 text-lg">{fmt(teacher.calculatedSalary)}</p>
+                  <p className="font-bold text-red-700 dark:text-red-400 text-lg">{fmt(teacher.calculatedSalary)}</p>
                 </div>
               </div>
             </div>
@@ -448,21 +448,21 @@ export default function SalariesPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden p-0">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-800">Ustozlar oyliqlari — {monthLabel}</h3>
-          <span className="text-xs text-gray-400">{teachers.length} ta ustoz</span>
+      <div className="card dark:bg-gray-800 overflow-hidden p-0">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="font-bold text-gray-800 dark:text-gray-100">Ustozlar oyliqlari — {monthLabel}</h3>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{teachers.length} ta ustoz</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Ustoz</th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Ish haqi turi</th>
-                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Daromad asosi</th>
-                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Hisoblangan</th>
-                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Holat</th>
-                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide px-5 py-3">Amal</th>
+              <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Ustoz</th>
+                <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Ish haqi turi</th>
+                <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Daromad asosi</th>
+                <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Hisoblangan</th>
+                <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Holat</th>
+                <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Amal</th>
               </tr>
             </thead>
             <tbody>
@@ -487,23 +487,23 @@ export default function SalariesPage() {
         </div>
 
         {summary && teachers.length > 0 && (
-          <div className="px-5 py-3 border-t border-gray-100 bg-red-50 flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-gray-600">
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-red-50 dark:bg-red-900/20 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
               Jami <strong>{summary.totalTeachers}</strong> ta ustoz
             </span>
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className="text-xs text-gray-400">Daromad asosi</p>
-                <p className="font-bold text-gray-700">{fmt(summary.totalRevenue)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Daromad asosi</p>
+                <p className="font-bold text-gray-700 dark:text-gray-300">{fmt(summary.totalRevenue)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400">Jami oylik</p>
-                <p className="font-bold text-red-700">{fmt(summary.totalCalculated)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Jami oylik</p>
+                <p className="font-bold text-red-700 dark:text-red-400">{fmt(summary.totalCalculated)}</p>
               </div>
               {summary.totalPaid > 0 && (
                 <div className="text-right">
-                  <p className="text-xs text-gray-400">To'langan</p>
-                  <p className="font-bold text-emerald-600">{fmt(summary.totalPaid)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">To'langan</p>
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(summary.totalPaid)}</p>
                 </div>
               )}
             </div>

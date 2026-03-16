@@ -113,35 +113,35 @@ const AdminCoinsPage = () => {
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
           <select value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)}
-            className="pl-3 pr-8 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none min-w-[180px]">
+            className="pl-3 pr-8 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none min-w-[180px]">
             <option value="">🏫 Barcha guruhlar</option>
             {(groups as { id: number; name: string }[]).map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </select>
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs">▼</span>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none text-xs">▼</span>
         </div>
 
         <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)}
-            placeholder="O'quvchi ismi..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 w-48" />
+            placeholder="O'quvchi ismi..." className="pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 w-48" />
         </div>
 
         {(selectedGroupId || searchText) && (
           <button onClick={() => { setSelectedGroupId(''); setSearchText(''); }}
-            className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100">
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
             ✕ Tozalash
           </button>
         )}
 
-        <span className="ml-auto text-sm text-gray-400">{filtered.length} ta ishtirokchi</span>
+        <span className="ml-auto text-sm text-gray-400 dark:text-gray-500">{filtered.length} ta ishtirokchi</span>
       </div>
 
       {/* ── Podium ─────────────────────────────────── */}
       {!isLoading && topThree.length >= 3 && !searchText && !selectedGroupId && (
-        <div className="card bg-gradient-to-b from-amber-50 to-white border border-amber-100 overflow-hidden">
-          <h3 className="text-center text-sm font-bold text-amber-700 uppercase tracking-widest mb-5">
+        <div className="card dark:bg-gray-800 bg-gradient-to-b from-amber-50 dark:from-gray-800 to-white dark:to-gray-700 border border-amber-100 dark:border-gray-700 overflow-hidden">
+          <h3 className="text-center text-sm font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-5">
             🏆 Top 3 — Eng ko'p coin yig'ganlar
           </h3>
           <div className="flex items-end justify-center gap-3 px-4">
@@ -149,8 +149,8 @@ const AdminCoinsPage = () => {
             <div className="flex flex-col items-center gap-2">
               <Avatar name={topThree[1].fullName} size="md" rank={2} />
               <div className="text-center">
-                <div className="text-xs font-semibold text-gray-700 max-w-[70px] truncate">{topThree[1].fullName.split(' ')[0]}</div>
-                <div className="text-sm font-bold text-gray-500">🥈 {topThree[1].coinBalance} 🪙</div>
+                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 max-w-[70px] truncate">{topThree[1].fullName.split(' ')[0]}</div>
+                <div className="text-sm font-bold text-gray-500 dark:text-gray-400">🥈 {topThree[1].coinBalance} 🪙</div>
               </div>
               <div className={clsx('w-20 rounded-t-xl flex items-end justify-center pb-2 bg-gradient-to-t', MEDAL_BG[1], RANK_HEIGHT[1])}>
                 <span className="text-2xl">2</span>
@@ -161,8 +161,8 @@ const AdminCoinsPage = () => {
               <div className="text-2xl animate-bounce">👑</div>
               <Avatar name={topThree[0].fullName} size="lg" rank={1} />
               <div className="text-center">
-                <div className="text-sm font-bold text-gray-800 max-w-[80px] truncate">{topThree[0].fullName.split(' ')[0]}</div>
-                <div className="text-base font-extrabold text-amber-600">🥇 {topThree[0].coinBalance} 🪙</div>
+                <div className="text-sm font-bold text-gray-800 dark:text-gray-200 max-w-[80px] truncate">{topThree[0].fullName.split(' ')[0]}</div>
+                <div className="text-base font-extrabold text-amber-600 dark:text-amber-400">🥇 {topThree[0].coinBalance} 🪙</div>
               </div>
               <div className={clsx('w-24 rounded-t-xl flex items-end justify-center pb-2 bg-gradient-to-t shadow-lg', MEDAL_BG[0], RANK_HEIGHT[0])}>
                 <span className="text-3xl font-black text-white/80">1</span>
@@ -172,8 +172,8 @@ const AdminCoinsPage = () => {
             <div className="flex flex-col items-center gap-2">
               <Avatar name={topThree[2].fullName} size="md" rank={3} />
               <div className="text-center">
-                <div className="text-xs font-semibold text-gray-700 max-w-[70px] truncate">{topThree[2].fullName.split(' ')[0]}</div>
-                <div className="text-sm font-bold text-orange-400">🥉 {topThree[2].coinBalance} 🪙</div>
+                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 max-w-[70px] truncate">{topThree[2].fullName.split(' ')[0]}</div>
+                <div className="text-sm font-bold text-orange-400 dark:text-orange-400">🥉 {topThree[2].coinBalance} 🪙</div>
               </div>
               <div className={clsx('w-20 rounded-t-xl flex items-end justify-center pb-2 bg-gradient-to-t', MEDAL_BG[2], RANK_HEIGHT[2])}>
                 <span className="text-xl">3</span>
@@ -184,39 +184,39 @@ const AdminCoinsPage = () => {
       )}
 
       {/* ── Leaderboard table ─────────────────────── */}
-      <div className="card p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-amber-100 bg-amber-50 flex items-center justify-between">
-          <h3 className="font-bold text-amber-800 text-sm">🏅 To'liq reyting</h3>
-          <span className="text-xs text-amber-600 font-medium">{filtered.length} ishtirokchi</span>
+      <div className="card dark:bg-gray-800 p-0 overflow-hidden">
+        <div className="px-4 py-3 border-b border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-between">
+          <h3 className="font-bold text-amber-800 dark:text-amber-400 text-sm">🏅 To'liq reyting</h3>
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{filtered.length} ishtirokchi</span>
         </div>
 
         {isLoading ? (
           <div className="p-4 space-y-3">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="w-8 h-8 rounded-full bg-amber-100" />
-                <div className="w-8 h-8 rounded-full bg-gray-200" />
-                <div className="flex-1 h-4 bg-gray-100 rounded" />
-                <div className="w-20 h-6 bg-amber-100 rounded-full" />
+                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30" />
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-700 rounded" />
+                <div className="w-20 h-6 bg-amber-100 dark:bg-amber-900/30 rounded-full" />
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">🪙</div>
-            <p className="text-gray-400 font-medium">
+            <p className="text-gray-400 dark:text-gray-500 font-medium">
               {searchText ? "Qidiruv bo'yicha topilmadi" : "Hali hech kim coin yig'magan"}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-gray-700">
             {filtered.map((entry, i) => (
               <div key={entry.id} className={clsx(
                 'flex items-center gap-3 px-4 py-3 transition-colors',
-                i === 0 && !searchText ? 'bg-amber-50/80 hover:bg-amber-100/60' :
-                i === 1 && !searchText ? 'bg-gray-50/60 hover:bg-gray-100/60' :
-                i === 2 && !searchText ? 'bg-orange-50/40 hover:bg-orange-50/70' :
-                'hover:bg-gray-50/80'
+                i === 0 && !searchText ? 'bg-amber-50/80 dark:bg-amber-900/20 hover:bg-amber-100/60 dark:hover:bg-amber-900/30' :
+                i === 1 && !searchText ? 'bg-gray-50/60 dark:bg-gray-700/30 hover:bg-gray-100/60 dark:hover:bg-gray-700/50' :
+                i === 2 && !searchText ? 'bg-orange-50/40 dark:bg-orange-900/10 hover:bg-orange-50/70 dark:hover:bg-orange-900/20' :
+                'hover:bg-gray-50/80 dark:hover:bg-gray-700/30'
               )}>
                 {/* Rank */}
                 <div className={clsx(
@@ -224,7 +224,7 @@ const AdminCoinsPage = () => {
                   i === 0 && !searchText ? 'bg-amber-400 text-white shadow-md' :
                   i === 1 && !searchText ? 'bg-gray-400 text-white' :
                   i === 2 && !searchText ? 'bg-orange-400 text-white' :
-                  'bg-gray-100 text-gray-500'
+                  'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 )}>
                   {i < 3 && !searchText ? MEDAL[i] : entry.rank}
                 </div>
@@ -232,18 +232,18 @@ const AdminCoinsPage = () => {
                 <Avatar name={entry.fullName} size="sm" rank={searchText ? undefined : i + 1} />
 
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800 text-sm truncate">{entry.fullName}</div>
+                  <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">{entry.fullName}</div>
                   {entry.groups.length > 0 && (
-                    <div className="text-xs text-gray-400 truncate">{entry.groups.slice(0, 2).join(' · ')}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 truncate">{entry.groups.slice(0, 2).join(' · ')}</div>
                   )}
                 </div>
 
                 <div className={clsx(
                   'flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold flex-shrink-0',
                   i === 0 && !searchText ? 'bg-amber-400 text-white shadow' :
-                  i === 1 && !searchText ? 'bg-gray-200 text-gray-600' :
-                  i === 2 && !searchText ? 'bg-orange-100 text-orange-600' :
-                  entry.coinBalance > 0 ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-400'
+                  i === 1 && !searchText ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-200' :
+                  i === 2 && !searchText ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                  entry.coinBalance > 0 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                 )}>
                   <span>🪙</span>
                   <span>{entry.coinBalance}</span>

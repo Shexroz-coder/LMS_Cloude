@@ -208,7 +208,7 @@ const AIAssistant = () => {
       {isOpen && (
         <div
           className={clsx(
-            'fixed z-50 bg-white rounded-2xl shadow-2xl border border-gray-200',
+            'fixed z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700',
             'flex flex-col transition-all duration-300 origin-bottom-right',
             isMinimized
               ? 'bottom-24 right-6 w-72 h-14'
@@ -257,11 +257,11 @@ const AIAssistant = () => {
           {!isMinimized && (
             <>
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
                 {messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
                     <Sparkles className="w-10 h-10 text-indigo-300 mb-3" />
-                    <p className="text-sm text-gray-400">Yuklanmoqda...</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Yuklanmoqda...</p>
                   </div>
                 )}
 
@@ -283,7 +283,7 @@ const AIAssistant = () => {
                         'px-3 py-2.5 rounded-2xl text-sm leading-relaxed',
                         msg.role === 'user'
                           ? 'bg-indigo-600 text-white rounded-tr-sm'
-                          : 'bg-white text-gray-700 rounded-tl-sm shadow-sm border border-gray-100'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-tl-sm shadow-sm border border-gray-100 dark:border-gray-600'
                       )}>
                         {renderMarkdown(msg.text)}
                       </div>
@@ -323,7 +323,7 @@ const AIAssistant = () => {
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center flex-shrink-0 mr-2 mt-1">
                       <Bot className="w-4 h-4 text-white" />
                     </div>
-                    <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-100">
+                    <div className="bg-white dark:bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-600">
                       <div className="flex gap-1 items-center h-4">
                         <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                         <div className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -337,7 +337,7 @@ const AIAssistant = () => {
               </div>
 
               {/* Input area */}
-              <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-gray-100 bg-white rounded-b-2xl">
+              <div className="flex-shrink-0 px-3 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-b-2xl">
                 <form onSubmit={handleSubmit} className="flex gap-2 items-center">
                   <input
                     ref={inputRef}
@@ -347,9 +347,9 @@ const AIAssistant = () => {
                     placeholder="Savol yozing..."
                     disabled={loading}
                     className={clsx(
-                      'flex-1 text-sm px-3 py-2.5 rounded-xl border border-gray-200',
+                      'flex-1 text-sm px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600',
                       'focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300',
-                      'placeholder-gray-400 bg-gray-50',
+                      'placeholder-gray-400 dark:placeholder-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-100',
                       'disabled:opacity-60',
                     )}
                     maxLength={500}
@@ -370,7 +370,7 @@ const AIAssistant = () => {
                 </form>
 
                 {/* Footer hint */}
-                <p className="text-[10px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
                   <MessageCircle className="w-3 h-3" />
                   AI yordamchi · RoboticEdu LMS
                 </p>

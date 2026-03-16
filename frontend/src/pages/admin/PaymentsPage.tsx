@@ -124,10 +124,10 @@ const PaymentsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <CreditCard className="w-6 h-6 text-violet-600" /> To'lovlar
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Jami {pagination.total} ta to'lov{currentMonth ? ` · ${currentMonth}` : ' · barcha vaqt'}
           </p>
         </div>
@@ -159,7 +159,7 @@ const PaymentsPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
         {[
           { key: 'payments', label: "To'lovlar tarixi", icon: CreditCard },
           { key: 'obligations', label: "O'quvchilar qarzi", icon: Users },
@@ -171,8 +171,8 @@ const PaymentsPage = () => {
             className={clsx(
               'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition',
               activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             )}
           >
             <tab.icon className="w-4 h-4" />
@@ -193,13 +193,13 @@ const PaymentsPage = () => {
             { label: 'Sof foyda', value: summary.netProfit, icon: CreditCard, color: 'text-primary-600', bg: 'bg-primary-50' },
             { label: 'Umumiy qarz', value: summary.totalDebt, icon: AlertCircle, color: 'text-orange-500', bg: 'bg-orange-50' },
           ].map((s, i) => (
-            <div key={i} className="card py-3 flex items-center gap-3">
+            <div key={i} className="card dark:bg-gray-800 py-3 flex items-center gap-3">
               <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', s.bg)}>
                 <s.icon className={clsx('w-5 h-5', s.color)} />
               </div>
               <div className="min-w-0">
                 <div className={clsx('text-base font-bold truncate', s.color)}>{formatMoney(s.value)}</div>
-                <div className="text-xs text-gray-500">{s.label}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{s.label}</div>
               </div>
             </div>
           ))}
@@ -225,10 +225,10 @@ const PaymentsPage = () => {
       )}
 
       {/* Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800 text-sm">To'lovlar ro'yxati</h3>
-          <span className="text-xs text-gray-500">
+      <div className="card dark:bg-gray-800 p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">To'lovlar ro'yxati</h3>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {currentMonth ? `Oy: ${currentMonth} · ` : ''}Jami: {formatMoney(totalAmount)}
           </span>
         </div>
@@ -262,11 +262,11 @@ const PaymentsPage = () => {
                 </tr>
               ) : (
                 payments.map((p, i) => (
-                  <tr key={p.id} className="hover:bg-gray-50/70 transition-colors">
-                    <td className="text-gray-400 text-xs">{(page - 1) * 20 + i + 1}</td>
+                  <tr key={p.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-700 transition-colors">
+                    <td className="text-gray-400 dark:text-gray-500 text-xs">{(page - 1) * 20 + i + 1}</td>
                     <td>
-                      <div className="font-medium text-gray-800 text-sm">{p.student.user.fullName}</div>
-                      <div className="text-xs text-gray-400">{p.student.user.phone}</div>
+                      <div className="font-medium text-gray-800 dark:text-gray-100 text-sm">{p.student.user.fullName}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">{p.student.user.phone}</div>
                     </td>
                     <td>
                       <span className="font-bold text-emerald-600 text-sm">{formatMoney(Number(p.amount))}</span>
@@ -289,7 +289,7 @@ const PaymentsPage = () => {
                       </span>
                     </td>
                     <td className="hidden lg:table-cell">
-                      <span className="text-xs text-gray-400 max-w-[120px] truncate block">{p.note || '—'}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 max-w-[120px] truncate block">{p.note || '—'}</span>
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
@@ -318,15 +318,15 @@ const PaymentsPage = () => {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <p className="text-xs text-gray-500">{(page - 1) * 20 + 1}–{Math.min(page * 20, pagination.total)} / {pagination.total} ta</p>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400">{(page - 1) * 20 + 1}–{Math.min(page * 20, pagination.total)} / {pagination.total} ta</p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}
-                className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -340,31 +340,31 @@ const PaymentsPage = () => {
       {activeTab === 'obligations' && (
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            <div className="card py-3 flex items-center gap-3">
+            <div className="card dark:bg-gray-800 py-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
                 <TrendingDown className="w-5 h-5 text-red-500" />
               </div>
               <div>
                 <div className="text-base font-bold text-red-600">{formatMoney(totalDebtAmount)}</div>
-                <div className="text-xs text-gray-500">Umumiy qarz</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Umumiy qarz</div>
               </div>
             </div>
-            <div className="card py-3 flex items-center gap-3">
+            <div className="card dark:bg-gray-800 py-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-orange-500" />
               </div>
               <div>
                 <div className="text-base font-bold text-orange-600">{studentsWithDebt}</div>
-                <div className="text-xs text-gray-500">Qarzdor o'quvchilar</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Qarzdor o'quvchilar</div>
               </div>
             </div>
-            <div className="card py-3 flex items-center gap-3">
+            <div className="card dark:bg-gray-800 py-3 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
                 <Calculator className="w-5 h-5 text-indigo-500" />
               </div>
               <div>
                 <div className="text-base font-bold text-indigo-600">{filteredObligations.length}</div>
-                <div className="text-xs text-gray-500">Faol o'quvchilar</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Faol o'quvchilar</div>
               </div>
             </div>
           </div>
@@ -380,7 +380,7 @@ const PaymentsPage = () => {
             />
           </div>
 
-          <div className="card p-0 overflow-hidden">
+          <div className="card dark:bg-gray-800 p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="table w-full">
                 <thead>
@@ -398,33 +398,33 @@ const PaymentsPage = () => {
                   {obligLoading ? (
                     [...Array(6)].map((_, i) => (
                       <tr key={i}>{[...Array(7)].map((_, j) => (
-                        <td key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>
+                        <td key={j}><div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" /></td>
                       ))}</tr>
                     ))
                   ) : filteredObligations.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-12">
-                        <Users className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                        <p className="text-gray-400">O'quvchilar topilmadi</p>
+                        <Users className="w-10 h-10 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
+                        <p className="text-gray-400 dark:text-gray-500">O'quvchilar topilmadi</p>
                       </td>
                     </tr>
                   ) : filteredObligations.map((o, i) => (
                     <tr key={`${o.studentId}-${o.groupId}`} className={clsx(
-                      'hover:bg-gray-50/70 transition-colors',
-                      o.hasDebt && 'bg-red-50/30'
+                      'hover:bg-gray-50/70 dark:hover:bg-gray-700 transition-colors',
+                      o.hasDebt && 'bg-red-50/30 dark:bg-red-900/20'
                     )}>
-                      <td className="text-gray-400 text-xs">{i + 1}</td>
+                      <td className="text-gray-400 dark:text-gray-500 text-xs">{i + 1}</td>
                       <td>
-                        <div className="font-medium text-gray-800 text-sm">{o.fullName}</div>
-                        <div className="text-xs text-gray-400">{o.phone}</div>
+                        <div className="font-medium text-gray-800 dark:text-gray-100 text-sm">{o.fullName}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{o.phone}</div>
                       </td>
                       <td>
-                        <div className="text-sm text-gray-700">{o.groupName}</div>
-                        <div className="text-xs text-gray-400">{o.courseName}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">{o.groupName}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{o.courseName}</div>
                       </td>
                       <td>
-                        <div className="font-semibold text-gray-800 text-sm">{formatMoney(o.monthlyAmount)}</div>
-                        <div className="text-[11px] text-gray-400">{o.lessonsPerMonth} dars/oy · {formatMoney(o.pricePerLesson)}/dars</div>
+                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{formatMoney(o.monthlyAmount)}</div>
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500">{o.lessonsPerMonth} dars/oy · {formatMoney(o.pricePerLesson)}/dars</div>
                       </td>
                       <td>
                         {o.discountAmount > 0 ? (
@@ -433,11 +433,11 @@ const PaymentsPage = () => {
                             -{formatMoney(o.discountAmount)}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-300">—</span>
+                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
                         )}
                       </td>
                       <td>
-                        <span className={clsx('text-sm font-semibold', o.currentBalance > 0 ? 'text-emerald-600' : 'text-gray-400')}>
+                        <span className={clsx('text-sm font-semibold', o.currentBalance > 0 ? 'text-emerald-600' : 'text-gray-400 dark:text-gray-500')}>
                           {formatMoney(o.currentBalance)}
                         </span>
                       </td>
@@ -463,13 +463,13 @@ const PaymentsPage = () => {
       {/* ═══ Archive Tab ═══ */}
       {activeTab === 'archive' && (
         <div className="space-y-4">
-          <div className="card p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+          <div className="card dark:bg-gray-800 p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-2">
                 <Archive className="w-4 h-4 text-gray-400" />
                 O'chirilgan to'lovlar arxivi
               </h3>
-              <span className="text-xs text-gray-500">Jami: {archivePagination.total} ta</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Jami: {archivePagination.total} ta</span>
             </div>
             <div className="overflow-x-auto">
               <table className="table w-full">
@@ -487,21 +487,21 @@ const PaymentsPage = () => {
                 <tbody>
                   {archiveLoading ? (
                     [...Array(5)].map((_, i) => (
-                      <tr key={i}>{[...Array(7)].map((_, j) => <td key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>)}</tr>
+                      <tr key={i}>{[...Array(7)].map((_, j) => <td key={j}><div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" /></td>)}</tr>
                     ))
                   ) : archivedPayments.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-16">
-                        <Archive className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                        <p className="text-gray-400">Arxivda to'lovlar yo'q</p>
+                        <Archive className="w-10 h-10 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
+                        <p className="text-gray-400 dark:text-gray-500">Arxivda to'lovlar yo'q</p>
                       </td>
                     </tr>
                   ) : archivedPayments.map((p, i) => (
-                    <tr key={p.id} className="hover:bg-gray-50/70 transition-colors opacity-70">
-                      <td className="text-gray-400 text-xs">{(archivePage - 1) * 20 + i + 1}</td>
+                    <tr key={p.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-700 transition-colors opacity-70">
+                      <td className="text-gray-400 dark:text-gray-500 text-xs">{(archivePage - 1) * 20 + i + 1}</td>
                       <td>
-                        <div className="font-medium text-gray-800 text-sm">{p.student.user.fullName}</div>
-                        <div className="text-xs text-gray-400">{p.student.user.phone}</div>
+                        <div className="font-medium text-gray-800 dark:text-gray-100 text-sm">{p.student.user.fullName}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{p.student.user.phone}</div>
                       </td>
                       <td>
                         <span className="font-bold text-red-500 text-sm line-through">{formatMoney(Number(p.amount))}</span>
@@ -510,18 +510,18 @@ const PaymentsPage = () => {
                         <span className="text-xs text-gray-500">{methodLabel[p.paymentMethod] || p.paymentMethod}</span>
                       </td>
                       <td className="hidden sm:table-cell">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
                           {p.paidAt ? format(new Date(p.paidAt), 'd-MMM yyyy') : '—'}
                         </span>
                       </td>
                       <td>
-                        <div className="text-xs text-gray-600">{p.deletedByName || '—'}</div>
-                        <div className="text-[10px] text-gray-400">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">{p.deletedByName || '—'}</div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">
                           {p.deletedAt ? format(new Date(p.deletedAt), 'd-MMM HH:mm') : ''}
                         </div>
                       </td>
                       <td>
-                        <span className="text-xs text-gray-500 max-w-[150px] truncate block">{p.deleteReason || '—'}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 max-w-[150px] truncate block">{p.deleteReason || '—'}</span>
                       </td>
                     </tr>
                   ))}
@@ -529,15 +529,15 @@ const PaymentsPage = () => {
               </table>
             </div>
             {archivePagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-                <p className="text-xs text-gray-500">{archivePagination.total} ta</p>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">{archivePagination.total} ta</p>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setArchivePage(p => Math.max(1, p - 1))} disabled={archivePage === 1}
-                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button onClick={() => setArchivePage(p => Math.min(archivePagination.totalPages, p + 1))} disabled={archivePage === archivePagination.totalPages}
-                    className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -618,12 +618,12 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-violet-600" /> To'lov qabul qilish
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
         </div>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div className="relative">
@@ -640,16 +640,16 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="text" value={form.studentSearch}
                   onChange={e => { set('studentSearch', e.target.value); setShowStudentList(true); }}
-                  placeholder="O'quvchi ismini kiriting..." className="input pl-9" />
+                  placeholder="O'quvchi ismini kiriting..." className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 pl-9" />
                 {showStudentList && students.length > 0 && (
-                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                  <div className="absolute top-full mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg z-10 overflow-hidden">
                     {students.map((s: { id: number; user: { fullName: string; phone: string }; balance?: { debt: number } }) => (
                       <button key={s.id} type="button"
                         onClick={() => { set('studentId', s.id.toString()); set('studentName', s.user.fullName); setShowStudentList(false); }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 text-left">
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-600 text-left">
                         <div>
-                          <div className="text-sm font-medium text-gray-800">{s.user.fullName}</div>
-                          <div className="text-xs text-gray-400">{s.user.phone}</div>
+                          <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{s.user.fullName}</div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500">{s.user.phone}</div>
                         </div>
                         {Number(s.balance?.debt || 0) > 0 && (
                           <span className="text-xs text-red-500 font-medium">
@@ -755,17 +755,17 @@ const EditPaymentModal = ({ payment, onClose, onSuccess }: { payment: Payment; o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-blue-600" /> To'lovni tahrirlash
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
         </div>
         <div className="px-6 py-4 space-y-4">
-          <div className="p-3 rounded-xl bg-gray-50">
-            <div className="text-sm font-medium text-gray-700">{payment.student.user.fullName}</div>
-            <div className="text-xs text-gray-400">{payment.student.user.phone}</div>
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{payment.student.user.fullName}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">{payment.student.user.phone}</div>
           </div>
 
           <div>
@@ -795,7 +795,7 @@ const EditPaymentModal = ({ payment, onClose, onSuccess }: { payment: Payment; o
               placeholder="Ixtiyoriy izoh..." className="input" />
           </div>
         </div>
-        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
           <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
           <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
             {loading ? 'Saqlanmoqda...' : 'Saqlash'}
@@ -826,33 +826,33 @@ const DeletePaymentModal = ({ payment, onClose, onSuccess }: { payment: Payment;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
             <Trash2 className="w-5 h-5" /> To'lovni o'chirish
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
         </div>
         <div className="px-6 py-4 space-y-4">
-          <div className="p-3 rounded-xl bg-red-50 border border-red-100">
-            <div className="text-sm font-medium text-gray-700">{payment.student.user.fullName}</div>
-            <div className="text-sm font-bold text-red-600 mt-1">{formatMoney(Number(payment.amount))}</div>
-            <div className="text-xs text-gray-400 mt-0.5">
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{payment.student.user.fullName}</div>
+            <div className="text-sm font-bold text-red-600 dark:text-red-400 mt-1">{formatMoney(Number(payment.amount))}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               {payment.paidAt ? format(new Date(payment.paidAt), 'd-MMM yyyy, HH:mm') : ''}
             </div>
           </div>
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Bu to'lov arxivga ko'chiriladi va o'quvchining balansidan qaytariladi. Bu amalni ortga qaytarib bo'lmaydi.
           </p>
 
           <div>
-            <label className="label">O'chirish sababi</label>
+            <label className="label dark:text-gray-300">O'chirish sababi</label>
             <input type="text" value={reason} onChange={e => setReason(e.target.value)}
-              placeholder="Sabab kiriting..." className="input" />
+              placeholder="Sabab kiriting..." className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
           </div>
         </div>
-        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
           <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
           <button onClick={handleDelete} disabled={loading}
             className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition">

@@ -141,8 +141,8 @@ const TeacherSchedulePage = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Dars Jadvalim</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Dars o'tkazish va davomat belgilash</p>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Dars Jadvalim</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Dars o'tkazish va davomat belgilash</p>
       </div>
 
       {/* Day selector */}
@@ -153,8 +153,8 @@ const TeacherSchedulePage = () => {
             className={clsx(
               "px-3 py-2 rounded-xl text-sm font-medium border transition flex flex-col items-center gap-0.5",
               selectedDay === i ? "bg-indigo-600 text-white border-indigo-600" :
-              i === todayNum ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-              "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              i === todayNum ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700" :
+              "bg-white text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700 hover:bg-gray-50"
             )}
           >
             <span>{day}</span>
@@ -185,8 +185,8 @@ const TeacherSchedulePage = () => {
         {dayMap[selectedDay].length === 0 ? (
           <div className="card text-center py-12">
             <div className="text-4xl mb-3">😴</div>
-            <h3 className="font-semibold text-gray-700">{DAYS[selectedDay]} kuni dars yo'q</h3>
-            <p className="text-sm text-gray-400 mt-1">Dam olish kuni yoki jadval belgilanmagan</p>
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300">{DAYS[selectedDay]} kuni dars yo'q</h3>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Dam olish kuni yoki jadval belgilanmagan</p>
           </div>
         ) : (
           dayMap[selectedDay].map(({ group, schedule }, idx) => (
@@ -198,15 +198,15 @@ const TeacherSchedulePage = () => {
             >
               <div className={clsx(
                 "text-center w-16 flex-shrink-0 py-3 rounded-xl",
-                selectedDay === todayNum ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
+                selectedDay === todayNum ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
               )}>
                 <p className="text-sm font-bold">{schedule.startTime}</p>
                 <p className="text-xs opacity-70">{schedule.endTime}</p>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-800">{group.name}</p>
-                <p className="text-sm text-gray-500">{group.course.name}</p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                <p className="font-bold text-gray-800 dark:text-gray-100">{group.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{group.course.name}</p>
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 dark:text-gray-500">
                   <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {group._count?.groupStudents || 0} o'quvchi</span>
                   {schedule.room && <span>🚪 {schedule.room}</span>}
                 </div>
@@ -236,17 +236,17 @@ const TeacherSchedulePage = () => {
       {/* Attendance Session Modal */}
       {activeSession && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-2xl my-4">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
               <div>
-                <h2 className="font-bold text-gray-900 text-lg">{activeSession.group.name}</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{activeSession.group.name}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {DAYS[selectedDay]} · {activeSession.schedule.startTime}–{activeSession.schedule.endTime}
                 </p>
               </div>
-              <button onClick={() => setActiveSession(null)} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5 text-gray-500" />
+              <button onClick={() => setActiveSession(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
 
@@ -289,19 +289,19 @@ const TeacherSchedulePage = () => {
               {/* Student list */}
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {activeSession.group.groupStudents.length === 0 ? (
-                  <p className="text-center text-gray-400 text-sm py-6">Bu guruhda o'quvchilar yo'q</p>
+                  <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-6">Bu guruhda o'quvchilar yo'q</p>
                 ) : activeSession.group.groupStudents.map(gs => {
                   const sid = gs.student.id;
                   const status = attendance[sid] || 'ABSENT';
                   const coinVal = coins[sid] || 0;
                   return (
-                    <div key={sid} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700 flex-shrink-0">
+                    <div key={sid} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-sm font-bold text-indigo-700 dark:text-indigo-300 flex-shrink-0">
                         {gs.student.user.fullName.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{gs.student.user.fullName}</p>
-                        <p className="text-xs text-gray-400">🪙 {gs.student.coinBalance} coin</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{gs.student.user.fullName}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">🪙 {gs.student.coinBalance} coin</p>
                       </div>
                       {/* Attendance buttons */}
                       <div className="flex gap-1 flex-shrink-0">
@@ -310,7 +310,7 @@ const TeacherSchedulePage = () => {
                             onClick={() => setAttendance(prev => ({ ...prev, [sid]: s }))}
                             title={ATT_CONFIG[s].label}
                             className={clsx("w-8 h-8 rounded-lg text-xs font-medium border transition",
-                              status === s ? ATT_CONFIG[s].color + ' border-transparent' : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                              status === s ? ATT_CONFIG[s].color + ' border-transparent' : 'bg-white dark:bg-gray-600 text-gray-400 dark:text-gray-400 border-gray-200 dark:border-gray-500 dark:hover:border-gray-400 hover:border-gray-300'
                             )}>
                             {ATT_CONFIG[s].short}
                           </button>
@@ -325,7 +325,7 @@ const TeacherSchedulePage = () => {
                               onClick={() => setCoins(prev => ({ ...prev, [sid]: n }))}
                               className={clsx(
                                 "w-5 h-5 rounded text-xs font-bold transition",
-                                coinVal === n ? "bg-amber-400 text-white" : "bg-gray-100 text-gray-400 hover:bg-amber-100"
+                                coinVal === n ? "bg-amber-400 text-white" : "bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-400 dark:hover:bg-amber-900/40 hover:bg-amber-100"
                               )}>
                               {n}
                             </button>
@@ -338,8 +338,8 @@ const TeacherSchedulePage = () => {
               </div>
 
               {/* Summary */}
-              <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-xl text-sm">
-                <span className="text-indigo-700">
+              <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-sm">
+                <span className="text-indigo-700 dark:text-indigo-300">
                   ✓ {Object.values(attendance).filter(s => s === 'PRESENT').length} ta keldi ·
                   ✗ {Object.values(attendance).filter(s => s === 'ABSENT').length} ta kelmadi ·
                   🪙 {Object.values(coins).reduce((s, v) => s + v, 0)} coin beriladigan
@@ -347,7 +347,7 @@ const TeacherSchedulePage = () => {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
               <button onClick={() => setActiveSession(null)} className="flex-1 btn-secondary">Bekor</button>
               <button onClick={handleSaveLesson} disabled={saving} className="flex-2 btn-primary px-8">
                 {saving ? 'Saqlanmoqda...' : '✓ Davomat saqlash'}

@@ -93,10 +93,10 @@ const AdminDashboard = () => {
       {/* ── Welcome ──────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {t('dashboard.welcome')}, {user?.fullName?.split(' ')[0]}! 👋
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {format(new Date(), 'd-MMMM, yyyy')} — Bugun {s.todayLessonsCount} ta dars
           </p>
         </div>
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
 
       {/* ── To'lov eslatmalari ───────────────────── */}
       {nearDues.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-amber-50 dark:bg-gray-800 border border-amber-200 dark:border-gray-700 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Bell className="w-4 h-4 text-amber-600" />
             <span className="font-semibold text-amber-800 text-sm">
@@ -134,8 +134,8 @@ const AdminDashboard = () => {
                   {d.isOverdue ? '!' : d.daysLeft}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-800 truncate">{d.fullName}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">{d.fullName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {d.isOverdue
                       ? `Qarz: ${formatMoney(d.debt)}`
                       : `${d.daysLeft} kundan so'ng · ${new Date(d.nextDueDate).toLocaleDateString('uz-UZ', {day: '2-digit', month: '2-digit'})}`}
@@ -222,9 +222,9 @@ const AdminDashboard = () => {
       {/* ── Charts Row ───────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Income Chart */}
-        <div className="xl:col-span-2 card">
+        <div className="xl:col-span-2 card dark:bg-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Moliyaviy ko'rsatkichlar</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Moliyaviy ko'rsatkichlar</h3>
             <span className="badge badge-blue">So'nggi 6 oy</span>
           </div>
           {incomeChart.length === 0 ? (
@@ -257,10 +257,10 @@ const AdminDashboard = () => {
         </div>
 
         {/* Recent Payments */}
-        <div className="card">
+        <div className="card dark:bg-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">{t('dashboard.recentPayments')}</h3>
-            <span className="text-xs text-gray-400">{recentPayments.length} ta</span>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('dashboard.recentPayments')}</h3>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{recentPayments.length} ta</span>
           </div>
           {recentPayments.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-gray-300">
@@ -282,8 +282,8 @@ const AdminDashboard = () => {
                       {p.student?.user?.fullName?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-medium text-gray-800 truncate">{p.student?.user?.fullName}</div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs font-medium text-gray-800 dark:text-gray-100 truncate">{p.student?.user?.fullName}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         {PAYMENT_METHODS[p.paymentMethod] || p.paymentMethod} · {p.paidAt ? format(new Date(p.paidAt), 'd-MMM') : '—'}
                       </div>
                     </div>
@@ -301,8 +301,8 @@ const AdminDashboard = () => {
       {/* ── Bottom Row ───────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Attendance Chart */}
-        <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-4">Haftalik davomat</h3>
+        <div className="card dark:bg-gray-800">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Haftalik davomat</h3>
           {attendanceChart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[180px] text-gray-300">
               <CheckCircle className="w-8 h-8 mb-2" />
@@ -323,9 +323,9 @@ const AdminDashboard = () => {
         </div>
 
         {/* Today's Lessons */}
-        <div className="card">
+        <div className="card dark:bg-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Bugungi darslar</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Bugungi darslar</h3>
             <span className="badge badge-blue">{s.todayLessonsCount} ta</span>
           </div>
           {todayLessons.length === 0 ? (
@@ -345,18 +345,18 @@ const AdminDashboard = () => {
                   teacher: { user: { fullName: string } };
                 };
               }[]).map((lesson) => (
-                <div key={lesson.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50">
+                <div key={lesson.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <div className="flex-shrink-0 w-1.5 h-10 rounded-full bg-primary-500" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-gray-800 truncate">
+                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
                       {lesson.group?.name} — {lesson.group?.course?.name}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       {lesson.group?.teacher?.user?.fullName}
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {lesson.startTime}–{lesson.endTime}
                     </div>

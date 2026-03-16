@@ -46,10 +46,10 @@ const TeachersPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-emerald-600" /> Ustozlar
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Jami {teachers.length} ta ustoz</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jami {teachers.length} ta ustoz</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-1.5 text-sm self-start sm:self-auto">
           <Plus className="w-4 h-4" /> Yangi ustoz
@@ -57,12 +57,12 @@ const TeachersPage = () => {
       </div>
 
       {/* Search */}
-      <div className="card py-3">
+      <div className="card dark:bg-gray-800 py-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Ism yoki telefon bo'yicha qidirish..."
             value={search} onChange={e => setSearch(e.target.value)}
-            className="input pl-9 py-2 text-sm w-full" />
+            className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 pl-9 py-2 text-sm w-full" />
         </div>
       </div>
 
@@ -76,23 +76,23 @@ const TeachersPage = () => {
           ))}
         </div>
       ) : teachers.length === 0 ? (
-        <div className="card text-center py-16">
-          <UserCheck className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-          <p className="text-gray-400">Ustozlar topilmadi</p>
-          <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-primary-600 hover:underline">+ Birinchi ustozni qo'shish</button>
+        <div className="card dark:bg-gray-800 text-center py-16">
+          <UserCheck className="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
+          <p className="text-gray-400 dark:text-gray-500">Ustozlar topilmadi</p>
+          <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-primary-600 dark:text-primary-400 hover:underline">+ Birinchi ustozni qo'shish</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {teachers.map(teacher => (
-            <div key={teacher.id} className="card hover:shadow-card-hover transition-shadow group/card">
+            <div key={teacher.id} className="card dark:bg-gray-800 hover:shadow-card-hover transition-shadow group/card">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
                     {getInitials(teacher.user.fullName)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900">{teacher.user.fullName}</h3>
-                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100">{teacher.user.fullName}</h3>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 mt-0.5">
                       <Phone className="w-3 h-3" /> {teacher.user.phone}
                     </p>
                   </div>
@@ -109,13 +109,13 @@ const TeachersPage = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-gray-500">
+                  <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
                     <BookOpen className="w-3.5 h-3.5" /> Guruhlar
                   </span>
-                  <span className="font-semibold text-gray-800">{teacher._count.groups} ta</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-100">{teacher._count.groups} ta</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 text-gray-500">
+                  <span className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
                     {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? <Percent className="w-3.5 h-3.5" /> : <DollarSign className="w-3.5 h-3.5" />}
                     Ish haqi
                   </span>
@@ -127,13 +127,13 @@ const TeachersPage = () => {
                   </span>
                 </div>
                 {teacher.user.email && (
-                  <p className="text-xs text-gray-400 truncate">{teacher.user.email}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{teacher.user.email}</p>
                 )}
               </div>
 
               {teacher.notes && (
-                <div className="mt-3 pt-3 border-t border-gray-50">
-                  <p className="text-xs text-gray-400 line-clamp-2">{teacher.notes}</p>
+                <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-700">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2">{teacher.notes}</p>
                 </div>
               )}
             </div>
@@ -151,12 +151,12 @@ const TeachersPage = () => {
       )}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-lg font-bold mb-1">Ustozni o'chirish</h3>
-            <p className="text-sm text-gray-500 mb-5"><strong>{deleteConfirm.user.fullName}</strong>ni o'chirmoqchimisiz?</p>
+            <h3 className="text-lg font-bold dark:text-gray-100 mb-1">Ustozni o'chirish</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5"><strong>{deleteConfirm.user.fullName}</strong>ni o'chirmoqchimisiz?</p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">Bekor</button>
               <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isLoading}
@@ -214,10 +214,10 @@ const TeacherFormModal = ({ teacher, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold">{isEdit ? 'Ustozni tahrirlash' : "Yangi ustoz qo'shish"}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold dark:text-gray-100">{isEdit ? 'Ustozni tahrirlash' : "Yangi ustoz qo'shish"}</h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
         </div>
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div>
@@ -274,7 +274,7 @@ const TeacherFormModal = ({ teacher, onClose, onSuccess }: {
               rows={2} placeholder="Qo'shimcha ma'lumotlar..." className="input resize-none" />
           </div>
         </form>
-        <div className="flex gap-2 px-6 py-4 border-t border-gray-100">
+        <div className="flex gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
           <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
           <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={loading} className="btn-primary flex-1">
             {loading ? 'Saqlanmoqda...' : isEdit ? 'Saqlash' : "Qo'shish"}

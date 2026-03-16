@@ -84,10 +84,10 @@ const ReportsPage = () => {
     <div className="space-y-5 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Hisobotlar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Ma'lumotlarni CSV formatida yuklab oling</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hisobotlar</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Ma'lumotlarni CSV formatida yuklab oling</p>
         </div>
-        <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} className="text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
           {months.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}
         </select>
       </div>
@@ -99,9 +99,9 @@ const ReportsPage = () => {
             { label:"Daromad", value: fmt(stats.income)+" so'm", icon:"💰" },
             { label:"Davomat", value: stats.attendance+"%", icon:"✅" },
           ].map(s=>(
-            <div key={s.label} className="card flex items-center gap-3">
+            <div key={s.label} className="card dark:bg-gray-800 flex items-center gap-3">
               <span className="text-2xl">{s.icon}</span>
-              <div><p className="text-xs text-gray-400">{s.label}</p><p className="font-bold text-gray-800">{s.value}</p></div>
+              <div><p className="text-xs text-gray-400 dark:text-gray-500">{s.label}</p><p className="font-bold text-gray-800 dark:text-gray-100">{s.value}</p></div>
             </div>
           ))}
         </div>
@@ -109,15 +109,15 @@ const ReportsPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {REPORTS.map(report=>(
-          <div key={report.type} className="card hover:shadow-md transition">
+          <div key={report.type} className="card dark:bg-gray-800 hover:shadow-md transition">
             <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl flex-shrink-0">{report.icon}</div>
-              <div><h3 className="font-semibold text-gray-800">{report.title}</h3><p className="text-sm text-gray-500 mt-0.5">{report.desc}</p></div>
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-2xl flex-shrink-0">{report.icon}</div>
+              <div><h3 className="font-semibold text-gray-800 dark:text-gray-100">{report.title}</h3><p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{report.desc}</p></div>
             </div>
             <button
               onClick={()=>handleDownload(report)}
               disabled={downloading===report.type}
-              className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-medium py-2 px-4 rounded-xl transition text-sm"
+              className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-medium py-2 px-4 rounded-xl transition text-sm"
             >
               {downloading===report.type ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Yuklanmoqda...</>
@@ -129,9 +129,9 @@ const ReportsPage = () => {
         ))}
       </div>
 
-      <div className="card bg-blue-50 border border-blue-100">
-        <p className="text-sm font-semibold text-blue-800 mb-2">💡 Foydalanish bo'yicha</p>
-        <p className="text-sm text-blue-700">Hisobotni yuklab olish uchun oy tanlang va "CSV yuklab olish" tugmasini bosing. CSV faylni Microsoft Excel yoki Google Sheets da ochish mumkin.</p>
+      <div className="card dark:bg-gray-800 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900">
+        <p className="text-sm font-semibold text-blue-800 dark:text-blue-400 mb-2">💡 Foydalanish bo'yicha</p>
+        <p className="text-sm text-blue-700 dark:text-blue-400">Hisobotni yuklab olish uchun oy tanlang va "CSV yuklab olish" tugmasini bosing. CSV faylni Microsoft Excel yoki Google Sheets da ochish mumkin.</p>
       </div>
     </div>
   );

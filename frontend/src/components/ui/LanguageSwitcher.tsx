@@ -29,14 +29,14 @@ const LanguageSwitcher = ({ variant = 'dark' }: Props) => {
 
   const baseClass = variant === 'light'
     ? 'text-white/70 hover:text-white hover:bg-white/20'
-    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100';
+    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
 
   const activeClass = variant === 'light'
     ? 'text-white bg-white/20 font-semibold'
-    : 'text-primary-700 bg-primary-50 font-semibold';
+    : 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/20 font-semibold';
 
   return (
-    <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10">
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-black/10 dark:bg-white/10">
       {(['uz', 'ru'] as const).map((lang) => (
         <button
           key={lang}

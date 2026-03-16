@@ -81,31 +81,31 @@ const ProfilePage = () => {
   const initial = (profile?.fullName || user?.fullName || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900">Profil</h1>
+    <div className="space-y-5 animate-fade-in max-w-lg mx-auto dark:bg-gray-900 dark:text-gray-100">
+      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Profil</h1>
 
       {msg && (
-        <div className={clsx("p-3 rounded-xl text-sm font-medium", msg.includes('✅') ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")}>
+        <div className={clsx("p-3 rounded-xl text-sm font-medium", msg.includes('✅') ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400")}>
           {msg}
         </div>
       )}
 
       {/* Avatar */}
-      <div className="card flex flex-col items-center py-8">
+      <div className="card dark:bg-gray-800 dark:border-gray-700 flex flex-col items-center py-8">
         <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-3xl font-bold mb-3 shadow-lg">
           {initial}
         </div>
-        <h2 className="text-lg font-bold text-gray-800">{profile?.fullName || user?.fullName}</h2>
-        <p className="text-sm text-gray-500 mt-0.5">{profile?.phone || user?.phone}</p>
-        <span className="mt-2 text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-medium">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{profile?.fullName || user?.fullName}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{profile?.phone || user?.phone}</p>
+        <span className="mt-2 text-sm bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-3 py-1 rounded-full font-medium">
           {ROLE_LABELS[profile?.role || user?.role || ''] || profile?.role}
         </span>
       </div>
 
       {/* Teacher salary section */}
       {isTeacher && salaryData && (
-        <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="card dark:bg-gray-800 dark:border-gray-700">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Wallet size={18} className="text-indigo-600" />
             Oylik ma'lumotlari
             <span className="text-xs text-gray-400 font-normal ml-auto">
@@ -114,24 +114,24 @@ const ProfilePage = () => {
           </h3>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-blue-50 rounded-xl p-3 text-center">
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 text-center">
               <Briefcase size={16} className="text-blue-500 mx-auto mb-1" />
-              <div className="text-xs text-blue-600 mb-0.5">Oylik turi</div>
-              <div className="text-sm font-bold text-blue-800">
+              <div className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">Oylik turi</div>
+              <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
                 {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? 'Foiz' : 'Soatlik'}
               </div>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+            <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-3 text-center">
               <TrendingUp size={16} className="text-emerald-500 mx-auto mb-1" />
-              <div className="text-xs text-emerald-600 mb-0.5">Umumiy tushum</div>
-              <div className="text-sm font-bold text-emerald-800">
+              <div className="text-xs text-emerald-600 dark:text-emerald-400 mb-0.5">Umumiy tushum</div>
+              <div className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
                 {formatMoney(salaryData.totalRevenue || 0)}
               </div>
             </div>
-            <div className="bg-indigo-50 rounded-xl p-3 text-center col-span-2">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-3 text-center col-span-2">
               <Banknote size={16} className="text-indigo-500 mx-auto mb-1" />
-              <div className="text-xs text-indigo-600 mb-0.5">Hisoblangan oylik</div>
-              <div className="text-lg font-bold text-indigo-800">
+              <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-0.5">Hisoblangan oylik</div>
+              <div className="text-lg font-bold text-indigo-800 dark:text-indigo-300">
                 {formatMoney(salaryData.calculatedSalary || 0)}
               </div>
             </div>
@@ -140,15 +140,15 @@ const ProfilePage = () => {
           {/* Per-group breakdown */}
           {salaryData.groups?.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Guruhlar bo'yicha</div>
+              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Guruhlar bo'yicha</div>
               <div className="space-y-2">
                 {salaryData.groups.map((g: any) => (
-                  <div key={g.groupId} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                  <div key={g.groupId} className="flex justify-between items-center py-2 border-b border-gray-50 dark:border-gray-700 last:border-0">
                     <div>
-                      <div className="text-sm font-medium text-gray-800">{g.groupName}</div>
-                      <div className="text-xs text-gray-400">{g.courseName}</div>
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{g.groupName}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">{g.courseName}</div>
                     </div>
-                    <div className="text-sm font-bold text-indigo-600">
+                    <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
                       {formatMoney(g.salary || 0)}
                     </div>
                   </div>
@@ -160,10 +160,10 @@ const ProfilePage = () => {
       )}
 
       {/* Profile info */}
-      <div className="card">
+      <div className="card dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">Ma'lumotlar</h3>
-          <button onClick={() => setEditMode(p => !p)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Ma'lumotlar</h3>
+          <button onClick={() => setEditMode(p => !p)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">
             {editMode ? 'Bekor qilish' : '✏️ Tahrirlash'}
           </button>
         </div>
@@ -177,25 +177,25 @@ const ProfilePage = () => {
               { label: 'Rol', value: ROLE_LABELS[profile?.role || ''] || profile?.role },
               { label: 'Ro\'yxatdan o\'tgan', value: profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('uz-UZ') : '—' },
             ].map(item => (
-              <div key={item.label} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
-                <span className="text-sm text-gray-400">{item.label}</span>
-                <span className="text-sm font-medium text-gray-800">{item.value}</span>
+              <div key={item.label} className="flex justify-between py-2 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                <span className="text-sm text-gray-400 dark:text-gray-500">{item.label}</span>
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{item.value}</span>
               </div>
             ))}
           </div>
         ) : (
           <form onSubmit={handleUpdate} className="space-y-3">
             <div>
-              <label className="label">To'liq ism</label>
-              <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} className="input" required />
+              <label className="label dark:text-gray-300">To'liq ism</label>
+              <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required />
             </div>
             <div>
-              <label className="label">Telefon</label>
-              <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="input" />
+              <label className="label dark:text-gray-300">Telefon</label>
+              <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
             </div>
             <div>
-              <label className="label">Email</label>
-              <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="input" placeholder="ixtiyoriy@email.com" />
+              <label className="label dark:text-gray-300">Email</label>
+              <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" placeholder="ixtiyoriy@email.com" />
             </div>
             <button type="submit" disabled={updateMutation.isLoading} className="w-full btn-primary">
               {updateMutation.isLoading ? 'Saqlanmoqda...' : 'Saqlash'}
@@ -205,10 +205,10 @@ const ProfilePage = () => {
       </div>
 
       {/* Change password */}
-      <div className="card">
+      <div className="card dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">Parolni o'zgartirish</h3>
-          <button onClick={() => setPwMode(p => !p)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Parolni o'zgartirish</h3>
+          <button onClick={() => setPwMode(p => !p)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">
             {pwMode ? 'Bekor qilish' : '🔑 O\'zgartirish'}
           </button>
         </div>
@@ -216,16 +216,16 @@ const ProfilePage = () => {
         {pwMode && (
           <form onSubmit={handlePwChange} className="space-y-3">
             <div>
-              <label className="label">Joriy parol</label>
-              <input type="password" value={pwForm.currentPassword} onChange={e => setPwForm(p => ({ ...p, currentPassword: e.target.value }))} className="input" required />
+              <label className="label dark:text-gray-300">Joriy parol</label>
+              <input type="password" value={pwForm.currentPassword} onChange={e => setPwForm(p => ({ ...p, currentPassword: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required />
             </div>
             <div>
-              <label className="label">Yangi parol</label>
-              <input type="password" value={pwForm.newPassword} onChange={e => setPwForm(p => ({ ...p, newPassword: e.target.value }))} className="input" required minLength={6} />
+              <label className="label dark:text-gray-300">Yangi parol</label>
+              <input type="password" value={pwForm.newPassword} onChange={e => setPwForm(p => ({ ...p, newPassword: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required minLength={6} />
             </div>
             <div>
-              <label className="label">Yangi parolni tasdiqlang</label>
-              <input type="password" value={pwForm.confirmPassword} onChange={e => setPwForm(p => ({ ...p, confirmPassword: e.target.value }))} className="input" required />
+              <label className="label dark:text-gray-300">Yangi parolni tasdiqlang</label>
+              <input type="password" value={pwForm.confirmPassword} onChange={e => setPwForm(p => ({ ...p, confirmPassword: e.target.value }))} className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" required />
             </div>
             <button type="submit" disabled={pwMutation.isLoading} className="w-full btn-primary">
               {pwMutation.isLoading ? 'O\'zgartirilmoqda...' : 'Parolni o\'zgartirish'}
@@ -234,7 +234,7 @@ const ProfilePage = () => {
         )}
 
         {!pwMode && (
-          <p className="text-sm text-gray-400">Xavfsizlik uchun parolni muntazam o'zgartirish tavsiya etiladi.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Xavfsizlik uchun parolni muntazam o'zgartirish tavsiya etiladi.</p>
         )}
       </div>
     </div>

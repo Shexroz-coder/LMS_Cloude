@@ -71,14 +71,14 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
     <div className="space-y-3">
       {/* Materials list */}
       {materials.length === 0 && !showForm ? (
-        <p className="text-sm text-gray-400 text-center py-3">Materiallar yo'q</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3">Materiallar yo'q</p>
       ) : (
         <div className="space-y-2">
           {materials.map(m => {
             const cfg = TYPE_CONFIG[m.type] || TYPE_CONFIG.LINK;
             const ytId = m.type === 'VIDEO' ? getYoutubeId(m.url) : null;
             return (
-              <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition group">
+              <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition group">
                 {ytId ? (
                   <img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} alt={m.title}
                     className="w-10 h-7 object-cover rounded flex-shrink-0" />
@@ -88,8 +88,8 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{m.title}</p>
-                  <p className="text-xs text-gray-400">{cfg.label}</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{m.title}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{cfg.label}</p>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                   <a href={m.url} target="_blank" rel="noopener noreferrer"
@@ -113,7 +113,7 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
       {isTeacher(userRole) && (
         <>
           {showForm ? (
-            <form onSubmit={handleSubmit} className="border border-dashed border-gray-300 rounded-xl p-3 space-y-2">
+            <form onSubmit={handleSubmit} className="border border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-3 space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
                   className="input text-sm">
@@ -128,7 +128,7 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
                 className="input text-sm" placeholder="https://..." required />
               <div className="flex gap-2">
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 text-sm py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bekor</button>
+                  className="flex-1 text-sm py-1.5 px-3 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">Bekor</button>
                 <button type="submit" disabled={addMutation.isLoading}
                   className="flex-1 text-sm py-1.5 px-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
                   {addMutation.isLoading ? '...' : "Qo'shish"}
@@ -137,7 +137,7 @@ export default function LessonMaterials({ lessonId, userRole }: { lessonId: numb
             </form>
           ) : (
             <button onClick={() => setShowForm(true)}
-              className="w-full flex items-center justify-center gap-2 text-sm text-indigo-600 py-2 border border-dashed border-indigo-200 rounded-xl hover:bg-indigo-50 transition">
+              className="w-full flex items-center justify-center gap-2 text-sm text-indigo-600 py-2 border border-dashed border-indigo-200 dark:border-indigo-900 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
               <Plus className="w-4 h-4" /> Material qo'shish
             </button>
           )}

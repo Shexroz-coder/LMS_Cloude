@@ -144,8 +144,8 @@ const AnnouncementsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">📢 E'lonlar</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Jami {announcements.length} ta e'lon</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">📢 E'lonlar</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jami {announcements.length} ta e'lon</p>
         </div>
         <button
           onClick={openNew}
@@ -157,28 +157,28 @@ const AnnouncementsPage = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-800">{announcements.length}</div>
-          <p className="text-xs text-gray-400 mt-1">Jami e'lon</p>
+        <div className="card dark:bg-gray-800 text-center">
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">{announcements.length}</div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Jami e'lon</p>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="card dark:bg-gray-800 text-center">
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {announcements.filter(a => a.targetRoles?.length === 0).length}
           </div>
-          <p className="text-xs text-gray-400 mt-1">Hammaga</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Hammaga</p>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-violet-600">
+        <div className="card dark:bg-gray-800 text-center">
+          <div className="text-2xl font-bold text-violet-600 dark:text-violet-400">
             {announcements.filter(a => (a.targetRoles?.length || 0) > 0).length}
           </div>
-          <p className="text-xs text-gray-400 mt-1">Maqsadli</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Maqsadli</p>
         </div>
       </div>
 
       {/* Search */}
-      <div className="card">
+      <div className="card dark:bg-gray-800">
         <input
-          className="input"
+          className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
           placeholder="🔍 Qidirish..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -187,30 +187,30 @@ const AnnouncementsPage = () => {
 
       {/* List */}
       {isLoading ? (
-        <div className="card text-center py-12">
+        <div className="card dark:bg-gray-800 text-center py-12">
           <div className="animate-spin w-7 h-7 border-2 border-red-500 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Yuklanmoqda...</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card text-center py-16">
+        <div className="card dark:bg-gray-800 text-center py-16">
           <div className="text-5xl mb-4">📢</div>
-          <h2 className="text-lg font-semibold text-gray-700">E'lonlar yo'q</h2>
-          <p className="text-gray-400 text-sm mt-1">Yangi e'lon qo'shish uchun tugmani bosing</p>
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">E'lonlar yo'q</h2>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Yangi e'lon qo'shish uchun tugmani bosing</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(a => (
             <div
               key={a.id}
-              className="card border-l-4 border-l-red-500 transition hover:shadow-md"
+              className="card dark:bg-gray-800 border-l-4 border-l-red-500 transition hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   {/* Title + badges */}
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="font-semibold text-gray-800">{a.title}</h3>
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100">{a.title}</h3>
                     {(a.targetRoles?.length || 0) === 0 ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                         Hammaga
                       </span>
                     ) : (
@@ -219,7 +219,7 @@ const AnnouncementsPage = () => {
                           key={r}
                           className={clsx(
                             "text-xs px-2 py-0.5 rounded-full font-medium",
-                            ROLE_COLORS[r] || 'bg-gray-100 text-gray-600'
+                            ROLE_COLORS[r] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                           )}
                         >
                           {ROLE_LABEL[r] || r}
@@ -229,10 +229,10 @@ const AnnouncementsPage = () => {
                   </div>
 
                   {/* Body */}
-                  <p className="text-sm text-gray-600 line-clamp-2">{a.body}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{a.body}</p>
 
                   {/* Meta */}
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                     {a.creator?.fullName} · {new Date(a.createdAt).toLocaleDateString('uz-UZ')}
                   </p>
                 </div>
@@ -241,14 +241,14 @@ const AnnouncementsPage = () => {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={() => openEdit(a)}
-                    className="text-xs text-gray-500 hover:text-blue-600 font-medium px-2 py-1 rounded hover:bg-blue-50 transition"
+                    className="text-xs text-gray-500 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
                     title="Tahrirlash"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => setDeleteId(a.id)}
-                    className="text-xs text-gray-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 transition"
+                    className="text-xs text-gray-500 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                     title="O'chirish"
                   >
                     🗑️
@@ -267,21 +267,21 @@ const AnnouncementsPage = () => {
           onClick={closeModal}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="p-6">
               {/* Modal header */}
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                   {editing ? "E'lonni tahrirlash" : "Yangi e'lon"}
                 </h2>
-                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={closeModal} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 text-xl">✕</button>
               </div>
 
               {/* Error */}
               {(error || saveMutation.isError) && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
                   {error || 'Saqlashda xato yuz berdi. Qayta urinib ko\'ring.'}
                 </div>
               )}
@@ -289,9 +289,9 @@ const AnnouncementsPage = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Title */}
                 <div>
-                  <label className="label">Sarlavha *</label>
+                  <label className="label dark:text-gray-300">Sarlavha *</label>
                   <input
-                    className="input"
+                    className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     value={form.title}
                     onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                     required
@@ -301,9 +301,9 @@ const AnnouncementsPage = () => {
 
                 {/* Body */}
                 <div>
-                  <label className="label">Matn *</label>
+                  <label className="label dark:text-gray-300">Matn *</label>
                   <textarea
-                    className="input min-h-[100px] resize-none"
+                    className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 min-h-[100px] resize-none"
                     value={form.body}
                     onChange={e => setForm(p => ({ ...p, body: e.target.value }))}
                     required
@@ -314,8 +314,8 @@ const AnnouncementsPage = () => {
 
                 {/* Target roles — multi checkbox */}
                 <div>
-                  <label className="label">Kimga yuborilsin</label>
-                  <p className="text-xs text-gray-400 mb-2">
+                  <label className="label dark:text-gray-300">Kimga yuborilsin</label>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
                     Hech birini tanlamasangiz — barcha foydalanuvchilarga yuboriladi
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -325,8 +325,8 @@ const AnnouncementsPage = () => {
                         className={clsx(
                           "flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition text-sm",
                           form.targetRoles.includes(r.value)
-                            ? "border-red-400 bg-red-50 text-red-700 font-medium"
-                            : "border-gray-200 hover:border-gray-300 text-gray-600"
+                            ? "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 font-medium"
+                            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400"
                         )}
                       >
                         <input
@@ -340,7 +340,7 @@ const AnnouncementsPage = () => {
                     ))}
                   </div>
                   {form.targetRoles.length === 0 && (
-                    <p className="text-xs text-gray-400 mt-1.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                       ℹ️ Hammaga yuboriladi
                     </p>
                   )}
@@ -372,13 +372,13 @@ const AnnouncementsPage = () => {
       {/* ── Delete confirm ───────────────────────────── */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="font-bold text-gray-900 text-lg mb-2">E'lonni o'chirish</h3>
-            <p className="text-gray-500 text-sm mb-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">E'lonni o'chirish</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">
               Bu e'lon o'chirilib, tegishli bildirishnomalar ham o'chirilmaydi. Davom etasizmi?
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 btn-secondary">
+              <button onClick={() => setDeleteId(null)} className="flex-1 btn-secondary dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
                 Bekor
               </button>
               <button
