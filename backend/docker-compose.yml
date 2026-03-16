@@ -34,7 +34,7 @@ services:
   # Backend API server
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: robotic_edu_api
     restart: unless-stopped
@@ -50,12 +50,12 @@ services:
       redis:
         condition: service_started
     volumes:
-      - ./backend/uploads:/app/uploads
+      - ./uploads:/app/uploads
 
   # Frontend (Nginx orqali)
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     container_name: robotic_edu_web
     restart: unless-stopped
