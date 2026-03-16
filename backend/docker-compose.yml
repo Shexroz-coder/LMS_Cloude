@@ -44,6 +44,10 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://robotic_user:robotic_pass@postgres:5432/robotic_edu_db
       - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=8513268264:AAETiGq1Z2Zd6tXmgo7P0n5lR3GQIq3fl98
+      - JWT_ACCESS_SECRET=robotic_edu_access_secret_2026
+      - JWT_REFRESH_SECRET=robotic_edu_refresh_secret_2026
+      - FRONTEND_URL=https://roboticedu.uz
     depends_on:
       postgres:
         condition: service_healthy
