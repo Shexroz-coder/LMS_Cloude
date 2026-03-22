@@ -18,6 +18,7 @@ interface Payment {
   paidAt: string;
   note?: string;
   student: { user: { fullName: string; phone: string } };
+  group?: { id: number; name: string; course: { name: string } } | null;
   // Archive fields
   isDeleted?: boolean;
   deletedAt?: string;
@@ -53,6 +54,9 @@ interface StudentObligation {
   netObligation: number;
   hasDebt: boolean;
   hasSurplus: boolean;
+  promiseDate: string | null;
+  promiseAmount: number | null;
+  promiseNote: string | null;
 }
 
 const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
@@ -72,6 +76,10 @@ const PaymentsPage = () => {
   const [activeTab, setActiveTab] = useState<'payments' | 'obligations' | 'archive'>('payments');
   const [obligSearch, setObligSearch] = useState('');
   const [archivePage, setArchivePage] = useState(1);
+  const [showPromiseModal, setShowPromiseModal] = useState(false);
+  const [promiseStudentId, setPromiseStudentId] = useState<number | null>(null);
+  const [promiseForm, setPromiseForm] = useState({ date: '', amount: '', note: '' });
+  const [promiseSaving, setPromiseSaving] = useState(false);
 
   const { data, isLoading } = useQuery(
     ['payments', page, currentMonth],
@@ -392,18 +400,19 @@ const PaymentsPage = () => {
                     <th>Chegirma</th>
                     <th>Joriy balans</th>
                     <th>Qarz</th>
+                    <th>Va'da sanasi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {obligLoading ? (
                     [...Array(6)].map((_, i) => (
-                      <tr key={i}>{[...Array(7)].map((_, j) => (
+                      <tr key={i}>{[...Array(8)].map((_, j) => (
                         <td key={j}><div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" /></td>
                       ))}</tr>
                     ))
                   ) : filteredObligations.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-12">
+                      <td colSpan={8} className="text-center py-12">
                         <Users className="w-10 h-10 mx-auto mb-3 text-gray-200 dark:text-gray-600" />
                         <p className="text-gray-400 dark:text-gray-500">O'quvchilar topilmadi</p>
                       </td>
@@ -449,6 +458,40 @@ const PaymentsPage = () => {
                           </span>
                         ) : (
                           <span className="text-xs text-emerald-500 font-medium">✓ Qarz yo'q</span>
+                        )}
+                      </td>
+                      <td>
+                        {o.promiseDate ? (
+                          <div className="space-y-0.5">
+                            <span className={clsx(
+                              'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-lg',
+                              new Date(o.promiseDate) < new Date()
+                                ? 'bg-red-50 text-red-600'
+                                : 'bg-blue-50 text-blue-600'
+                            )}>
+                              <Clock className="w-3 h-3" />
+                              {new Date(o.promiseDate).toLocaleDateString('uz-UZ', {day: '2-digit', month: '2-digit', year: 'numeric'})}
+                            </span>
+                            {o.promiseAmount && (
+                              <div className="text-[11px] text-gray-500">{formatMoney(o.promiseAmount)}</div>
+                            )}
+                            {o.promiseNote && (
+                              <div className="text-[10px] text-gray-400 truncate max-w-[120px]" title={o.promiseNote}>{o.promiseNote}</div>
+                            )}
+                            <button
+                              onClick={() => { setPromiseStudentId(o.studentId); setPromiseForm({ date: o.promiseDate?.split('T')[0] || '', amount: o.promiseAmount?.toString() || '', note: o.promiseNote || '' }); setShowPromiseModal(true); }}
+                              className="text-[10px] text-blue-500 hover:underline"
+                            >O'zgartirish</button>
+                          </div>
+                        ) : o.hasDebt ? (
+                          <button
+                            onClick={() => { setPromiseStudentId(o.studentId); setPromiseForm({ date: '', amount: '', note: '' }); setShowPromiseModal(true); }}
+                            className="text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            + Va'da belgilash
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
                         )}
                       </td>
                     </tr>
@@ -568,14 +611,91 @@ const PaymentsPage = () => {
           onSuccess={() => { setDeletePayment(null); invalidateAll(qc); }}
         />
       )}
+
+      {/* ═══ Promise Modal ═══ */}
+      {showPromiseModal && promiseStudentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">To'lov va'dasi belgilash</h3>
+              <button onClick={() => setShowPromiseModal(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="label dark:text-gray-300">Va'da sanasi *</label>
+                <input type="date" value={promiseForm.date}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  onChange={e => setPromiseForm(f => ({ ...f, date: e.target.value }))}
+                  className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="label dark:text-gray-300">Va'da summasi (ixtiyoriy)</label>
+                <input type="number" value={promiseForm.amount}
+                  onChange={e => setPromiseForm(f => ({ ...f, amount: e.target.value }))}
+                  placeholder="Masalan: 500000"
+                  className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="label dark:text-gray-300">Izoh (ixtiyoriy)</label>
+                <input type="text" value={promiseForm.note}
+                  onChange={e => setPromiseForm(f => ({ ...f, note: e.target.value }))}
+                  placeholder="Masalan: Oylik tushganda to'laydi"
+                  className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
+              </div>
+            </div>
+            <div className="flex gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+              {promiseForm.date && (
+                <button onClick={async () => {
+                  try {
+                    await api.delete(`/payments/student/${promiseStudentId}/promise`);
+                    toast.success('Va\'da o\'chirildi');
+                    setShowPromiseModal(false);
+                    invalidateAll(qc);
+                  } catch { toast.error('Xato'); }
+                }} className="py-2.5 px-4 rounded-xl text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 transition">
+                  O'chirish
+                </button>
+              )}
+              <button onClick={() => setShowPromiseModal(false)} className="btn-secondary flex-1">Bekor</button>
+              <button
+                disabled={!promiseForm.date || promiseSaving}
+                onClick={async () => {
+                  setPromiseSaving(true);
+                  try {
+                    await api.patch(`/payments/student/${promiseStudentId}/promise`, {
+                      promiseDate: promiseForm.date,
+                      promiseAmount: promiseForm.amount || null,
+                      promiseNote: promiseForm.note || null,
+                    });
+                    toast.success('Va\'da belgilandi!');
+                    setShowPromiseModal(false);
+                    invalidateAll(qc);
+                  } catch { toast.error('Xato yuz berdi'); }
+                  setPromiseSaving(false);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition">
+                {promiseSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 // ── Add Payment Modal ──────────────────────────────
+interface StudentGroup {
+  id: number;
+  group: { id: number; name: string; course: { name: string; monthlyPrice: number } };
+}
+
 const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
   const [form, setForm] = useState({
     studentSearch: '', studentId: '', studentName: '',
+    groupId: '',
     amount: '', method: 'CASH',
     month: format(new Date(), 'yyyy-MM'),
     description: '', isDebtPayment: false,
@@ -588,6 +708,16 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
     () => api.get('/students', { params: { search: form.studentSearch, limit: 8 } })
       .then(r => r.data.data).catch(() => []),
     { enabled: form.studentSearch.length >= 2 }
+  );
+
+  // O'quvchi tanlanganda uning guruhlarini olish
+  const { data: studentGroups } = useQuery<StudentGroup[]>(
+    ['student-groups', form.studentId],
+    () => api.get(`/students/${form.studentId}`).then(r => {
+      const s = r.data?.data;
+      return s?.groupStudents?.filter((gs: StudentGroup & { status: string }) => gs.status === 'ACTIVE') || [];
+    }).catch(() => []),
+    { enabled: !!form.studentId }
   );
 
   const students = Array.isArray(searchResults) ? searchResults : [];
@@ -606,6 +736,7 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
         month: form.month,
         note: form.description,
         isDebtPayment: form.isDebtPayment,
+        groupId: form.groupId || undefined,
       });
       toast.success("To'lov muvaffaqiyatli qayd etildi!");
       onSuccess();
@@ -631,7 +762,7 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
             {form.studentId ? (
               <div className="flex items-center justify-between p-3 rounded-xl bg-primary-50 border border-primary-200">
                 <span className="text-sm font-medium text-primary-700">{form.studentName}</span>
-                <button type="button" onClick={() => set('studentId', '')} className="text-primary-400 hover:text-primary-600">
+                <button type="button" onClick={() => { set('studentId', ''); set('groupId', ''); }} className="text-primary-400 hover:text-primary-600">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -664,10 +795,39 @@ const AddPaymentModal = ({ onClose, onSuccess }: { onClose: () => void; onSucces
             )}
           </div>
 
+          {form.studentId && studentGroups && studentGroups.length > 0 && (
+            <div>
+              <label className="label">Qaysi kurs uchun to'lov? *</label>
+              <div className="space-y-2">
+                {studentGroups.map((sg: StudentGroup) => (
+                  <label key={sg.group.id} className={clsx(
+                    'flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-colors',
+                    form.groupId === String(sg.group.id) ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+                  )}>
+                    <div className="flex items-center gap-2">
+                      <input type="radio" name="groupId" value={sg.group.id}
+                        checked={form.groupId === String(sg.group.id)}
+                        onChange={() => set('groupId', String(sg.group.id))} className="sr-only" />
+                      <div>
+                        <div className={clsx('text-sm font-medium', form.groupId === String(sg.group.id) ? 'text-violet-700 dark:text-violet-300' : 'text-gray-700 dark:text-gray-300')}>
+                          {sg.group.course.name}
+                        </div>
+                        <div className="text-xs text-gray-400">{sg.group.name}</div>
+                      </div>
+                    </div>
+                    <span className={clsx('text-xs font-semibold', form.groupId === String(sg.group.id) ? 'text-violet-600' : 'text-gray-500')}>
+                      {new Intl.NumberFormat('uz-UZ').format(Number(sg.group.course.monthlyPrice))} so'm
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="label">Summa (so'm) *</label>
             <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
-              placeholder="500000" min="1000" step="1000" className="input text-lg font-semibold" />
+              placeholder="500000" min="1000" step="1000" className="input text-lg font-semibold dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
           </div>
 
           <div>

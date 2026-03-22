@@ -217,7 +217,7 @@ export async function handleNewLogin(ctx: BotContext) {
 
     let text = brandHeader('📱', 'YANGI PROFIL');
     text += `Yangi telefon raqamingizni yuboring:\n\n`;
-    text += `<i>Misol: +998901234567</i>`;
+    text += `<i>Misol: +998XXXXXXXXX</i>`;
     text += brandFooter();
 
     await ctx.editMessageText(text, { parse_mode: 'HTML' });

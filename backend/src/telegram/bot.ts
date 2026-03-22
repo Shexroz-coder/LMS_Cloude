@@ -11,7 +11,11 @@ export interface LinkedAccount {
 
 export interface SessionData {
   /** Ro'yxatdan o'tish bosqichi */
-  step: 'idle' | 'waiting_phone' | 'waiting_otp' | 'waiting_parent_child_name' | 'waiting_parent_child_phone' | 'waiting_late_att_reason' | 'waiting_broadcast_text';
+  step: 'idle' | 'waiting_phone' | 'waiting_otp' | 'waiting_parent_child_name' | 'waiting_parent_child_phone' | 'waiting_late_att_reason' | 'waiting_broadcast_text' | 'waiting_coin_amount';
+  /** Coin berish uchun tanlangan o'quvchi */
+  coinStudentId?: number;
+  /** Coin berish uchun tanlangan guruh */
+  coinGroupId?: number;
   /** Telefon raqam (OTP tekshirish uchun) */
   phone?: string;
   /** Ota-ona tanlagan bola ID */

@@ -50,13 +50,14 @@ export const awardCoins = async (req: AuthRequest, res: Response): Promise<void>
   try {
     const { studentId, amount, reason, type = 'REWARD' } = req.body;
 
-    if (!studentId || !amount || amount <= 0) {
+    const coinAmount = parseInt(String(amount));
+    if (!studentId || !amount || isNaN(coinAmount) || coinAmount <= 0) {
       sendError(res, 'O\'quvchi va coin miqdori kiritilishi shart.', 400);
       return;
     }
 
-    if (amount > 5 || amount < 0) {
-      sendError(res, 'Coin miqdori 0 dan 5 gacha bo\'lishi kerak', 400);
+    if (coinAmount > 5) {
+      sendError(res, 'Coin miqdori 1 dan 5 gacha bo\'lishi kerak', 400);
       return;
     }
 
@@ -74,7 +75,7 @@ export const awardCoins = async (req: AuthRequest, res: Response): Promise<void>
       const transaction = await tx.coinTransaction.create({
         data: {
           studentId: parseInt(studentId),
-          amount: parseInt(amount),
+          amount: coinAmount,
           type: type as 'REWARD' | 'PENALTY' | 'BONUS' | 'EXCHANGE',
           reason,
           givenBy: req.user!.id,
@@ -83,7 +84,7 @@ export const awardCoins = async (req: AuthRequest, res: Response): Promise<void>
 
       const newBalance = await tx.student.update({
         where: { id: parseInt(studentId) },
-        data: { coinBalance: { increment: parseInt(amount) } }
+        data: { coinBalance: { increment: coinAmount } }
       });
 
       return { transaction, newBalance: newBalance.coinBalance };
@@ -103,20 +104,21 @@ export const deductCoins = async (req: AuthRequest, res: Response): Promise<void
   try {
     const { studentId, amount, reason } = req.body;
 
-    if (!studentId || !amount || amount <= 0) {
+    const deductAmount = parseInt(String(amount));
+    if (!studentId || !amount || isNaN(deductAmount) || deductAmount <= 0) {
       sendError(res, 'O\'quvchi va coin miqdori kiritilishi shart.', 400);
       return;
     }
 
-    if (amount > 5 || amount < 0) {
-      sendError(res, 'Coin miqdori 0 dan 5 gacha bo\'lishi kerak', 400);
+    if (deductAmount > 5) {
+      sendError(res, 'Coin miqdori 1 dan 5 gacha bo\'lishi kerak', 400);
       return;
     }
 
     const student = await prisma.student.findUnique({ where: { id: parseInt(studentId) } });
     if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
 
-    if (student.coinBalance < parseInt(amount)) {
+    if (student.coinBalance < deductAmount) {
       sendError(res, `O'quvchining coin balansi yetarli emas. Mavjud: ${student.coinBalance}`, 400);
       return;
     }
@@ -125,7 +127,7 @@ export const deductCoins = async (req: AuthRequest, res: Response): Promise<void
       await tx.coinTransaction.create({
         data: {
           studentId: parseInt(studentId),
-          amount: -parseInt(amount),
+          amount: -deductAmount,
           type: 'PENALTY',
           reason,
           givenBy: req.user!.id,
@@ -134,7 +136,7 @@ export const deductCoins = async (req: AuthRequest, res: Response): Promise<void
 
       return tx.student.update({
         where: { id: parseInt(studentId) },
-        data: { coinBalance: { decrement: parseInt(amount) } }
+        data: { coinBalance: { decrement: deductAmount } }
       });
     });
 

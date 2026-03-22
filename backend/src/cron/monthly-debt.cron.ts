@@ -70,11 +70,11 @@ export async function calculateMonthlyDebts() {
         }
       }
 
-      const monthlyFee = totalMonthly - discount;
+      const monthlyFee = Math.round(totalMonthly - discount);
       if (monthlyFee <= 0) continue;
 
-      const currentBalance = Number(student.balance?.balance || 0);
-      const currentDebt = Number(student.balance?.debt || 0);
+      const currentBalance = Math.round(Number(student.balance?.balance || 0));
+      const currentDebt = Math.round(Number(student.balance?.debt || 0));
 
       let newBalance = currentBalance;
       let newDebt = currentDebt;
@@ -94,10 +94,15 @@ export async function calculateMonthlyDebts() {
       });
 
       // MonthlyFee yozish (hisobot uchun)
-      for (const gs of student.groupStudents) {
+      let discountDistributed = 0;
+      for (let idx = 0; idx < student.groupStudents.length; idx++) {
+        const gs = student.groupStudents[idx];
         const baseAmount = Number(gs.group.course.monthlyPrice);
-        const discountPart = student.groupStudents.length > 0
-          ? Math.round(discount / student.groupStudents.length) : 0;
+        // Oxirgi guruhga qoldiqni berish (precision yo'qotmaslik uchun)
+        const discountPart = idx === student.groupStudents.length - 1
+          ? discount - discountDistributed
+          : Math.round(discount / student.groupStudents.length);
+        discountDistributed += discountPart;
 
         await prisma.monthlyFee.upsert({
           where: {
@@ -277,6 +282,143 @@ export async function sendPaymentReminders() {
 }
 
 // ══════════════════════════════════════════════════════
+//  3. VA'DA SANASI ESLATMA (Har kuni 09:00)
+// ══════════════════════════════════════════════════════
+export async function sendPromiseDateReminders() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  console.log(`\n🔔 [CRON] Va'da eslatmalari — ${today.toLocaleDateString('uz')}`);
+
+  try {
+    // Bugun yoki o'tgan va'da sanasi bor o'quvchilarni topish
+    const studentsWithPromise = await (prisma.studentBalance as any).findMany({
+      where: {
+        promiseDate: { not: null, lte: tomorrow },
+        debt: { gt: 0 },
+      },
+      include: {
+        student: {
+          include: {
+            user: { select: { id: true, fullName: true, telegramChatId: true } },
+          },
+        },
+      },
+    }) as Array<{
+      studentId: number;
+      debt: any;
+      promiseDate: Date | null;
+      promiseAmount: any;
+      promiseNote: string | null;
+      student: {
+        id: number;
+        user: { id: number; fullName: string; telegramChatId: string | null };
+      };
+    }>;
+
+    let sent = 0;
+
+    for (const sb of studentsWithPromise) {
+      const promiseDate = new Date(sb.promiseDate!);
+      const isToday = promiseDate.getTime() === today.getTime();
+      const isOverdue = promiseDate < today;
+      const debt = Number(sb.debt);
+      const promiseAmount = sb.promiseAmount ? Number(sb.promiseAmount) : debt;
+      const promiseDateStr = promiseDate.toLocaleDateString('uz-UZ');
+
+      // O'quvchiga Telegram xabar
+      if (sb.student.user.telegramChatId) {
+        try {
+          let msg = '';
+          if (isToday) {
+            msg = `⏰ <b>To'lov va'dasi — Bugun!</b>\n\n`;
+            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
+            msg += `Bugun (${promiseDateStr}) to'lov va'dangiz kuni.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
+            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
+            if (sb.promiseNote) msg += `📌 Izoh: ${sb.promiseNote}\n`;
+            msg += `\n✅ Iltimos, bugun to'lovni amalga oshiring.`;
+          } else if (isOverdue) {
+            msg = `🚨 <b>To'lov va'dasi o'tib ketdi!</b>\n\n`;
+            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
+            msg += `${promiseDateStr} dagi to'lov va'dangiz muddati o'tdi.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
+            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
+            msg += `\n⚠️ Iltimos, imkon qadar tezroq to'lovni amalga oshiring!`;
+          } else {
+            // Ertaga
+            msg = `📅 <b>To'lov va'dasi — Ertaga!</b>\n\n`;
+            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
+            msg += `Ertaga (${promiseDateStr}) to'lov va'dangiz kuni.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
+            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
+            msg += `\n📝 Iltimos, to'lovga tayyor bo'ling.`;
+          }
+
+          await bot.api.sendMessage(sb.student.user.telegramChatId, msg, { parse_mode: 'HTML' });
+          sent++;
+        } catch (e) {
+          console.error(`  ⚠️ Va'da eslatmasi yuborib bo'lmadi (${sb.student.user.fullName}):`, e);
+        }
+      }
+
+      // Ota-onaga ham xabar
+      const parentUser = await prisma.user.findFirst({
+        where: {
+          role: 'PARENT',
+          parentStudents: { some: { id: sb.student.id } },
+          telegramChatId: { not: null },
+        },
+        select: { telegramChatId: true },
+      });
+
+      if (parentUser?.telegramChatId) {
+        try {
+          let msg = '';
+          if (isToday) {
+            msg = `⏰ <b>Farzandingiz to'lov va'dasi — Bugun</b>\n\n`;
+            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b> bugun to'lov qilishi kerak.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
+          } else if (isOverdue) {
+            msg = `🚨 <b>Farzandingiz to'lov muddati o'tdi</b>\n\n`;
+            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b>ning ${promiseDateStr} dagi va'dasi o'tdi.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
+            msg += `🔴 Qarz: <b>${formatMoney(debt)}</b>`;
+          } else {
+            msg = `📅 <b>Farzandingiz to'lovi — Ertaga</b>\n\n`;
+            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b> ertaga to'lov qilishi kerak.\n`;
+            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>`;
+          }
+          await bot.api.sendMessage(parentUser.telegramChatId, msg, { parse_mode: 'HTML' });
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Va'da o'tgan bo'lsa — admin uchun notification
+      if (isOverdue) {
+        await prisma.notification.create({
+          data: {
+            userId: sb.student.user.id,
+            title: 'To\'lov va\'dasi o\'tdi',
+            body: `${sb.student.user.fullName} ${promiseDateStr} dagi ${formatMoney(promiseAmount)} to'lov va'dasini bajarmadi.`,
+            type: 'PAYMENT',
+          },
+        });
+      }
+    }
+
+    console.log(`✅ [CRON] ${sent} ta va'da eslatmasi yuborildi`);
+    return { sent };
+  } catch (error) {
+    console.error('❌ [CRON] Va\'da eslatma xatosi:', error);
+    throw error;
+  }
+}
+
+// ══════════════════════════════════════════════════════
 //  CRON JOBLARNI ISHGA TUSHIRISH
 // ══════════════════════════════════════════════════════
 export function startMonthlyDebtCron() {
@@ -292,7 +434,14 @@ export function startMonthlyDebtCron() {
     try { await sendPaymentReminders(); } catch (err) { console.error('❌ [CRON]:', err); }
   }, { timezone: 'Asia/Tashkent' });
 
+  // Har kuni 09:00 — va'da sanasi eslatmalari
+  cron.schedule('0 9 * * *', async () => {
+    console.log('📅 [CRON] Va\'da eslatmalari...');
+    try { await sendPromiseDateReminders(); } catch (err) { console.error('❌ [CRON]:', err); }
+  }, { timezone: 'Asia/Tashkent' });
+
   console.log('📅 [CRON] Cron joblar ro\'yxatdan o\'tdi:');
   console.log('   1️⃣ Oylik qarz — har oy 1-kuni 00:01');
   console.log('   2️⃣ To\'lov eslatma — har oy 25-kuni 10:00');
+  console.log('   3️⃣ Va\'da eslatma — har kuni 09:00');
 }

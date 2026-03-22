@@ -104,7 +104,7 @@ export async function handleStart(ctx: BotContext) {
     welcome += 'Xush kelibsiz! Bot orqali o\'quv jarayoningizni\n';
     welcome += 'kuzatib borishingiz mumkin.\n\n';
     welcome += '📱 <b>O\'quvchi/Ustoz</b> — telefon raqamingizni yuboring:\n';
-    welcome += '<i>Misol: +998901234567</i>\n\n';
+    welcome += '<i>Misol: +998XXXXXXXXX</i>\n\n';
     welcome += '👨‍👩‍👧 <b>Ota-ona</b> — quyidagi tugmani bosing:';
     welcome += brandFooter();
 
@@ -112,6 +112,85 @@ export async function handleStart(ctx: BotContext) {
   } catch (err) {
     console.error('❌ handleStart xatosi:', err);
     await ctx.reply('❌ Xatolik yuz berdi. Keyinroq qayta urinib ko\'ring.\n/start').catch(() => {});
+  }
+}
+
+// ── Telefon raqam login logikasi (matn yoki contact uchun umumiy) ──
+async function processPhoneLogin(ctx: BotContext, rawPhone: string) {
+  const phone = normalizePhone(rawPhone);
+
+  if (!/^\+998\d{9}$/.test(phone)) {
+    await ctx.reply(
+      '❌ Noto\'g\'ri format!\n\n📱 Telefon raqamingizni to\'g\'ri kiriting:\n<i>Misol: +998XXXXXXXXX</i>',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+
+  const user = await getUserByPhone(phone);
+
+  if (!user) {
+    await ctx.reply(
+      '❌ Bu telefon raqam tizimda topilmadi.\n\n' +
+      'Iltimos, markaz administratoriga murojaat qiling yoki boshqa raqam kiriting.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+
+  if (!user.isActive) {
+    await ctx.reply('❌ Sizning hisobingiz faol emas. Admin bilan bog\'laning.');
+    return;
+  }
+
+  if (user.telegramChatId && user.telegramChatId !== String(ctx.chat?.id)) {
+    await ctx.reply(
+      '⚠️ Bu raqam boshqa Telegram akkauntga ulangan edi.\n' +
+      'Eski ulanish o\'chiriladi va siz yangi qurilmadan kirasiz.'
+    );
+  }
+
+  const chatId = String(ctx.chat?.id);
+  const username = ctx.from?.username;
+  await linkTelegramAccount(user.phone, chatId, username);
+
+  ctx.session.step = 'idle';
+
+  let menuText = brandHeader('✅', 'MUVAFFAQIYATLI!');
+  menuText += `🎉 <b>${escapeHtml(user.fullName)}</b>, xush kelibsiz!\n\nEndi barcha imkoniyatlardan foydalanishingiz mumkin:`;
+  let keyboard;
+
+  if (user.role === 'STUDENT') {
+    keyboard = studentMainMenu();
+  } else if (user.role === 'PARENT') {
+    keyboard = parentMainMenu();
+  } else if (user.role === 'ADMIN') {
+    keyboard = adminMenu();
+  } else if (user.role === 'TEACHER') {
+    keyboard = teacherMainMenu();
+  } else {
+    keyboard = studentMainMenu();
+  }
+
+  await ctx.reply(menuText, { parse_mode: 'HTML', reply_markup: keyboard });
+}
+
+// ── Telegram Contact orqali telefon yuborish ─────
+export async function handleContact(ctx: BotContext) {
+  try {
+    if (ctx.session.step !== 'waiting_phone') return;
+    const contact = (ctx.message as any)?.contact;
+    if (!contact?.phone_number) return;
+
+    // Telegram contact raqami ba'zan + siz keladi
+    const raw = contact.phone_number.startsWith('+')
+      ? contact.phone_number
+      : '+' + contact.phone_number;
+
+    await processPhoneLogin(ctx, raw);
+  } catch (err) {
+    console.error('❌ handleContact xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
   }
 }
 
@@ -123,69 +202,7 @@ export async function handlePhone(ctx: BotContext) {
     const text = ctx.message?.text?.trim();
     if (!text) return;
 
-    const phone = normalizePhone(text);
-
-    // Telefon formati tekshirish
-    if (!/^\+998\d{9}$/.test(phone)) {
-      await ctx.reply(
-        '❌ Noto\'g\'ri format!\n\n📱 Telefon raqamingizni to\'g\'ri kiriting:\n<i>Misol: +998901234567</i>',
-        { parse_mode: 'HTML' }
-      );
-      return;
-    }
-
-    // DB dan tekshirish
-    const user = await getUserByPhone(phone);
-
-    if (!user) {
-      await ctx.reply(
-        '❌ Bu telefon raqam tizimda topilmadi.\n\n' +
-        'Iltimos, markaz administratoriga murojaat qiling yoki boshqa raqam kiriting.',
-        { parse_mode: 'HTML' }
-      );
-      return;
-    }
-
-    if (!user.isActive) {
-      await ctx.reply('❌ Sizning hisobingiz faol emas. Admin bilan bog\'laning.');
-      return;
-    }
-
-    // Agar allaqachon boshqa chat ID ga bog'langan bo'lsa — ogohlantirish
-    if (user.telegramChatId && user.telegramChatId !== String(ctx.chat?.id)) {
-      await ctx.reply(
-        '⚠️ Bu raqam boshqa Telegram akkauntga ulangan edi.\n' +
-        'Eski ulanish o\'chiriladi va siz yangi qurilmadan kirasiz.'
-      );
-    }
-
-    // ✅ Tasdiqlash kodsiz to'g'ridan-to'g'ri ulash
-    const chatId = String(ctx.chat?.id);
-    const username = ctx.from?.username;
-    await linkTelegramAccount(user.phone, chatId, username);
-
-    ctx.session.step = 'idle';
-
-    let menuText = brandHeader('✅', 'MUVAFFAQIYATLI!');
-    menuText += `🎉 <b>${escapeHtml(user.fullName)}</b>, xush kelibsiz!\n\nEndi barcha imkoniyatlardan foydalanishingiz mumkin:`;
-    let keyboard;
-
-    if (user.role === 'STUDENT') {
-      keyboard = studentMainMenu();
-    } else if (user.role === 'PARENT') {
-      keyboard = parentMainMenu();
-    } else if (user.role === 'ADMIN') {
-      keyboard = adminMenu();
-    } else if (user.role === 'TEACHER') {
-      keyboard = teacherMainMenu();
-    } else {
-      keyboard = studentMainMenu();
-    }
-
-    await ctx.reply(menuText, {
-      parse_mode: 'HTML',
-      reply_markup: keyboard,
-    });
+    await processPhoneLogin(ctx, text);
   } catch (err) {
     console.error('❌ handlePhone xatosi:', err);
     await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
@@ -294,7 +311,7 @@ export async function handleParentChildName(ctx: BotContext) {
 
     let msg = `✅ Farzand ismi: <b>${escapeHtml(text)}</b>\n\n`;
     msg += '📱 Endi <b>farzandingizning telefon raqamini</b> kiriting:\n';
-    msg += '<i>Misol: +998901234567</i>';
+    msg += '<i>Misol: +998XXXXXXXXX</i>';
 
     await ctx.reply(msg, { parse_mode: 'HTML' });
   } catch (err) {
@@ -315,7 +332,7 @@ export async function handleParentChildPhone(ctx: BotContext) {
 
     if (!/^\+998\d{9}$/.test(phone)) {
       await ctx.reply(
-        '❌ Noto\'g\'ri format!\n📱 Farzandingizning telefon raqamini kiriting:\n<i>Misol: +998901234567</i>',
+        '❌ Noto\'g\'ri format!\n📱 Farzandingizning telefon raqamini kiriting:\n<i>Misol: +998XXXXXXXXX</i>',
         { parse_mode: 'HTML' }
       );
       return;

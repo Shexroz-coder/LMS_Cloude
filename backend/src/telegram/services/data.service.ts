@@ -567,6 +567,55 @@ export async function findParentByPhone(parentPhone: string) {
   };
 }
 
+// ─── O'qituvchi guruhlari va o'quvchilar (Coin berish uchun) ─
+export async function getTeacherGroupsWithStudents(teacherId: number) {
+  return prisma.group.findMany({
+    where: { teacherId, status: 'ACTIVE' },
+    include: {
+      course: { select: { name: true } },
+      groupStudents: {
+        where: { status: 'ACTIVE' },
+        include: {
+          student: {
+            include: {
+              user: { select: { fullName: true } },
+            }
+          }
+        }
+      }
+    },
+    orderBy: { name: 'asc' },
+  });
+}
+
+// ─── Coin berish (o'qituvchi tomonidan) ───────────────────
+export async function giveCoinToStudent(
+  givenByUserId: number,
+  studentId: number,
+  amount: number,
+  reason: string
+) {
+  return prisma.$transaction(async (tx) => {
+    await tx.coinTransaction.create({
+      data: {
+        studentId,
+        givenBy: givenByUserId,
+        amount,
+        reason,
+        type: 'REWARD',
+      },
+    });
+    await tx.student.update({
+      where: { id: studentId },
+      data: { coinBalance: { increment: amount } },
+    });
+    return tx.student.findUnique({
+      where: { id: studentId },
+      select: { coinBalance: true, user: { select: { fullName: true } } },
+    });
+  });
+}
+
 // ─── Boshqa raqam bilan tezkor login (re-link) ───────────
 export async function relinkTelegramAccount(phone: string, chatId: string, username?: string) {
   // Avval eski chat ID ni tozalash (agar boshqa user ulangan bo'lsa)

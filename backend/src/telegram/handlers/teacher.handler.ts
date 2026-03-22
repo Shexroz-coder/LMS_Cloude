@@ -3,8 +3,8 @@
  * Darslar, guruhlar, davomat belgilash, maosh
  */
 import { BotContext } from '../bot';
-import { getUserByChatId } from '../services/data.service';
-import { teacherMainMenu, backToMenu } from '../utils/keyboards';
+import { getUserByChatId, getTeacherGroupsWithStudents, giveCoinToStudent } from '../services/data.service';
+import { teacherMainMenu, backToMenu, coinGroupSelect, coinStudentSelect } from '../utils/keyboards';
 import { escapeHtml, formatMoney, brandHeader } from '../utils/format';
 import prisma from '../../lib/prisma';
 import { InlineKeyboard } from 'grammy';
@@ -784,4 +784,138 @@ export async function handleTeacherSalaryArchive(ctx: BotContext, teacherId: num
   kb.text('⬅️ Asosiy menyu', 'main_menu');
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+}
+
+// ══════════════════════════════════════════════════════
+//  COIN BERISH
+// ══════════════════════════════════════════════════════
+
+// ── 1. Guruh tanlash ──────────────────────────────────
+export async function handleTeacherGiveCoin(ctx: BotContext) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
+  const groups = await getTeacherGroupsWithStudents(teacher.id);
+
+  if (groups.length === 0) {
+    await ctx.editMessageText(
+      brandHeader('🪙', 'COIN BERISH') + '❌ Sizda faol guruhlar yo\'q.',
+      { parse_mode: 'HTML', reply_markup: backToMenu() }
+    );
+    return;
+  }
+
+  let text = brandHeader('🪙', 'COIN BERISH');
+  text += 'Qaysi guruh o\'quvchisiga coin bermoqchisiz?\n\n';
+  for (const g of groups) {
+    text += `📚 <b>${escapeHtml(g.name)}</b> — ${g.groupStudents.length} o\'quvchi\n`;
+  }
+
+  const groupList = groups.map(g => ({ id: g.id, name: g.name }));
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: coinGroupSelect(groupList) });
+}
+
+// ── 2. O'quvchi tanlash ───────────────────────────────
+export async function handleTeacherCoinGroupSelect(ctx: BotContext, groupId: number) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
+  ctx.session.coinGroupId = groupId;
+
+  const groups = await getTeacherGroupsWithStudents(teacher.id);
+  const group = groups.find(g => g.id === groupId);
+
+  if (!group) {
+    await ctx.editMessageText('❌ Guruh topilmadi.', { reply_markup: backToMenu() });
+    return;
+  }
+
+  if (group.groupStudents.length === 0) {
+    await ctx.editMessageText(
+      '❌ Bu guruhda faol o\'quvchilar yo\'q.',
+      { reply_markup: backToMenu() }
+    );
+    return;
+  }
+
+  let text = brandHeader('🪙', 'COIN BERISH');
+  text += `📚 Guruh: <b>${escapeHtml(group.name)}</b>\n\n`;
+  text += 'Kimga coin bermoqchisiz?';
+
+  const studentList = group.groupStudents.map(gs => ({
+    id: gs.student.id,
+    name: gs.student.user.fullName,
+    coins: gs.student.coinBalance || 0,
+  }));
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: coinStudentSelect(studentList) });
+}
+
+// ── 3. Miqdor kiritish ────────────────────────────────
+export async function handleTeacherCoinStudentSelect(ctx: BotContext, studentId: number) {
+  const teacher = await getTeacher(ctx);
+  if (!teacher) return;
+
+  ctx.session.coinStudentId = studentId;
+  ctx.session.step = 'waiting_coin_amount';
+
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    include: { user: { select: { fullName: true } } },
+  });
+
+  let text = brandHeader('🪙', 'COIN MIQDORI');
+  text += `O\'quvchi: <b>${escapeHtml(student?.user.fullName || '')}</b>\n`;
+  text += `Hozirgi balansi: <b>${student?.coinBalance || 0} 🪙</b>\n\n`;
+  text += '📝 Nechta coin bermoqchisiz? (Raqam kiriting)\n';
+  text += '<i>Misol: 5 yoki 10</i>';
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: backToMenu() });
+}
+
+// ── 4. Coin berish (matn xabar orqali) ───────────────
+export async function handleTeacherCoinAmount(ctx: BotContext) {
+  try {
+    if (ctx.session.step !== 'waiting_coin_amount') return;
+
+    const text = ctx.message?.text?.trim();
+    if (!text) return;
+
+    const amount = parseInt(text);
+    if (isNaN(amount) || amount <= 0 || amount > 100) {
+      await ctx.reply(
+        '❌ Noto\'g\'ri miqdor!\n1 dan 100 gacha raqam kiriting.',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
+    const studentId = ctx.session.coinStudentId;
+    if (!studentId) {
+      await ctx.reply('❌ O\'quvchi tanlanmagan. Qaytadan boshlang: /start');
+      ctx.session.step = 'idle';
+      return;
+    }
+
+    const chatId = String(ctx.chat?.id);
+    const user = await getUserByChatId(chatId);
+    if (!user) return;
+
+    const result = await giveCoinToStudent(user.id, studentId, amount, `O'qituvchi tomonidan berildi`);
+
+    ctx.session.step = 'idle';
+    ctx.session.coinStudentId = undefined;
+    ctx.session.coinGroupId = undefined;
+
+    let msg = brandHeader('✅', 'COIN BERILDI!');
+    msg += `🎓 O\'quvchi: <b>${escapeHtml(result?.user.fullName || '')}</b>\n`;
+    msg += `🪙 Berildi: <b>+${amount} coin</b>\n`;
+    msg += `💰 Yangi balans: <b>${result?.coinBalance || 0} 🪙</b>`;
+
+    await ctx.reply(msg, { parse_mode: 'HTML', reply_markup: teacherMainMenu() });
+  } catch (err) {
+    console.error('❌ handleTeacherCoinAmount xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. /start — qaytadan boshlang.').catch(() => {});
+    ctx.session.step = 'idle';
+  }
 }

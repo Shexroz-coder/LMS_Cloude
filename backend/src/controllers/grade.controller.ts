@@ -357,6 +357,22 @@ export const getStudentGrades = async (req: AuthRequest, res: Response): Promise
     const studentId = parseInt(req.params.studentId);
     const { groupId, month, type } = req.query as Record<string, string>;
 
+    // Ownership tekshirish
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, 'Siz faqat o\'z baholaringizni ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, 'Siz faqat o\'z farzandingiz baholarini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+
     const where: Record<string, unknown> = { studentId };
     if (type) where.type = type;
 

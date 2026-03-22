@@ -54,16 +54,43 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
   const salaryType = teacher.salaryType || 'PERCENTAGE_FROM_PAYMENT';
   const salaryValue = Number(teacher.salaryValue || 0);
 
+  // Oy boshlanish va tugash sanalari
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 1);
+
   // ── Per-group breakdown ──
   const groups = await Promise.all(teacher.groups.map(async (g) => {
     const monthlyPrice = Number(g.course.monthlyPrice);
     const scheduleLessons = await Promise.all(g.schedules.map(sc => countLessonsInMonth(year, month, sc.daysOfWeek)));
     const lessonsPerMonth = scheduleLessons.reduce((s, n) => s + n, 0);
 
-    const students = g.groupStudents.map(gs => {
+    // Har bir guruh uchun HAQIQIY to'lovlarni olish
+    const actualPayments = await prisma.payment.aggregate({
+      where: {
+        groupId: g.id,
+        isDeleted: false,
+        paidAt: { gte: monthStart, lt: monthEnd },
+      },
+      _sum: { amount: true },
+    });
+    const actualRevenue = Number(actualPayments._sum?.amount || 0);
+
+    const students = await Promise.all(g.groupStudents.map(async (gs) => {
       const disc = gs.student.discountType as string | null;
       const discVal = gs.student.discountValue ? Number(gs.student.discountValue) : null;
       const expectedPayment = calcStudentMonthly(monthlyPrice, disc, discVal);
+
+      // O'quvchining shu guruh uchun HAQIQIY to'lovi
+      const studentActual = await prisma.payment.aggregate({
+        where: {
+          studentId: gs.student.id,
+          groupId: g.id,
+          isDeleted: false,
+          paidAt: { gte: monthStart, lt: monthEnd },
+        },
+        _sum: { amount: true },
+      });
+
       return {
         id: gs.student.id,
         fullName: gs.student.user.fullName,
@@ -71,17 +98,19 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
         discountType: disc,
         discountValue: discVal,
         expectedPayment: Math.round(expectedPayment),
+        actualPayment: Number(studentActual._sum?.amount || 0),
       };
-    });
+    }));
 
-    const groupRevenue = students.reduce((s, st) => s + st.expectedPayment, 0);
+    const groupExpectedRevenue = students.reduce((s, st) => s + st.expectedPayment, 0);
 
-    // Per-group salary hisoblash
+    // Per-group salary hisoblash — HAQIQIY TO'LOVLARDAN
     let groupSalary = 0;
     if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
-      groupSalary = Math.round(groupRevenue * salaryValue / 100);
+      // Ustoz faqat haqiqiy kelgan to'lovlardan foiz oladi
+      groupSalary = Math.round(actualRevenue * salaryValue / 100);
     } else {
-      // PER_LESSON_HOUR — lessonsPerMonth * salaryValue (taxminiy)
+      // PER_LESSON_HOUR — lessonsPerMonth * salaryValue
       groupSalary = Math.round(lessonsPerMonth * salaryValue);
     }
 
@@ -93,14 +122,17 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
       courseName: g.course.name,
       lessonsPerMonth,
       studentCount: students.length,
-      groupRevenue,
-      revenue: groupRevenue,
+      groupRevenue: groupExpectedRevenue,
+      actualRevenue,
+      revenue: actualRevenue, // endi haqiqiy to'lovlar
       salary: groupSalary,
       students,
     };
   }));
 
-  const totalRevenue = groups.reduce((s, g) => s + g.groupRevenue, 0);
+  const totalExpectedRevenue = groups.reduce((s, g) => s + g.groupRevenue, 0);
+  const totalActualRevenue = groups.reduce((s, g) => s + g.actualRevenue, 0);
+  const totalRevenue = totalActualRevenue; // endi haqiqiy to'lovlar asosida
   const totalStudents = groups.reduce((s, g) => s + g.studentCount, 0);
 
   // ── Salary calculation ──
@@ -108,11 +140,10 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
   let totalHours = 0;
 
   if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
-    calculatedSalary = Math.round(totalRevenue * salaryValue / 100);
+    // Har bir guruhning alohida salary ini qo'shamiz (guruh bo'yicha haqiqiy to'lov * %)
+    calculatedSalary = groups.reduce((s, g) => s + g.salary, 0);
   } else {
     // PER_LESSON_HOUR — count actual taught lessons this month
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 1);
     const teacherGroupIds = teacher.groups.map(g => g.id);
 
     const lessons = await prisma.lesson.findMany({
@@ -144,6 +175,8 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
     groups,
     totalStudents,
     totalRevenue,
+    totalExpectedRevenue,
+    totalActualRevenue,
     calculatedSalary,
     totalHours,
     // Already paid?

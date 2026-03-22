@@ -100,6 +100,15 @@ export const getStudentById = async (req: AuthRequest, res: Response): Promise<v
   try {
     const id = parseInt(req.params.id);
 
+    // PARENT faqat o'z bolalarini ko'ra oladi
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === id)) {
+        sendError(res, 'Siz faqat o\'z farzandingiz profilini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+
     // Ustoz faqat o'z o'quvchilarini ko'ra oladi
     if (req.user?.role === 'TEACHER') {
       const teacher = await prisma.teacher.findUnique({ where: { userId: req.user.id } });
@@ -517,6 +526,22 @@ export const getAttendanceStats = async (req: AuthRequest, res: Response): Promi
   try {
     const studentId = parseInt(req.params.id);
     const { month } = req.query as { month?: string };
+
+    // Ownership tekshirish: STUDENT faqat o'zini, PARENT faqat o'z bolasini ko'radi
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, 'Siz faqat o\'z davomatingizni ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, 'Siz faqat o\'z farzandingiz davomatini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
 
     const startDate = month ? new Date(month + '-01') : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);

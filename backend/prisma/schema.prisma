@@ -268,6 +268,7 @@ model Group {
   schedules    Schedule[]
   lessons      Lesson[]
   monthlyFees  MonthlyFee[]
+  payments     Payment[]
 
   @@map("groups")
 }
@@ -421,17 +422,25 @@ model Payment {
   deletedBy       Int?          @map("deleted_by")
   deleteReason    String?       @map("delete_reason") @db.VarChar(500)
 
+  // Qaysi guruh/kurs uchun to'lov
+  groupId     Int?          @map("group_id")
+
   student  Student @relation(fields: [studentId], references: [id])
   receiver User?   @relation("PaymentReceiver", fields: [receivedBy], references: [id])
+  group    Group?  @relation(fields: [groupId], references: [id])
 
   @@map("payments")
 }
 
 model StudentBalance {
-  studentId   Int      @id @map("student_id")
-  balance     Decimal  @default(0) @db.Decimal(12, 2)
-  debt        Decimal  @default(0) @db.Decimal(12, 2)
-  lastUpdated DateTime @default(now()) @map("last_updated")
+  studentId     Int       @id @map("student_id")
+  balance       Decimal   @default(0) @db.Decimal(12, 2)
+  debt          Decimal   @default(0) @db.Decimal(12, 2)
+  lastUpdated   DateTime  @default(now()) @map("last_updated")
+  // To'lov va'dasi — admin belgilaydi
+  promiseDate   DateTime? @map("promise_date") @db.Date
+  promiseAmount Decimal?  @map("promise_amount") @db.Decimal(12, 2)
+  promiseNote   String?   @map("promise_note") @db.VarChar(500)
 
   student Student @relation(fields: [studentId], references: [id])
 

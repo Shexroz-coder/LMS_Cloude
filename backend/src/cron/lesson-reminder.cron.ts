@@ -234,8 +234,9 @@ export async function sendAdminReport(title: string, logs: MessageLog[], totalSe
 //  CRON ISHGA TUSHIRISH
 // ══════════════════════════════════════════════════════
 export function startLessonReminderCron() {
-  // Har 30 daqiqada tekshirish (soat 07:00 — 21:00)
-  cron.schedule('*/30 7-21 * * *', async () => {
+  // Har 30 daqiqada tekshirish (soat 07:00 — 20:30)
+  // 20:30 oxirgi tekshirish — 21:00 dan keyin eslatma yuborilmaydi
+  cron.schedule('*/30 7-20 * * *', async () => {
     try {
       await sendLessonReminders();
     } catch (err) {
@@ -243,5 +244,5 @@ export function startLessonReminderCron() {
     }
   }, { timezone: 'Asia/Tashkent' });
 
-  console.log('🔔 [REMINDER] Dars eslatma cron ro\'yxatdan o\'tdi (har 30 daq, 07:00-21:00)');
+  console.log('🔔 [REMINDER] Dars eslatma cron ro\'yxatdan o\'tdi (har 30 daq, 07:00-20:30)');
 }

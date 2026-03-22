@@ -6,6 +6,7 @@ import {
   initiateOnlinePayment, onlinePaymentCallback,
   calculateStudentPayment, getStudentObligations,
   updatePayment, deletePayment, getArchivedPayments,
+  setPaymentPromise, clearPaymentPromise,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
 
@@ -24,6 +25,8 @@ router.post('/online/callback', onlinePaymentCallback);  // webhook (auth yoq)
 router.get('/student/:studentId/calculate', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), calculateStudentPayment);
 router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), getStudentPayments);
 router.patch('/student/:studentId/due-day', authorize('ADMIN'), setPaymentDueDay);
+router.patch('/student/:studentId/promise', authorize('ADMIN'), setPaymentPromise);
+router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 
 // ── General ──────────────────────────────────────────────
 router.get('/', authorize('ADMIN'), getPayments);

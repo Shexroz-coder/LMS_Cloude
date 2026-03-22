@@ -2,9 +2,9 @@
  * Barcha handlerlarni bot ga register qilish
  */
 import bot, { BotContext } from '../bot';
-import { handleStart, handlePhone, handleOtp, handleParentChildName, handleParentChildPhone } from './start.handler';
+import { handleStart, handlePhone, handleOtp, handleParentChildName, handleParentChildPhone, handleContact } from './start.handler';
 import { routeCallback } from './menu.handler';
-import { handleLateAttReason } from './teacher.handler';
+import { handleLateAttReason, handleTeacherCoinAmount } from './teacher.handler';
 import { handleBroadcastSend } from './admin.handler';
 
 export function registerHandlers() {
@@ -13,6 +13,11 @@ export function registerHandlers() {
 
   // ── Callback query handler (menyu tugmalari) ────
   bot.on('callback_query:data', routeCallback);
+
+  // ── Contact (telefon raqam ulashish) ────────────
+  bot.on('message:contact', async (ctx: BotContext) => {
+    await handleContact(ctx);
+  });
 
   // ── Text xabarlari (telefon va OTP) ─────────────
   bot.on('message:text', async (ctx: BotContext) => {
@@ -43,6 +48,12 @@ export function registerHandlers() {
     // Kechikkan davomat sababi
     if (step === 'waiting_late_att_reason') {
       await handleLateAttReason(ctx);
+      return;
+    }
+
+    // Coin miqdori kiriting
+    if (step === 'waiting_coin_amount') {
+      await handleTeacherCoinAmount(ctx);
       return;
     }
 

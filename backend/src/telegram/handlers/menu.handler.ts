@@ -16,7 +16,7 @@ import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
-import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete } from './teacher.handler';
+import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete, handleTeacherGiveCoin, handleTeacherCoinGroupSelect, handleTeacherCoinStudentSelect } from './teacher.handler';
 import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport, handleAdminBroadcast, handleBroadcastTarget, handleBroadcastDeleteAll, handleBroadcastResend, handleBroadcastHistory } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
@@ -269,6 +269,17 @@ export async function routeCallback(ctx: BotContext) {
     if (data === 'teacher_groups') { await handleTeacherGroups(ctx); return; }
     if (data === 'teacher_attendance') { await handleTeacherAttendance(ctx); return; }
     if (data === 'teacher_salary') { await handleTeacherSalary(ctx); return; }
+    if (data === 'teacher_give_coin') { await handleTeacherGiveCoin(ctx); return; }
+    if (data.startsWith('teacher_coin_group_')) {
+      const groupId = parseInt(data.replace('teacher_coin_group_', ''));
+      await handleTeacherCoinGroupSelect(ctx, groupId);
+      return;
+    }
+    if (data.startsWith('teacher_coin_student_')) {
+      const studentId = parseInt(data.replace('teacher_coin_student_', ''));
+      await handleTeacherCoinStudentSelect(ctx, studentId);
+      return;
+    }
 
     // ── Teacher: Davomat belgilash ──
     if (data.startsWith('att_group_')) {

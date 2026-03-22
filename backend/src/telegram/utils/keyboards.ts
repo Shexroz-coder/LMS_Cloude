@@ -47,9 +47,34 @@ export function teacherMainMenu(): InlineKeyboard {
     .text('📅 Bugungi darslar', 'teacher_today_lessons').text('🗓 Haftalik jadval', 'teacher_week_schedule').row()
     .text('👥 Guruhlarim', 'teacher_groups').row()
     .text('✅ Davomat belgilash', 'teacher_attendance').row()
+    .text('🪙 Coin berish', 'teacher_give_coin').row()
     .text('💰 Maoshim', 'teacher_salary').text('👤 Profil', 'profile').row()
     .text('🔔 Bildirishnomalar', 'notifications').row()
     .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
+}
+
+// ══════════════════════════════════════════════════════
+//  COIN BERISH — GURUH TANLASH
+// ══════════════════════════════════════════════════════
+export function coinGroupSelect(groups: { id: number; name: string }[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const g of groups) {
+    kb.text(`📚 ${g.name}`, `teacher_coin_group_${g.id}`).row();
+  }
+  kb.text('⬅️ Asosiy menyu', 'main_menu');
+  return kb;
+}
+
+// ══════════════════════════════════════════════════════
+//  COIN BERISH — O'QUVCHI TANLASH
+// ══════════════════════════════════════════════════════
+export function coinStudentSelect(students: { id: number; name: string; coins: number }[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const s of students) {
+    kb.text(`🎓 ${s.name} (${s.coins}🪙)`, `teacher_coin_student_${s.id}`).row();
+  }
+  kb.text('⬅️ Guruhga qaytish', 'teacher_give_coin').text('🏠 Menyu', 'main_menu');
+  return kb;
 }
 
 // ══════════════════════════════════════════════════════

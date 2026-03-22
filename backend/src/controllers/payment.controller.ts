@@ -35,7 +35,8 @@ export const getPayments = async (req: AuthRequest, res: Response): Promise<void
         include: {
           student: {
             include: { user: { select: { fullName: true, phone: true } } }
-          }
+          },
+          group: { include: { course: { select: { name: true } } } }
         },
         skip, take: limitNum,
         orderBy: { paidAt: 'desc' }
@@ -65,7 +66,8 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const {
       studentId, amount, paymentMethod = 'CASH',
-      month, note, isDebtPayment = false
+      month, note, isDebtPayment = false,
+      groupId
     } = req.body;
 
     if (!studentId || !amount) {
@@ -74,10 +76,16 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     const paymentAmount = parseFloat(amount);
-    if (paymentAmount <= 0) {
-      sendError(res, "Summa 0 dan katta bo'lishi kerak.", 400);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      sendError(res, "Summa 0 dan katta son bo'lishi kerak.", 400);
       return;
     }
+    if (paymentAmount > 100_000_000) {
+      sendError(res, "Summa juda katta. Maksimum 100 000 000 so'm.", 400);
+      return;
+    }
+    // Ikki xonagacha yaxlitlash (tiyin aniqligida)
+    const roundedAmount = Math.round(paymentAmount * 100) / 100;
 
     // O'quvchi va balansini tekshirish
     const student = await prisma.student.findUnique({
@@ -95,14 +103,16 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
       const payment = await tx.payment.create({
         data: {
           studentId: parseInt(studentId),
-          amount: paymentAmount,
+          amount: roundedAmount,
           paymentMethod: paymentMethod as 'CASH' | 'CARD' | 'TRANSFER' | 'ONLINE',
           month: month ? new Date(month + '-01') : new Date(),
           note,
           receivedBy: req.user!.id,
+          groupId: groupId ? parseInt(groupId) : null,
         },
         include: {
-          student: { include: { user: { select: { fullName: true, phone: true } } } }
+          student: { include: { user: { select: { fullName: true, phone: true } } } },
+          group: { include: { course: { select: { name: true } } } }
         }
       });
 
@@ -114,17 +124,30 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
 
         if (isDebtPayment || newDebt > 0) {
           // Avval qarzni to'lash
-          const debtPaid = Math.min(paymentAmount, newDebt);
+          const debtPaid = Math.min(roundedAmount, newDebt);
           newDebt = Math.max(0, newDebt - debtPaid);
-          const remaining = paymentAmount - debtPaid;
+          const remaining = roundedAmount - debtPaid;
           newBalance = newBalance + remaining;
         } else {
-          newBalance = newBalance + paymentAmount;
+          newBalance = newBalance + roundedAmount;
         }
 
-        await tx.studentBalance.update({
+        // To'lov qilingandan keyin va'da ma'lumotlarini tozalash
+        const updateData: Record<string, unknown> = { balance: newBalance, debt: newDebt, lastUpdated: new Date() };
+        if (newDebt <= 0) {
+          updateData.promiseDate = null;
+          updateData.promiseAmount = null;
+          updateData.promiseNote = null;
+        }
+
+        await (tx.studentBalance as any).update({
           where: { studentId: parseInt(studentId) },
-          data: { balance: newBalance, debt: newDebt }
+          data: updateData
+        });
+      } else {
+        // Balans hali yaratilmagan — yaratib qo'yamiz
+        await tx.studentBalance.create({
+          data: { studentId: parseInt(studentId), balance: roundedAmount, debt: 0 }
         });
       }
 
@@ -134,7 +157,7 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
     sendSuccess(res, result, "To'lov muvaffaqiyatli qabul qilindi!", 201);
 
     // Telegram ga to'lov xabari yuborish
-    sendPaymentNotification(parseInt(studentId), paymentAmount, paymentMethod)
+    sendPaymentNotification(parseInt(studentId), roundedAmount, paymentMethod)
       .catch(err => console.error('Telegram payment notification error:', err));
 
   } catch (err) {
@@ -321,6 +344,22 @@ export const getStudentPayments = async (req: AuthRequest, res: Response): Promi
   try {
     const studentId = parseInt(req.params.studentId);
 
+    // Ownership tekshirish
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, 'Siz faqat o\'z to\'lovlaringizni ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, 'Siz faqat o\'z farzandingiz to\'lovlarini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+
     const [payments, fees, balance] = await Promise.all([
       prisma.payment.findMany({
         where: { studentId, isDeleted: false },
@@ -388,6 +427,116 @@ export const setPaymentDueDay = async (req: AuthRequest, res: Response): Promise
 };
 
 // ══════════════════════════════════════════════
+// PATCH /payments/student/:studentId/promise — To'lov va'dasi belgilash
+// ══════════════════════════════════════════════
+export const setPaymentPromise = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { promiseDate, promiseAmount, promiseNote } = req.body;
+
+    if (!promiseDate) {
+      sendError(res, 'Va\'da sanasi kiritilishi shart.', 400);
+      return;
+    }
+
+    const parsedDate = new Date(promiseDate);
+    if (isNaN(parsedDate.getTime())) {
+      sendError(res, 'Noto\'g\'ri sana formati.', 400);
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (parsedDate < today) {
+      sendError(res, 'Va\'da sanasi bugundan oldin bo\'lishi mumkin emas.', 400);
+      return;
+    }
+
+    const parsedAmount = promiseAmount ? parseFloat(promiseAmount) : null;
+    if (parsedAmount !== null && (isNaN(parsedAmount) || parsedAmount <= 0)) {
+      sendError(res, 'Va\'da summasi 0 dan katta bo\'lishi kerak.', 400);
+      return;
+    }
+
+    const balance = await (prisma.studentBalance as any).upsert({
+      where: { studentId },
+      update: {
+        promiseDate: parsedDate,
+        promiseAmount: parsedAmount,
+        promiseNote: promiseNote || null,
+        lastUpdated: new Date(),
+      },
+      create: {
+        studentId,
+        balance: 0,
+        debt: 0,
+        promiseDate: parsedDate,
+        promiseAmount: parsedAmount,
+        promiseNote: promiseNote || null,
+      },
+    });
+
+    // O'quvchiga Telegram xabar
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: { user: { select: { fullName: true, telegramChatId: true } } },
+    });
+
+    if (student?.user.telegramChatId) {
+      try {
+        const dateStr = parsedDate.toLocaleDateString('uz-UZ');
+        const amountStr = parsedAmount
+          ? parsedAmount.toLocaleString('uz-UZ') + ' so\'m'
+          : 'belgilanmagan';
+        let msg = `📝 <b>To'lov va'dasi belgilandi</b>\n\n`;
+        msg += `📅 Sana: <b>${dateStr}</b>\n`;
+        msg += `💰 Summa: <b>${amountStr}</b>\n`;
+        if (promiseNote) msg += `📌 Izoh: ${promiseNote}\n`;
+        msg += `\n⚠️ Iltimos, belgilangan sanada to'lovni amalga oshiring.`;
+
+        const bot = (await import('../telegram/bot')).default;
+        await bot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
+      } catch (e) {
+        // Telegram xato bo'lsa ham davom etamiz
+      }
+    }
+
+    sendSuccess(res, {
+      studentId,
+      promiseDate: parsedDate,
+      promiseAmount: parsedAmount,
+      promiseNote: promiseNote || null,
+    }, 'To\'lov va\'dasi belgilandi!');
+  } catch (err) {
+    console.error('setPaymentPromise error:', err);
+    sendError(res, 'Va\'da belgilashda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// DELETE /payments/student/:studentId/promise — Va'dani o'chirish
+// ══════════════════════════════════════════════
+export const clearPaymentPromise = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+
+    await (prisma.studentBalance as any).update({
+      where: { studentId },
+      data: {
+        promiseDate: null,
+        promiseAmount: null,
+        promiseNote: null,
+        lastUpdated: new Date(),
+      },
+    });
+
+    sendSuccess(res, null, 'To\'lov va\'dasi o\'chirildi.');
+  } catch (err) {
+    sendError(res, 'Va\'da o\'chirishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /payments/upcoming-dues — Yaqinlashgan to'lovlar (admin)
 // ══════════════════════════════════════════════
 export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -403,7 +552,7 @@ export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<
       },
       include: {
         user: { select: { id: true, fullName: true, phone: true } },
-        balance: { select: { balance: true, debt: true } },
+        balance: true,
         groupStudents: {
           where: { status: 'ACTIVE' },
           include: { group: { select: { name: true } } },
@@ -438,6 +587,9 @@ export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<
           isOverdue,
           debt: Number(s.balance?.debt || 0),
           balance: Number(s.balance?.balance || 0),
+          promiseDate: (s.balance as any)?.promiseDate || null,
+          promiseAmount: (s.balance as any)?.promiseAmount ? Number((s.balance as any).promiseAmount) : null,
+          promiseNote: (s.balance as any)?.promiseNote || null,
         };
       })
       .sort((a, b) => a.daysLeft - b.daysLeft);
@@ -463,13 +615,28 @@ export const initiateOnlinePayment = async (req: AuthRequest, res: Response): Pr
       return;
     }
 
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount < 1000) {
+      sendError(res, 'Minimal to\'lov summasi 1 000 so\'m.', 400);
+      return;
+    }
+    if (parsedAmount > 100_000_000) {
+      sendError(res, 'Maksimal to\'lov summasi 100 000 000 so\'m.', 400);
+      return;
+    }
+
+    if (!['PAYME', 'UZUM'].includes(provider)) {
+      sendError(res, 'Noto\'g\'ri provider. PAYME yoki UZUM tanlang.', 400);
+      return;
+    }
+
     const student = await prisma.student.findUnique({
       where: { id: parseInt(studentId) },
       include: { user: { select: { fullName: true, phone: true } } },
     });
     if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
 
-    const amountTiyin = Math.round(parseFloat(amount) * 100); // tiyin
+    const amountTiyin = Math.round(parsedAmount * 100); // tiyin
 
     // orderId formatida barcha kerakli ma'lumotlar kodlangan:
     // LMS-{studentId}-{amountTiyin}-{monthYYYYMM}-{timestamp}
@@ -547,11 +714,12 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
         let discountAmount = 0;
         if (student.discountType && student.discountValue) {
           if (student.discountType === 'PERCENTAGE') {
-            discountAmount = baseMonthlyPrice * (Number(student.discountValue) / 100);
+            discountAmount = Math.round(baseMonthlyPrice * Number(student.discountValue) / 100);
           } else {
             discountAmount = Math.min(Number(student.discountValue), baseMonthlyPrice);
           }
         }
+        discountAmount = Math.round(discountAmount);
         const monthlyAmount = Math.max(0, baseMonthlyPrice - discountAmount);
 
         // Scheduledan dars kunlarini hisoblash
@@ -581,6 +749,9 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
           netObligation: Math.max(0, currentDebt - currentBalance),
           hasDebt: currentDebt > 0,
           hasSurplus: currentBalance > 0,
+          promiseDate: (student.balance as any)?.promiseDate || null,
+          promiseAmount: (student.balance as any)?.promiseAmount ? Number((student.balance as any).promiseAmount) : null,
+          promiseNote: (student.balance as any)?.promiseNote || null,
         };
       }));
 
@@ -599,6 +770,22 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
 export const calculateStudentPayment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const studentId = parseInt(req.params.studentId);
+
+    // Ownership tekshirish
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, 'Siz faqat o\'z hisobingizni ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, 'Siz faqat o\'z farzandingiz hisobini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
