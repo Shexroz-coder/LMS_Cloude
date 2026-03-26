@@ -7,6 +7,7 @@ import {
   calculateStudentPayment, getStudentObligations,
   updatePayment, deletePayment, getArchivedPayments,
   setPaymentPromise, clearPaymentPromise,
+  getStudentCalendar,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
 
@@ -22,6 +23,7 @@ router.post('/online/initiate', authorize('ADMIN', 'PARENT', 'STUDENT'), initiat
 router.post('/online/callback', onlinePaymentCallback);  // webhook (auth yoq)
 
 // ── Student specific ─────────────────────────────────────
+router.get('/student/:studentId/calendar', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), getStudentCalendar);
 router.get('/student/:studentId/calculate', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), calculateStudentPayment);
 router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), getStudentPayments);
 router.patch('/student/:studentId/due-day', authorize('ADMIN'), setPaymentDueDay);

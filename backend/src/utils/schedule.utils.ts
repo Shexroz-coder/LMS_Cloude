@@ -133,6 +133,170 @@ export async function isHolidayDate(date: Date): Promise<{ isHoliday: boolean; h
   return { isHoliday: false };
 }
 
+/**
+ * Shu oydagi STANDART darslar sonini hisoblash (bayramlarni HISOBGA OLMAYDI)
+ * Bu "ideal" darslar soni — hech qanday dam olish kunlari bo'lmaganda
+ */
+export async function countStandardLessonsInMonth(
+  year: number,
+  month: number,
+  days: number[],
+): Promise<number> {
+  if (!days || days.length === 0) return 0;
+
+  const monthEnd = new Date(year, month + 1, 0);
+  const daysInMonth = monthEnd.getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const weekday = date.getDay();
+    if (days.includes(weekday)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Dam olish kunlariga to'g'ri keladigan darslar sonini hisoblash
+ * Qaytaradi: { holidayLessons: number, holidayDates: string[] }
+ */
+export async function countHolidayLessonsInMonth(
+  year: number,
+  month: number,
+  days: number[],
+): Promise<{ holidayLessons: number; holidayDates: string[] }> {
+  if (!days || days.length === 0) return { holidayLessons: 0, holidayDates: [] };
+
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+
+  const holidayDates = await getHolidayDatesInRange(monthStart, monthEnd);
+
+  const daysInMonth = monthEnd.getDate();
+  let count = 0;
+  const affectedDates: string[] = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const weekday = date.getDay();
+    if (days.includes(weekday)) {
+      const key = formatDateKey(date);
+      if (holidayDates.has(key)) {
+        count++;
+        affectedDates.push(key);
+      }
+    }
+  }
+
+  return { holidayLessons: count, holidayDates: affectedDates };
+}
+
+/**
+ * Oyning to'liq kalendar ma'lumotlarini olish
+ * Dars kunlari, dam olish kunlari, va ularning kesishishi
+ */
+export async function getMonthCalendarData(
+  year: number,
+  month: number,
+  days: number[],
+): Promise<{
+  standardLessons: number;
+  actualLessons: number;
+  holidayLessons: number;
+  calendarDays: Array<{
+    date: string;
+    dayOfWeek: number;
+    isLessonDay: boolean;
+    isHoliday: boolean;
+    isHolidayLesson: boolean;  // dars kuni + dam olish kuni
+    holidayName?: string;
+  }>;
+}> {
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  const daysInMonth = monthEnd.getDate();
+
+  // Barcha bayram kunlarini olish
+  const holidayDates = await getHolidayDatesInRange(monthStart, monthEnd);
+
+  // Bayram nomlari uchun alohida so'rov
+  const holidays = await prisma.holiday.findMany({
+    where: {
+      OR: [
+        { date: { gte: monthStart, lte: monthEnd } },
+        { date: { lte: monthEnd }, endDate: { gte: monthStart } },
+        { isRecurring: true },
+      ],
+    },
+  });
+
+  // Sana → bayram nomi xaritasi
+  const holidayNameMap = new Map<string, string>();
+  for (const h of holidays) {
+    if (h.isRecurring) {
+      const start = new Date(year, h.date.getMonth(), h.date.getDate());
+      const end = h.endDate ? new Date(year, h.endDate.getMonth(), h.endDate.getDate()) : start;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        if (cursor >= monthStart && cursor <= monthEnd) {
+          holidayNameMap.set(formatDateKey(cursor), h.name);
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else {
+      const start = new Date(h.date);
+      const end = h.endDate ? new Date(h.endDate) : start;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        if (cursor >= monthStart && cursor <= monthEnd) {
+          holidayNameMap.set(formatDateKey(cursor), h.name);
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+  }
+
+  let standardLessons = 0;
+  let holidayLessons = 0;
+  const calendarDays: Array<{
+    date: string;
+    dayOfWeek: number;
+    isLessonDay: boolean;
+    isHoliday: boolean;
+    isHolidayLesson: boolean;
+    holidayName?: string;
+  }> = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const weekday = date.getDay();
+    const key = formatDateKey(date);
+    const isLessonDay = days.includes(weekday);
+    const isHoliday = holidayDates.has(key);
+    const isHolidayLesson = isLessonDay && isHoliday;
+
+    if (isLessonDay) standardLessons++;
+    if (isHolidayLesson) holidayLessons++;
+
+    calendarDays.push({
+      date: key,
+      dayOfWeek: weekday,
+      isLessonDay,
+      isHoliday,
+      isHolidayLesson,
+      ...(isHoliday ? { holidayName: holidayNameMap.get(key) } : {}),
+    });
+  }
+
+  return {
+    standardLessons,
+    actualLessons: standardLessons - holidayLessons,
+    holidayLessons,
+    calendarDays,
+  };
+}
+
 /** YYYY-MM-DD formatidagi kalit */
 function formatDateKey(date: Date): string {
   const y = date.getFullYear();

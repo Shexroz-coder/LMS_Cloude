@@ -8,6 +8,7 @@ import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
 import { escapeHtml } from '../telegram/utils/format';
+import { countStandardLessonsInMonth, countLessonsInMonth } from '../utils/schedule.utils';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -37,6 +38,7 @@ export async function calculateMonthlyDebts() {
             group: {
               include: {
                 course: { select: { monthlyPrice: true, name: true } },
+                schedules: { select: { daysOfWeek: true } },
               },
             },
           },
@@ -48,10 +50,16 @@ export async function calculateMonthlyDebts() {
     let totalDebtAdded = 0;
     const monthName = MONTH_NAMES[now.getMonth()];
 
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
     for (const student of activeStudents) {
       let totalMonthly = 0;
+      let totalAdjusted = 0;
+      let totalHolidayCredit = 0;
       const courseNames: string[] = [];
 
+      // Avval umumiy oylik narxni hisoblash (chegirma uchun)
       for (const gs of student.groupStudents) {
         totalMonthly += Number(gs.group.course.monthlyPrice);
         courseNames.push(gs.group.course.name);
@@ -70,7 +78,67 @@ export async function calculateMonthlyDebts() {
         }
       }
 
-      const monthlyFee = Math.round(totalMonthly - discount);
+      // MonthlyFee yozish — har bir guruh uchun dam olish kunlarini hisobga olgan holda
+      let discountDistributed = 0;
+      for (let idx = 0; idx < student.groupStudents.length; idx++) {
+        const gs = student.groupStudents[idx];
+        const baseAmount = Number(gs.group.course.monthlyPrice);
+        const discountPart = idx === student.groupStudents.length - 1
+          ? discount - discountDistributed
+          : Math.round(discount / student.groupStudents.length);
+        discountDistributed += discountPart;
+        const finalAmount = baseAmount - discountPart;
+
+        // Dam olish kunlarini hisobga olgan dars soni
+        const uniqueDays = [...new Set(gs.group.schedules.flatMap(s => s.daysOfWeek))];
+        const standardLessons = await countStandardLessonsInMonth(currentYear, currentMonth, uniqueDays);
+        const actualLessons = await countLessonsInMonth(currentYear, currentMonth, uniqueDays);
+        const holidayLessons = standardLessons - actualLessons;
+
+        // 1 dars narxi = chegirmali oylik / standart darslar
+        const pricePerLesson = standardLessons > 0 ? finalAmount / standardLessons : 0;
+        const holidayCredit = Math.round(holidayLessons * pricePerLesson);
+        const adjustedAmount = Math.round(finalAmount - holidayCredit);
+
+        totalAdjusted += adjustedAmount;
+        totalHolidayCredit += holidayCredit;
+
+        await prisma.monthlyFee.upsert({
+          where: {
+            studentId_groupId_month: {
+              studentId: student.id,
+              groupId: gs.groupId,
+              month: new Date(currentYear, currentMonth, 1),
+            },
+          },
+          update: {
+            baseAmount,
+            discountAmount: discountPart,
+            finalAmount,
+            standardLessons,
+            lessonsCount: actualLessons,
+            holidayLessons,
+            adjustedAmount,
+            holidayCredit,
+          },
+          create: {
+            studentId: student.id,
+            groupId: gs.groupId,
+            month: new Date(currentYear, currentMonth, 1),
+            baseAmount,
+            discountAmount: discountPart,
+            finalAmount,
+            standardLessons,
+            lessonsCount: actualLessons,
+            holidayLessons,
+            adjustedAmount,
+            holidayCredit,
+          },
+        });
+      }
+
+      // Qarz — moslashtirilgan (dam olish kunlari hisobga olingan) summa
+      const monthlyFee = totalAdjusted;
       if (monthlyFee <= 0) continue;
 
       const currentBalance = Math.round(Number(student.balance?.balance || 0));
@@ -93,48 +161,14 @@ export async function calculateMonthlyDebts() {
         create: { studentId: student.id, balance: 0, debt: monthlyFee, lastUpdated: new Date() },
       });
 
-      // MonthlyFee yozish (hisobot uchun)
-      let discountDistributed = 0;
-      for (let idx = 0; idx < student.groupStudents.length; idx++) {
-        const gs = student.groupStudents[idx];
-        const baseAmount = Number(gs.group.course.monthlyPrice);
-        // Oxirgi guruhga qoldiqni berish (precision yo'qotmaslik uchun)
-        const discountPart = idx === student.groupStudents.length - 1
-          ? discount - discountDistributed
-          : Math.round(discount / student.groupStudents.length);
-        discountDistributed += discountPart;
-
-        await prisma.monthlyFee.upsert({
-          where: {
-            studentId_groupId_month: {
-              studentId: student.id,
-              groupId: gs.groupId,
-              month: new Date(now.getFullYear(), now.getMonth(), 1),
-            },
-          },
-          update: {
-            baseAmount,
-            discountAmount: discountPart,
-            finalAmount: baseAmount - discountPart,
-          },
-          create: {
-            studentId: student.id,
-            groupId: gs.groupId,
-            month: new Date(now.getFullYear(), now.getMonth(), 1),
-            baseAmount,
-            discountAmount: discountPart,
-            finalAmount: baseAmount - discountPart,
-          },
-        });
-      }
-
-      // Telegram xabar — qarz haqida
+      // Telegram xabar — qarz haqida (dam olish kunlari bilan)
       if (newDebt > 0 && student.user.telegramChatId) {
         try {
           let msg = `📋 <b>Oylik hisob — ${monthName}</b>\n\n`;
           msg += `📚 Kurslar: ${courseNames.join(', ')}\n`;
           msg += `💰 Oylik to'lov: <b>${formatMoney(monthlyFee)}</b>\n`;
           if (discount > 0) msg += `🏷 Chegirma: -${formatMoney(discount)}\n`;
+          if (totalHolidayCredit > 0) msg += `🏖 Dam olish kunlari tushimi: -${formatMoney(totalHolidayCredit)}\n`;
           msg += `\n🔴 Sizning qarzingiz: <b>${formatMoney(newDebt)}</b>\n\n`;
           msg += `⚠️ Iltimos, to'lovni o'z vaqtida amalga oshiring.`;
 
@@ -150,7 +184,7 @@ export async function calculateMonthlyDebts() {
           userId: student.user.id,
           title: `${monthName} oyi to'lov`,
           body: newDebt > 0
-            ? `${monthName} oyi uchun ${formatMoney(monthlyFee)} to'lov hisoblandi. Qarzingiz: ${formatMoney(newDebt)}`
+            ? `${monthName} oyi uchun ${formatMoney(monthlyFee)} to'lov hisoblandi${totalHolidayCredit > 0 ? ` (dam olish: -${formatMoney(totalHolidayCredit)})` : ''}. Qarzingiz: ${formatMoney(newDebt)}`
             : `${monthName} oyi to'lovi balansdan avtomatik yechildi.`,
           type: 'PAYMENT',
         },
@@ -186,7 +220,12 @@ export async function sendPaymentReminders() {
         groupStudents: {
           where: { status: 'ACTIVE' },
           include: {
-            group: { include: { course: { select: { monthlyPrice: true, name: true } } } },
+            group: {
+              include: {
+                course: { select: { monthlyPrice: true, name: true } },
+                schedules: { select: { daysOfWeek: true } },
+              },
+            },
           },
         },
       },
@@ -196,6 +235,8 @@ export async function sendPaymentReminders() {
 
     for (const student of activeStudents) {
       let totalMonthly = 0;
+      let totalAdjusted = 0;
+      let totalHolidayCredit = 0;
       const courseNames: string[] = [];
 
       for (const gs of student.groupStudents) {
@@ -216,7 +257,30 @@ export async function sendPaymentReminders() {
         }
       }
 
-      const monthlyFee = totalMonthly - discount;
+      // Har bir guruh uchun keyingi oy dam olish kunlarini hisobga olish
+      let discountDistributed = 0;
+      for (let idx = 0; idx < student.groupStudents.length; idx++) {
+        const gs = student.groupStudents[idx];
+        const baseAmount = Number(gs.group.course.monthlyPrice);
+        const discountPart = idx === student.groupStudents.length - 1
+          ? discount - discountDistributed
+          : Math.round(discount / student.groupStudents.length);
+        discountDistributed += discountPart;
+        const finalAmount = baseAmount - discountPart;
+
+        const uniqueDays = [...new Set(gs.group.schedules.flatMap(s => s.daysOfWeek))];
+        const standardLessons = await countStandardLessonsInMonth(nextMonth.getFullYear(), nextMonth.getMonth(), uniqueDays);
+        const actualLessons = await countLessonsInMonth(nextMonth.getFullYear(), nextMonth.getMonth(), uniqueDays);
+        const holidayLessons = standardLessons - actualLessons;
+        const pricePerLesson = standardLessons > 0 ? finalAmount / standardLessons : 0;
+        const holidayCredit = Math.round(holidayLessons * pricePerLesson);
+        const adjustedAmount = Math.round(finalAmount - holidayCredit);
+
+        totalAdjusted += adjustedAmount;
+        totalHolidayCredit += holidayCredit;
+      }
+
+      const monthlyFee = totalAdjusted;
       if (monthlyFee <= 0) continue;
 
       // Telegram xabar
@@ -227,6 +291,7 @@ export async function sendPaymentReminders() {
           msg += `Siz <b>${nextMonthName}</b> oyi uchun <b>${formatMoney(monthlyFee)}</b> to'lovni amalga oshirishingiz kerak.\n\n`;
           msg += `📚 Kurslar: ${courseNames.join(', ')}\n`;
           if (discount > 0) msg += `🏷 Chegirma: -${formatMoney(discount)}\n`;
+          if (totalHolidayCredit > 0) msg += `🏖 Dam olish kunlari tushimi: -${formatMoney(totalHolidayCredit)}\n`;
           msg += `💰 To'lov summasi: <b>${formatMoney(monthlyFee)}</b>\n\n`;
           msg += `⏰ Iltimos, oy boshigacha to'lovni amalga oshiring.`;
 
@@ -252,8 +317,9 @@ export async function sendPaymentReminders() {
           let msg = `🔔 <b>To'lov eslatmasi</b>\n\n`;
           msg += `Hurmatli ota-ona,\n\n`;
           msg += `<b>${escapeHtml(student.user.fullName)}</b> uchun <b>${nextMonthName}</b> oyi to'lovi:\n`;
-          msg += `💰 <b>${formatMoney(monthlyFee)}</b>\n\n`;
-          msg += `📚 ${courseNames.join(', ')}\n`;
+          msg += `💰 <b>${formatMoney(monthlyFee)}</b>\n`;
+          if (totalHolidayCredit > 0) msg += `🏖 Dam olish tushimi: -${formatMoney(totalHolidayCredit)}\n`;
+          msg += `\n📚 ${courseNames.join(', ')}\n`;
           msg += `⏰ Iltimos, oy boshigacha to'lovni amalga oshiring.`;
 
           await bot.api.sendMessage(parentUser.telegramChatId, msg, { parse_mode: 'HTML' });
@@ -267,7 +333,7 @@ export async function sendPaymentReminders() {
         data: {
           userId: student.user.id,
           title: `${nextMonthName} to'lov eslatmasi`,
-          body: `${nextMonthName} oyi uchun ${formatMoney(monthlyFee)} to'lov kerak.`,
+          body: `${nextMonthName} oyi uchun ${formatMoney(monthlyFee)} to'lov kerak${totalHolidayCredit > 0 ? ` (dam olish: -${formatMoney(totalHolidayCredit)})` : ''}.`,
           type: 'PAYMENT',
         },
       });

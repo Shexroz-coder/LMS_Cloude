@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from 'react-query';
 import {
   CreditCard, Plus, Search, TrendingUp, AlertCircle, X,
   ChevronLeft, ChevronRight, DollarSign, Banknote, Smartphone, Building2,
-  Users, TrendingDown, Calculator, Percent, Edit3, Trash2, Archive
+  Users, TrendingDown, Calculator, Percent, Edit3, Trash2, Archive, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -47,8 +47,12 @@ interface StudentObligation {
   discountAmount: number;
   discountType: string | null;
   monthlyAmount: number;
+  standardLessons: number;
   lessonsPerMonth: number;
+  holidayLessons: number;
   pricePerLesson: number;
+  holidayCredit: number;
+  adjustedAmount: number;
   currentDebt: number;
   currentBalance: number;
   netObligation: number;
@@ -432,8 +436,15 @@ const PaymentsPage = () => {
                         <div className="text-xs text-gray-400 dark:text-gray-500">{o.courseName}</div>
                       </td>
                       <td>
-                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{formatMoney(o.monthlyAmount)}</div>
-                        <div className="text-[11px] text-gray-400 dark:text-gray-500">{o.lessonsPerMonth} dars/oy · {formatMoney(o.pricePerLesson)}/dars</div>
+                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                          {o.holidayCredit > 0 ? formatMoney(o.adjustedAmount) : formatMoney(o.monthlyAmount)}
+                        </div>
+                        <div className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {o.lessonsPerMonth}/{o.standardLessons} dars · {formatMoney(o.pricePerLesson)}/dars
+                        </div>
+                        {o.holidayCredit > 0 && (
+                          <div className="text-[11px] text-green-600 font-medium">🏖 -{formatMoney(o.holidayCredit)} dam olish</div>
+                        )}
                       </td>
                       <td>
                         {o.discountAmount > 0 ? (

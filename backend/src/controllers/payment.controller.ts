@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
-import { countLessonsInMonth } from '../utils/schedule.utils';
+import { countLessonsInMonth, countStandardLessonsInMonth, getMonthCalendarData } from '../utils/schedule.utils';
 import { sendPaymentNotification } from '../telegram/services/notify.service';
 
 
@@ -725,7 +725,13 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
         // Scheduledan dars kunlarini hisoblash
         const uniqueDays = [...new Set(group.schedules.flatMap(s => s.daysOfWeek))];
         const lessonsPerMonth = await countLessonsInMonth(today.getFullYear(), today.getMonth(), uniqueDays);
-        const pricePerLesson = lessonsPerMonth > 0 ? monthlyAmount / lessonsPerMonth : 0;
+        const standardLessons = await countStandardLessonsInMonth(today.getFullYear(), today.getMonth(), uniqueDays);
+        const holidayLessons = standardLessons - lessonsPerMonth;
+
+        // 1 dars narxi = oylik / standart darslar
+        const pricePerLesson = standardLessons > 0 ? monthlyAmount / standardLessons : 0;
+        const holidayCredit = Math.round(holidayLessons * pricePerLesson);
+        const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
 
         const currentDebt = Number(student.balance?.debt || 0);
         const currentBalance = Number(student.balance?.balance || 0);
@@ -742,8 +748,12 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
           discountAmount: Math.round(discountAmount),
           discountType: student.discountType,
           monthlyAmount: Math.round(monthlyAmount),
+          standardLessons,
           lessonsPerMonth,
+          holidayLessons,
           pricePerLesson: Math.round(pricePerLesson),
+          holidayCredit,
+          adjustedAmount,
           currentDebt,
           currentBalance,
           netObligation: Math.max(0, currentDebt - currentBalance),
@@ -854,13 +864,25 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
     const currentMonth = today.getMonth();
     const lessonsPerMonth = await countLessonsInMonth(currentYear, currentMonth, uniqueDays);
 
-    // Narxni dars soniga bo'lib hisoblash
-    const pricePerLesson = lessonsPerMonth > 0 ? monthlyAmount / lessonsPerMonth : 0;
+    // Standart darslar (bayramlar hisobsiz)
+    const standardLessons = await countStandardLessonsInMonth(currentYear, currentMonth, uniqueDays);
 
-    // Keyingi oy uchun darslar soni va summasi
+    // 1 dars narxi = oylik / standart darslar
+    const pricePerLesson = standardLessons > 0 ? monthlyAmount / standardLessons : 0;
+
+    // Dam olish tufayli tushirilgan darslar
+    const holidayLessons = standardLessons - lessonsPerMonth;
+    const holidayCredit = Math.round(holidayLessons * pricePerLesson);
+    const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+
+    // Keyingi oy uchun
     const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
     const nextMonthLessons = await countLessonsInMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), uniqueDays);
-    const nextMonthAmount = Math.round(nextMonthLessons * pricePerLesson);
+    const nextStandardLessons = await countStandardLessonsInMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), uniqueDays);
+    const nextHolidayLessons = nextStandardLessons - nextMonthLessons;
+    const nextPricePerLesson = nextStandardLessons > 0 ? monthlyAmount / nextStandardLessons : 0;
+    const nextHolidayCredit = Math.round(nextHolidayLessons * nextPricePerLesson);
+    const nextMonthAmount = Math.round(monthlyAmount - nextHolidayCredit);
 
     // O'tilgan darslar soni (o'quvchi qo'shilgan kundan)
     const completedLessonsCount = await prisma.lesson.count({
@@ -896,12 +918,18 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
       discountValue: student.discountValue ? Number(student.discountValue) : null,
       pricePerLesson: Math.round(pricePerLesson),
       lessonsPerMonth,
+      standardLessons,
+      holidayLessons,
+      holidayCredit,
+      adjustedAmount,
       nextMonthLessons,
       nextMonthAmount,
+      nextHolidayLessons,
+      nextHolidayCredit,
       debtAmount,
       options: {
-        oneMonth: Math.round(monthlyAmount),
-        twoMonths: Math.round(monthlyAmount * 2),
+        oneMonth: adjustedAmount,
+        twoMonths: adjustedAmount + nextMonthAmount,
         threeMonths: Math.round(monthlyAmount * 3),
       },
       currentDebt,
@@ -916,6 +944,171 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
   } catch (err) {
     console.error('calculateStudentPayment error:', err);
     sendError(res, 'Hisoblashda xato yuz berdi.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /payments/calendar/:studentId — Dars kalendari + to'lov hisob-kitobi
+// ══════════════════════════════════════════════
+export const getStudentCalendar = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { month: monthParam } = req.query as { month?: string };
+
+    // Ownership tekshirish
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, 'Siz faqat o\'z kalendaringizni ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, 'Siz faqat farzandingiz kalendarini ko\'ra olasiz.', 403);
+        return;
+      }
+    }
+
+    // Oy parametrini aniqlash
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth();
+    if (monthParam) {
+      const parts = monthParam.split('-');
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]) - 1;
+    }
+
+    // O'quvchini guruhlar bilan olish
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { fullName: true } },
+        balance: true,
+        groupStudents: {
+          where: { status: 'ACTIVE' },
+          include: {
+            group: {
+              include: {
+                course: { select: { name: true, monthlyPrice: true } },
+                schedules: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!student) {
+      sendError(res, 'O\'quvchi topilmadi.', 404);
+      return;
+    }
+
+    // Har bir guruh uchun kalendar hisoblash
+    const groups = await Promise.all(student.groupStudents.map(async (gs) => {
+      const group = gs.group;
+      const course = group.course;
+      const uniqueDays = [...new Set(group.schedules.flatMap(s => s.daysOfWeek))];
+
+      // Kalendar ma'lumotlari
+      const calendar = await getMonthCalendarData(year, month, uniqueDays);
+
+      // To'lov hisob-kitobi
+      const baseMonthlyPrice = Number(course.monthlyPrice);
+      let discountAmount = 0;
+      if (student.discountType && student.discountValue) {
+        if (student.discountType === 'PERCENTAGE') {
+          discountAmount = Math.round(baseMonthlyPrice * Number(student.discountValue) / 100);
+        } else {
+          discountAmount = Math.min(Number(student.discountValue), baseMonthlyPrice);
+        }
+      }
+      const monthlyAmount = Math.max(0, baseMonthlyPrice - discountAmount);
+
+      // 1 dars narxi = oylik / standart darslar (bayramlar hisobsiz)
+      const pricePerLesson = calendar.standardLessons > 0
+        ? Math.round(monthlyAmount / calendar.standardLessons)
+        : 0;
+
+      // Dam olish tufayli tejam
+      const holidayCredit = calendar.holidayLessons * pricePerLesson;
+
+      // Moslashtirilgan to'lov
+      const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+
+      // Keyingi oy uchun ham hisoblash
+      const nextMonth = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      const nextCalendar = await getMonthCalendarData(nextYear, nextMonth, uniqueDays);
+      const nextPricePerLesson = nextCalendar.standardLessons > 0
+        ? Math.round(monthlyAmount / nextCalendar.standardLessons)
+        : 0;
+      const nextHolidayCredit = nextCalendar.holidayLessons * nextPricePerLesson;
+      const nextAdjustedAmount = Math.round(monthlyAmount - nextHolidayCredit);
+
+      return {
+        groupId: group.id,
+        groupName: group.name,
+        courseName: course.name,
+        schedule: group.schedules.map(s => ({
+          daysOfWeek: s.daysOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          room: s.room,
+        })),
+        currentMonth: {
+          year,
+          month: month + 1,
+          standardLessons: calendar.standardLessons,
+          actualLessons: calendar.actualLessons,
+          holidayLessons: calendar.holidayLessons,
+          baseMonthlyPrice: Math.round(baseMonthlyPrice),
+          discountAmount: Math.round(discountAmount),
+          monthlyAmount: Math.round(monthlyAmount),
+          pricePerLesson,
+          holidayCredit: Math.round(holidayCredit),
+          adjustedAmount,
+          calendarDays: calendar.calendarDays,
+        },
+        nextMonth: {
+          year: nextYear,
+          month: nextMonth + 1,
+          standardLessons: nextCalendar.standardLessons,
+          actualLessons: nextCalendar.actualLessons,
+          holidayLessons: nextCalendar.holidayLessons,
+          pricePerLesson: nextPricePerLesson,
+          holidayCredit: Math.round(nextHolidayCredit),
+          adjustedAmount: nextAdjustedAmount,
+        },
+      };
+    }));
+
+    // Umumiy (barcha guruhlar uchun)
+    const totalMonthly = groups.reduce((s, g) => s + g.currentMonth.monthlyAmount, 0);
+    const totalAdjusted = groups.reduce((s, g) => s + g.currentMonth.adjustedAmount, 0);
+    const totalHolidayCredit = groups.reduce((s, g) => s + g.currentMonth.holidayCredit, 0);
+    const totalNextAdjusted = groups.reduce((s, g) => s + g.nextMonth.adjustedAmount, 0);
+    const totalNextHolidayCredit = groups.reduce((s, g) => s + g.nextMonth.holidayCredit, 0);
+
+    sendSuccess(res, {
+      studentId,
+      fullName: student.user.fullName,
+      currentDebt: Number(student.balance?.debt || 0),
+      currentBalance: Number(student.balance?.balance || 0),
+      summary: {
+        totalMonthlyAmount: totalMonthly,
+        totalHolidayCredit,
+        totalAdjustedAmount: totalAdjusted,
+        nextMonthAdjustedAmount: totalNextAdjusted,
+        nextMonthHolidayCredit: totalNextHolidayCredit,
+      },
+      groups,
+    });
+  } catch (err) {
+    console.error('getStudentCalendar error:', err);
+    sendError(res, 'Kalendar olishda xato.', 500);
   }
 };
 

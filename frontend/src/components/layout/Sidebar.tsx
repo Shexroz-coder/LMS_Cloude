@@ -120,6 +120,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
     return [
       { to: '/student', icon: LayoutDashboard, label: t('nav.dashboard') },
       { to: '/student/schedule', icon: Calendar, label: t('nav.schedule') },
+      { to: '/student/calendar', icon: CalendarOff, label: 'Dars Kalendari' },
       { to: '/student/grades', icon: Star, label: t('nav.grades') },
       { to: '/student/coins', icon: Coins, label: t('nav.coins') },
       { to: '/student/payments', icon: CreditCard, label: t('nav.payments') },

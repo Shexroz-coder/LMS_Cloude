@@ -46,6 +46,7 @@ import ParentPaymentsPage from './pages/parent/ParentPaymentsPage';
 // Shared
 import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
+import StudentCalendarPage from './pages/student/StudentCalendarPage';
 
 // ── Route himoyasi ──────────────────────────────────
 const PrivateRoute = ({
@@ -134,6 +135,7 @@ const App = () => {
       }>
         <Route index element={<StudentDashboard />} />
         <Route path="schedule" element={<StudentSchedulePage />} />
+        <Route path="calendar" element={<StudentCalendarPage />} />
         <Route path="grades" element={<StudentGradesPage />} />
         <Route path="coins" element={<StudentCoinsPage />} />
         <Route path="payments" element={<StudentPaymentsPage />} />
