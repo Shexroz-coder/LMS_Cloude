@@ -202,25 +202,6 @@ export async function getAttendanceHistory(studentId: number, limit = 20) {
   });
 }
 
-// ─── Baholar (oxirgi 10 ta) ───────────────────────────────
-export async function getGrades(studentId: number, limit = 10) {
-  return prisma.grade.findMany({
-    where: { studentId },
-    take: limit,
-    orderBy: { givenAt: 'desc' },
-    include: {
-      lesson: {
-        include: {
-          group: {
-            include: {
-              course: { select: { name: true } },
-            }
-          }
-        }
-      }
-    }
-  });
-}
 
 // ─── To'lov holati ────────────────────────────────────────
 export async function getPaymentInfo(studentId: number) {

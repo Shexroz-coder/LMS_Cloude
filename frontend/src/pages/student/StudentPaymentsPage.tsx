@@ -45,6 +45,8 @@ interface CalcData {
   joinedAt: string;
   groupName: string;
   courseName: string;
+  isProRata?: boolean;
+  proRataLessons?: number;
   message?: string;
 }
 
@@ -367,11 +369,16 @@ const StudentPaymentsPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-900">
               <p className="text-xs text-red-500 dark:text-red-400 mb-1 font-medium">
-                {calcData.holidayCredit > 0 ? 'Moslashtirilgan to\'lov' : 'Oylik to\'lov'}
+                {calcData.isProRata ? 'Pro-rata to\'lov' : calcData.holidayCredit > 0 ? 'Moslashtirilgan to\'lov' : 'Oylik to\'lov'}
               </p>
               <p className="text-base font-bold text-red-700 dark:text-red-400">
                 {fmt(calcData.holidayCredit > 0 ? calcData.adjustedAmount : calcData.monthlyAmount)}
               </p>
+              {calcData.isProRata && (
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 font-medium">
+                  📐 Pro-rata: {calcData.proRataLessons} dars
+                </p>
+              )}
               {calcData.discountAmount > 0 && (
                 <p className="text-[10px] text-red-400 mt-0.5">
                   Chegirma: -{fmt(calcData.discountAmount)}
@@ -388,7 +395,7 @@ const StudentPaymentsPage = () => {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">1 dars narxi</p>
               <p className="text-base font-bold text-gray-700 dark:text-gray-200">{fmt(calcData.pricePerLesson)}</p>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                {calcData.lessonsPerMonth}/{calcData.standardLessons} dars/oy
+                {calcData.isProRata ? `📐 Pro-rata: ${calcData.proRataLessons} dars` : `${calcData.lessonsPerMonth}/${calcData.standardLessons} dars/oy`}
               </p>
             </div>
           </div>

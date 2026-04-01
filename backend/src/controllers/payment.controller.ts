@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
-import { countLessonsInMonth, countStandardLessonsInMonth, getMonthCalendarData } from '../utils/schedule.utils';
+import { countLessonsInMonth, countStandardLessonsInMonth, getMonthCalendarData, countLessonsInMonthFromDate, countStandardLessonsFromDate } from '../utils/schedule.utils';
 import { sendPaymentNotification } from '../telegram/services/notify.service';
 
 
@@ -731,7 +731,17 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
         // 1 dars narxi = oylik / standart darslar
         const pricePerLesson = standardLessons > 0 ? monthlyAmount / standardLessons : 0;
         const holidayCredit = Math.round(holidayLessons * pricePerLesson);
-        const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+        let adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+
+        // Pro-rata: o'quvchi shu oyda qo'shilgan bo'lsa
+        const joinedAt = new Date(gs.joinedAt);
+        let isProRata = false;
+        let proRataLessons = 0;
+        if (joinedAt.getFullYear() === today.getFullYear() && joinedAt.getMonth() === today.getMonth() && joinedAt.getDate() > 1) {
+          isProRata = true;
+          proRataLessons = await countLessonsInMonthFromDate(today.getFullYear(), today.getMonth(), uniqueDays, joinedAt);
+          adjustedAmount = Math.round(proRataLessons * pricePerLesson);
+        }
 
         const currentDebt = Number(student.balance?.debt || 0);
         const currentBalance = Number(student.balance?.balance || 0);
@@ -752,8 +762,10 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
           lessonsPerMonth,
           holidayLessons,
           pricePerLesson: Math.round(pricePerLesson),
-          holidayCredit,
+          holidayCredit: isProRata ? 0 : holidayCredit,
           adjustedAmount,
+          isProRata,
+          proRataLessons,
           currentDebt,
           currentBalance,
           netObligation: Math.max(0, currentDebt - currentBalance),
@@ -873,7 +885,16 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
     // Dam olish tufayli tushirilgan darslar
     const holidayLessons = standardLessons - lessonsPerMonth;
     const holidayCredit = Math.round(holidayLessons * pricePerLesson);
-    const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+    let adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+
+    // Pro-rata: o'quvchi shu oyda qo'shilgan bo'lsa
+    let isProRata = false;
+    let proRataLessons = 0;
+    if (joinedAt.getFullYear() === currentYear && joinedAt.getMonth() === currentMonth && joinedAt.getDate() > 1) {
+      isProRata = true;
+      proRataLessons = await countLessonsInMonthFromDate(currentYear, currentMonth, uniqueDays, joinedAt);
+      adjustedAmount = Math.round(proRataLessons * pricePerLesson);
+    }
 
     // Keyingi oy uchun
     const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
@@ -920,8 +941,10 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
       lessonsPerMonth,
       standardLessons,
       holidayLessons,
-      holidayCredit,
+      holidayCredit: isProRata ? 0 : holidayCredit,
       adjustedAmount,
+      isProRata,
+      proRataLessons,
       nextMonthLessons,
       nextMonthAmount,
       nextHolidayLessons,
@@ -1035,8 +1058,16 @@ export const getStudentCalendar = async (req: AuthRequest, res: Response): Promi
       // Dam olish tufayli tejam
       const holidayCredit = calendar.holidayLessons * pricePerLesson;
 
-      // Moslashtirilgan to'lov
-      const adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+      // Pro-rata: o'quvchi shu oyda qo'shilgan bo'lsa
+      const joinedAt = new Date(gs.joinedAt);
+      let isProRata = false;
+      let proRataLessons = 0;
+      let adjustedAmount = Math.round(monthlyAmount - holidayCredit);
+      if (joinedAt.getFullYear() === year && joinedAt.getMonth() === month && joinedAt.getDate() > 1) {
+        isProRata = true;
+        proRataLessons = await countLessonsInMonthFromDate(year, month, uniqueDays, joinedAt);
+        adjustedAmount = Math.round(proRataLessons * pricePerLesson);
+      }
 
       // Keyingi oy uchun ham hisoblash
       const nextMonth = month === 11 ? 0 : month + 1;
@@ -1058,6 +1089,9 @@ export const getStudentCalendar = async (req: AuthRequest, res: Response): Promi
           endTime: s.endTime,
           room: s.room,
         })),
+        joinedAt: gs.joinedAt,
+        isProRata,
+        proRataLessons,
         currentMonth: {
           year,
           month: month + 1,
@@ -1068,8 +1102,10 @@ export const getStudentCalendar = async (req: AuthRequest, res: Response): Promi
           discountAmount: Math.round(discountAmount),
           monthlyAmount: Math.round(monthlyAmount),
           pricePerLesson,
-          holidayCredit: Math.round(holidayCredit),
+          holidayCredit: isProRata ? 0 : Math.round(holidayCredit),
           adjustedAmount,
+          isProRata,
+          proRataLessons,
           calendarDays: calendar.calendarDays,
         },
         nextMonth: {

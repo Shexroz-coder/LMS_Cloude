@@ -297,6 +297,71 @@ export async function getMonthCalendarData(
   };
 }
 
+/**
+ * Berilgan sanadan boshlab oy oxirigacha bo'lgan darslar sonini hisoblash (bayramlar chiqariladi)
+ * Pro-rata hisoblash uchun — o'quvchi oyning o'rtasida qo'shilganda
+ */
+export async function countLessonsInMonthFromDate(
+  year: number,
+  month: number,
+  days: number[],
+  fromDate: Date,
+): Promise<number> {
+  if (!days || days.length === 0) return 0;
+
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+
+  // fromDate shu oyda bo'lmasa, to'liq oy hisoblash
+  const startDay = (fromDate.getFullYear() === year && fromDate.getMonth() === month)
+    ? fromDate.getDate()
+    : 1;
+
+  const holidayDates = await getHolidayDatesInRange(monthStart, monthEnd);
+
+  const daysInMonth = monthEnd.getDate();
+  let count = 0;
+  for (let d = startDay; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const weekday = date.getDay();
+    if (days.includes(weekday)) {
+      const key = formatDateKey(date);
+      if (!holidayDates.has(key)) {
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Berilgan sanadan boshlab oy oxirigacha STANDART darslar soni (bayramlarsiz)
+ */
+export async function countStandardLessonsFromDate(
+  year: number,
+  month: number,
+  days: number[],
+  fromDate: Date,
+): Promise<number> {
+  if (!days || days.length === 0) return 0;
+
+  const monthEnd = new Date(year, month + 1, 0);
+  const startDay = (fromDate.getFullYear() === year && fromDate.getMonth() === month)
+    ? fromDate.getDate()
+    : 1;
+
+  const daysInMonth = monthEnd.getDate();
+  let count = 0;
+  for (let d = startDay; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const weekday = date.getDay();
+    if (days.includes(weekday)) {
+      count++;
+    }
+  }
+  return count;
+}
+
 /** YYYY-MM-DD formatidagi kalit */
 function formatDateKey(date: Date): string {
   const y = date.getFullYear();

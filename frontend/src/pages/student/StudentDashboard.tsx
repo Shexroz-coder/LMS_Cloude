@@ -3,7 +3,7 @@ import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { Link } from 'react-router-dom';
 import {
-  Calendar, Star, Coins, CreditCard, BookOpen, Clock,
+  Calendar, Coins, CreditCard, BookOpen, Clock,
   TrendingUp, AlertCircle, CheckCircle, ChevronRight,
   User, Award, Zap
 } from 'lucide-react';
@@ -12,19 +12,6 @@ import clsx from 'clsx';
 const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
 const DAYS = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
 const DAYS_FULL = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
-
-function ScoreBadge({ score }: { score: number }) {
-  const c =
-    score >= 91 ? 'bg-emerald-100 text-emerald-700' :
-    score >= 76 ? 'bg-blue-100 text-blue-700' :
-    score >= 61 ? 'bg-amber-100 text-amber-700' :
-    'bg-red-100 text-red-700';
-  return (
-    <span className={clsx('font-bold text-sm px-2 py-0.5 rounded-lg', c)}>
-      {score.toFixed(0)}
-    </span>
-  );
-}
 
 function AttendanceDot({ present }: { present: boolean }) {
   return (
@@ -67,13 +54,6 @@ const StudentDashboard = () => {
     return r.data?.data || [];
   });
 
-  // Grades
-  const { data: gradesData } = useQuery(['student-grades-dash', studentId], async () => {
-    if (!studentId) return null;
-    const r = await api.get(`/grades/student/${studentId}?limit=6`);
-    return r.data?.data;
-  }, { enabled: !!studentId });
-
   // Payments + balance
   const { data: paymentsData } = useQuery(['student-payments-dash', studentId], async () => {
     if (!studentId) return null;
@@ -101,14 +81,9 @@ const StudentDashboard = () => {
     return r.data?.data || [];
   });
 
-  const avgScore = gradesData?.stats?.avgScore || 0;
   const balance = paymentsData?.balance;
   const debt = Number(balance?.debt || 0);
   const bal = Number(balance?.balance || 0);
-  const recentGrades: {
-    id: number; score: number; type: string;
-    lesson: { topic: string; date: string; group: { name: string } }
-  }[] = gradesData?.grades || [];
 
   const attendancePct = attStats
     ? Math.round((attStats.presentCount / Math.max(attStats.totalLessons, 1)) * 100)
@@ -156,9 +131,8 @@ const StudentDashboard = () => {
         </div>
 
         {/* Quick stats inside hero */}
-        <div className="relative grid grid-cols-4 gap-3 mt-5 pt-4 border-t border-white/20">
+        <div className="relative grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-white/20">
           {[
-            { label: 'O\'rtacha ball', value: avgScore > 0 ? avgScore.toFixed(0) : '—', icon: '📊' },
             { label: 'Davomat', value: attendancePct !== null ? `${attendancePct}%` : '—', icon: '✅' },
             { label: 'Coin', value: fmt(coinBalance), icon: '🪙' },
             { label: debt > 0 ? 'Qarz' : 'Balans', value: debt > 0 ? `${fmt(debt)} s` : `${fmt(bal)} s`, icon: debt > 0 ? '⚠️' : '💚' },
@@ -276,59 +250,6 @@ const StudentDashboard = () => {
           )}
         </div>
 
-        {/* ── So'nggi baholar ─────────────────────── */}
-        <div className="card dark:bg-gray-800 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Star className="w-4 h-4 text-amber-600" />
-              </div>
-              So'nggi baholar
-            </h2>
-            <Link to="/student/grades" className="text-xs text-primary-600 flex items-center gap-0.5 hover:underline">
-              Barchasi <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          {avgScore > 0 && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                {avgScore.toFixed(0)}
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">O'rtacha ball</p>
-                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1.5 w-28">
-                  <div className="h-1.5 rounded-full bg-primary-600 transition-all" style={{ width: `${avgScore}%` }} />
-                </div>
-              </div>
-              {attStats && (
-                <div className="ml-auto text-right">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Davomat</p>
-                  <p className="font-bold text-sm text-gray-800 dark:text-gray-200">{attendancePct}%</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {recentGrades.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Hali baho yo'q</p>
-          ) : (
-            <div className="space-y-2">
-              {recentGrades.map(g => (
-                <div key={g.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">{g.lesson.topic || '—'}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {g.lesson.group?.name} ·{' '}
-                      {new Date(g.lesson.date).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short' })}
-                    </p>
-                  </div>
-                  <ScoreBadge score={Number(g.score)} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -445,10 +366,9 @@ const StudentDashboard = () => {
       </div>
 
       {/* ── Tezkor havolalar ────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { label: 'Jadval', icon: Calendar, href: '/student/schedule', bg: 'bg-black text-white', sub: `${todayLessons.length} ta bugun` },
-          { label: 'Baholar', icon: TrendingUp, href: '/student/grades', bg: 'bg-primary-600 text-white', sub: avgScore > 0 ? `${avgScore.toFixed(0)} o'rtacha` : 'Hali yo\'q' },
           { label: 'Coinlar', icon: Zap, href: '/student/coins', bg: 'bg-amber-500 text-white', sub: `${fmt(coinBalance)} coin` },
           { label: 'Profil', icon: User, href: '/student/profile', bg: 'bg-gray-700 text-white', sub: 'Sozlamalar' },
         ].map(a => (

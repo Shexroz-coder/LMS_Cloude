@@ -160,18 +160,6 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
             }
           });
 
-          // Baho ham kelgan bo'lsa
-          if (entry.score !== undefined) {
-            await prisma.grade.create({
-              data: {
-                lessonId: lesson!.id,
-                studentId: entry.studentId,
-                score: entry.score,
-                type: 'CLASSWORK',
-              }
-            });
-          }
-
           // ═══ AVTOMATIK TO'LOV YECHISH ═══
           // Faqat kelgan (PRESENT, LATE, EXCUSED) o'quvchilar uchun dars narxi yechiladi
           // MUHIM: Bayram kunida majburiy darsda pul yechilMAYDI!
@@ -418,6 +406,25 @@ export const getAttendanceStats = async (req: AuthRequest, res: Response): Promi
 export const getStudentAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const studentId = parseInt(req.params.studentId);
+
+    // Xavfsizlik: STUDENT faqat o'zini ko'ra oladi
+    if (req.user?.role === 'STUDENT') {
+      const myStudent = await prisma.student.findUnique({ where: { userId: req.user.id }, select: { id: true } });
+      if (!myStudent || myStudent.id !== studentId) {
+        sendError(res, "Siz faqat o'z davomatingizni ko'ra olasiz.", 403);
+        return;
+      }
+    }
+
+    // Xavfsizlik: PARENT faqat o'z farzandini ko'ra oladi
+    if (req.user?.role === 'PARENT') {
+      const myChildren = await prisma.student.findMany({ where: { parentId: req.user.id }, select: { id: true } });
+      if (!myChildren.some(c => c.id === studentId)) {
+        sendError(res, "Siz faqat o'z farzandingiz davomatini ko'ra olasiz.", 403);
+        return;
+      }
+    }
+
     const { limit = '50' } = req.query as Record<string, string>;
     const records = await prisma.attendance.findMany({
       where: { studentId },

@@ -6,7 +6,7 @@ import { InlineKeyboard } from 'grammy';
 export function studentMainMenu(): InlineKeyboard {
   return new InlineKeyboard()
     .text('📅 Bugungi darslar', 'schedule_today').text('🗓 Haftalik jadval', 'schedule_week').row()
-    .text('✅ Davomat', 'attendance').text('📊 Baholar', 'grades').row()
+    .text('✅ Davomat', 'attendance').row()
     .text('💰 To\'lovlar', 'payments').text('🪙 Tangalar', 'coins').row()
     .text('🏆 Reyting', 'leaderboard').text('🔔 Bildirishnomalar', 'notifications').row()
     .text('👤 Profil', 'profile').row()
@@ -30,8 +30,7 @@ export function parentChildMenu(childId: number): InlineKeyboard {
   return new InlineKeyboard()
     .text('📅 Bugungi darslar', `child_schedule_today_${childId}`)
     .text('🗓 Haftalik jadval', `child_schedule_week_${childId}`).row()
-    .text('✅ Davomat', `child_attendance_${childId}`)
-    .text('📊 Baholar', `child_grades_${childId}`).row()
+    .text('✅ Davomat', `child_attendance_${childId}`).row()
     .text('💰 To\'lovlar', `child_payments_${childId}`)
     .text('🪙 Tangalar', `child_coins_${childId}`).row()
     .text('🏆 Reyting', `child_leaderboard_${childId}`)

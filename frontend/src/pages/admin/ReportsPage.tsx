@@ -12,13 +12,12 @@ function getMonthOptions() {
   return months;
 }
 
-type ReportType = 'students' | 'payments' | 'attendance' | 'grades';
+type ReportType = 'students' | 'payments' | 'attendance';
 
 const REPORTS: { type: ReportType; icon: string; title: string; desc: string; endpoint: string }[] = [
   { type: 'students', icon: '👥', title: "O'quvchilar ro'yxati", desc: "Barcha o'quvchilar, guruhlar, balans", endpoint: '/students?limit=1000' },
   { type: 'payments', icon: '💰', title: "To'lovlar hisoboti", desc: "Oylik to'lovlar, qarzlar", endpoint: '/payments?limit=1000' },
   { type: 'attendance', icon: '📋', title: "Davomat hisoboti", desc: "O'quvchilar davomati statistikasi", endpoint: '/attendance/stats' },
-  { type: 'grades', icon: '📊', title: "Baholar hisoboti", desc: "O'quvchilar baholari", endpoint: '/grades?limit=1000' },
 ];
 
 function downloadCSV(data: unknown[], filename: string) {
@@ -71,7 +70,6 @@ const ReportsPage = () => {
       if (Array.isArray(raw)) items = raw;
       else if (raw?.payments) items = raw.payments;
       else if (raw?.students) items = raw.students;
-      else if (raw?.grades) items = raw.grades;
       else if (typeof raw==='object' && raw!==null) items = [raw];
       downloadCSV(items, `${report.type}-${selectedMonth}.csv`);
     } catch { alert("Yuklashda xato yuz berdi."); }
@@ -107,7 +105,7 @@ const ReportsPage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {REPORTS.map(report=>(
           <div key={report.type} className="card dark:bg-gray-800 hover:shadow-md transition">
             <div className="flex items-start gap-3">

@@ -198,6 +198,8 @@ model Student {
   coinTransactions  CoinTransaction[]
   paymeTransactions PaymeTransaction[]
 
+  @@index([parentId])
+  @@index([status])
   @@map("students")
 }
 
@@ -284,6 +286,7 @@ model GroupStudent {
   student Student @relation(fields: [studentId], references: [id])
 
   @@unique([groupId, studentId])
+  @@index([status])
   @@map("group_students")
 }
 
@@ -429,6 +432,8 @@ model Payment {
   receiver User?   @relation("PaymentReceiver", fields: [receivedBy], references: [id])
   group    Group?  @relation(fields: [groupId], references: [id])
 
+  @@index([studentId])
+  @@index([isDeleted])
   @@map("payments")
 }
 

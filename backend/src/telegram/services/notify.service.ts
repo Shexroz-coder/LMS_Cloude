@@ -6,6 +6,51 @@ import prisma from '../../lib/prisma';
 import bot from '../bot';
 import { escapeHtml, formatMoney, formatDate, attendanceEmoji, getBrandName } from '../utils/format';
 
+// ── ADMIN HISOBOT — har bir yuborilgan xabar haqida ──────
+async function notifyAdmin(
+  recipientName: string,
+  recipientRole: string,
+  messageType: string,
+  messageSummary: string,
+) {
+  try {
+    const adminChatId = process.env.TELEGRAM_ADMIN_ID;
+    if (!adminChatId) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+
+    const text =
+      `📋 <b>BOT HISOBOT</b>\n\n` +
+      `📨 Turi: <b>${escapeHtml(messageType)}</b>\n` +
+      `👤 Kimga: <b>${escapeHtml(recipientName)}</b> (${recipientRole})\n` +
+      `📝 Mazmuni: ${escapeHtml(messageSummary)}\n` +
+      `🕐 Vaqt: ${timeStr}\n\n` +
+      `<i>🤖 Avtomatik hisobot</i>`;
+
+    await bot.api.sendMessage(adminChatId, text, { parse_mode: 'HTML' });
+
+    // LMS platformada ham notification yaratish
+    const admin = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+    if (admin) {
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          title: `Bot xabar: ${messageType}`,
+          body: `${recipientName} (${recipientRole}) ga yuborildi: ${messageSummary}`,
+          type: 'SYSTEM',
+        },
+      });
+    }
+  } catch (e) {
+    // Admin notification xatosi boshqa jarayonlarga ta'sir qilmasin
+    console.error('Admin hisobot xatosi:', e);
+  }
+}
+
 // ── Umumiy notification yuborish ──────────────────
 export async function sendTelegramNotification(userId: number, notification: {
   title: string;
@@ -77,16 +122,18 @@ export async function sendAttendanceNotification(
     // O'quvchiga yuborish
     if (student.user.telegramChatId) {
       await bot.api.sendMessage(student.user.telegramChatId, text, { parse_mode: 'HTML' });
+      await notifyAdmin(student.user.fullName, 'O\'quvchi', 'Davomat', `${statusLabel} — ${courseName} (${dateStr})`);
     }
 
     // Ota-onaga yuborish
     if (student.parentId) {
       const parent = await prisma.user.findUnique({
         where: { id: student.parentId },
-        select: { telegramChatId: true },
+        select: { telegramChatId: true, fullName: true },
       });
       if (parent?.telegramChatId) {
         await bot.api.sendMessage(parent.telegramChatId, text, { parse_mode: 'HTML' });
+        await notifyAdmin(parent.fullName || 'Ota-ona', 'Ota-ona', 'Davomat', `${student.user.fullName}: ${statusLabel} — ${courseName}`);
       }
     }
   } catch (err) {
@@ -121,16 +168,18 @@ export async function sendDebtNotification(
     // O'quvchiga yuborish
     if (student.user.telegramChatId) {
       await bot.api.sendMessage(student.user.telegramChatId, text, { parse_mode: 'HTML' });
+      await notifyAdmin(student.user.fullName, 'O\'quvchi', 'Qarz', `${formatMoney(debtAmount)} — ${courseName}`);
     }
 
     // Ota-onaga yuborish
     if (student.parentId) {
       const parent = await prisma.user.findUnique({
         where: { id: student.parentId },
-        select: { telegramChatId: true },
+        select: { telegramChatId: true, fullName: true },
       });
       if (parent?.telegramChatId) {
         await bot.api.sendMessage(parent.telegramChatId, text, { parse_mode: 'HTML' });
+        await notifyAdmin(parent.fullName || 'Ota-ona', 'Ota-ona', 'Qarz', `${student.user.fullName}: ${formatMoney(debtAmount)}`);
       }
     }
   } catch (err) {
@@ -165,16 +214,18 @@ export async function sendPaymentNotification(
     // O'quvchiga
     if (student.user.telegramChatId) {
       await bot.api.sendMessage(student.user.telegramChatId, text, { parse_mode: 'HTML' });
+      await notifyAdmin(student.user.fullName, 'O\'quvchi', 'To\'lov', `${formatMoney(amount)} (${method})`);
     }
 
     // Ota-onaga
     if (student.parentId) {
       const parent = await prisma.user.findUnique({
         where: { id: student.parentId },
-        select: { telegramChatId: true },
+        select: { telegramChatId: true, fullName: true },
       });
       if (parent?.telegramChatId) {
         await bot.api.sendMessage(parent.telegramChatId, text, { parse_mode: 'HTML' });
+        await notifyAdmin(parent.fullName || 'Ota-ona', 'Ota-ona', 'To\'lov', `${student.user.fullName}: ${formatMoney(amount)}`);
       }
     }
   } catch (err) {
@@ -209,58 +260,10 @@ export async function sendAnnouncementToAll(title: string, content: string) {
     }
 
     console.log(`📢 Telegram e'lon yuborildi: ${sent}/${users.length} foydalanuvchiga`);
+    await notifyAdmin('Hammaga', 'Barcha foydalanuvchilar', 'E\'lon', `${title} — ${sent} ta foydalanuvchiga yuborildi`);
     return sent;
   } catch (err) {
     console.error('E\'lon Telegram xabari xatosi:', err);
     return 0;
-  }
-}
-
-// ── Baho xabari ───────────────────────────────────
-export async function sendGradeNotification(
-  studentId: number,
-  score: number,
-  courseName: string,
-  type?: string,
-  comment?: string
-) {
-  try {
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      include: {
-        user: { select: { telegramChatId: true, fullName: true } },
-      },
-    });
-
-    if (!student) return;
-
-    const emoji = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🔴';
-
-    let text =
-      `📊 <b>Yangi baho</b>\n\n` +
-      `👤 ${escapeHtml(student.user.fullName)}\n` +
-      `📚 ${escapeHtml(courseName)}\n` +
-      `${emoji} Ball: <b>${score}</b>`;
-    if (type) text += ` (${type})`;
-    if (comment) text += `\n💬 ${escapeHtml(comment)}`;
-    text += `\n\n<i>🤖 ${getBrandName()}</i>`;
-
-    // O'quvchiga
-    if (student.user.telegramChatId) {
-      await bot.api.sendMessage(student.user.telegramChatId, text, { parse_mode: 'HTML' });
-    }
-
-    // Ota-onaga
-    if (student.parentId) {
-      const parent = await prisma.user.findUnique({
-        where: { id: student.parentId },
-        select: { telegramChatId: true },
-      });
-      if (parent?.telegramChatId) {
-        await bot.api.sendMessage(parent.telegramChatId, text, { parse_mode: 'HTML' });
-      }
-    }
-  } catch (err) {
-    console.error('Baho Telegram xabari xatosi:', err);
   }
 }

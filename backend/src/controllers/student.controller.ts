@@ -27,7 +27,30 @@ const studentInclude = {
     }
   },
   _count: {
-    select: { attendance: true, grades: true, payments: true, coinTransactions: true }
+    select: { attendance: true, payments: true, coinTransactions: true }
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /students/me — Joriy o'quvchi o'z profilini olish
+// ══════════════════════════════════════════════
+export const getMyStudent = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const student = await prisma.student.findUnique({
+      where: { userId },
+      include: studentInclude,
+    });
+
+    if (!student) {
+      sendError(res, "O'quvchi topilmadi.", 404);
+      return;
+    }
+
+    sendSuccess(res, student);
+  } catch (err) {
+    console.error('getMyStudent error:', err);
+    sendError(res, "Ma'lumotlarni olishda xato.", 500);
   }
 };
 
@@ -94,6 +117,61 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
 };
 
 // ══════════════════════════════════════════════
+// GET /students/me — Joriy foydalanuvchining profili (STUDENT uchun)
+// ══════════════════════════════════════════════
+export const getMyStudent = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'STUDENT') {
+      sendError(res, 'Siz faqat talaba sifatida o\'z profilingizni ko\'ra olasiz.', 403);
+      return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { userId: req.user.id },
+      include: {
+        ...studentInclude,
+        attendance: {
+          take: 30,
+          orderBy: { markedAt: 'desc' },
+          include: { lesson: { select: { date: true, topic: true, group: { select: { name: true } } } } }
+        },
+        payments: {
+          take: 12,
+          orderBy: { paidAt: 'desc' }
+        },
+        coinTransactions: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+          include: { giver: { select: { fullName: true } } }
+        },
+        monthlyFees: {
+          take: 6,
+          orderBy: { month: 'desc' }
+        }
+      }
+    });
+
+    if (!student) {
+      sendError(res, 'O\'quvchi topilmadi.', 404);
+      return;
+    }
+
+    // Statistika hisoblash
+    const stats = {
+      totalLessons: await prisma.attendance.count({ where: { studentId: student.id } }),
+      presentCount: await prisma.attendance.count({ where: { studentId: student.id, status: 'PRESENT' } }),
+      lateCount: await prisma.attendance.count({ where: { studentId: student.id, status: 'LATE' } }),
+      totalPayments: student.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+    };
+
+    sendSuccess(res, { ...student, stats });
+  } catch (err) {
+    console.error('getMyStudent error:', err);
+    sendError(res, 'O\'z profilingizni olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /students/:id — Bitta o'quvchi
 // ══════════════════════════════════════════════
 export const getStudentById = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -132,11 +210,6 @@ export const getStudentById = async (req: AuthRequest, res: Response): Promise<v
           orderBy: { markedAt: 'desc' },
           include: { lesson: { select: { date: true, topic: true, group: { select: { name: true } } } } }
         },
-        grades: {
-          take: 20,
-          orderBy: { givenAt: 'desc' },
-          include: { lesson: { select: { date: true, topic: true } } }
-        },
         payments: {
           take: 12,
           orderBy: { paidAt: 'desc' }
@@ -164,9 +237,6 @@ export const getStudentById = async (req: AuthRequest, res: Response): Promise<v
       presentCount: await prisma.attendance.count({ where: { studentId: id, status: 'PRESENT' } }),
       lateCount: await prisma.attendance.count({ where: { studentId: id, status: 'LATE' } }),
       totalPayments: student.payments.reduce((sum, p) => sum + Number(p.amount), 0),
-      avgScore: student.grades.length > 0
-        ? student.grades.reduce((sum, g) => sum + Number(g.score), 0) / student.grades.length
-        : 0,
     };
 
     sendSuccess(res, { ...student, stats });

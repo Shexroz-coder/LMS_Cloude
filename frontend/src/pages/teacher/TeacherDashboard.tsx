@@ -54,14 +54,6 @@ const TeacherDashboard = () => {
     }
   );
 
-  const { data: recentGrades = [] } = useQuery(
-    ['teacher-recent-grades'],
-    async () => {
-      const r = await api.get('/grades?limit=5');
-      return r.data?.data || [];
-    }
-  );
-
   const { data: debtorsData } = useQuery(
     ['teacher-debtors'],
     async () => {
@@ -106,11 +98,10 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Quick stats */}
-        <div className="relative grid grid-cols-4 gap-3 mt-5 pt-4 border-t border-white/20">
+        <div className="relative grid grid-cols-3 gap-3 mt-5 pt-4 border-t border-white/20">
           {[
             { label: 'Bugungi darslar', value: todayLessons.length, icon: '📚' },
             { label: 'Davomat foizi', value: (attendanceStats?.rate ?? 0) + '%', icon: '✅' },
-            { label: "So'nggi baholar", value: recentGrades.length || 0, icon: '⭐' },
             { label: 'Jami darslar', value: attendanceStats?.total ?? '—', icon: '📋' },
           ].map((s, i) => (
             <div key={i} className="text-center">
@@ -323,10 +314,9 @@ const TeacherDashboard = () => {
       {/* ── Tezkor amallar ───────────────────────────── */}
       <div className="card">
         <h3 className="font-semibold text-gray-800 mb-4">Tezkor amallar</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Jadval & Davomat', icon: '📋', href: '/teacher/schedule', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },
-            { label: 'Baho qo\'yish', icon: '⭐', href: '/teacher/grades', color: 'bg-amber-50 hover:bg-amber-100 text-amber-700' },
             { label: 'Coin berish', icon: '🪙', href: '/teacher/coins', color: 'bg-violet-50 hover:bg-violet-100 text-violet-700' },
             { label: 'Guruhlarim', icon: '👥', href: '/teacher/groups', color: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700' },
           ].map(action => (

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getStudents,
   getStudentById,
+  getMyStudent,
   createStudent,
   updateStudent,
   deleteStudent,
@@ -17,6 +18,9 @@ const router = Router();
 
 // Qarzdorlar (authenticate allaqachon routes/index.ts da)
 router.get('/debtors', authorize('ADMIN'), getDebtors);
+
+// O'quvchi o'z profilini olish — /:id dan OLDIN bo'lishi kerak
+router.get('/me', authorize('STUDENT'), getMyStudent);
 
 // CRUD
 router.get('/', authorize('ADMIN', 'TEACHER'), getStudents);

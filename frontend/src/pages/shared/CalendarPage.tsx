@@ -51,6 +51,9 @@ interface GroupCalendar {
     holidayCredit: number;
     adjustedAmount: number;
   };
+  isProRata?: boolean;
+  proRataLessons?: number;
+  joinedAt?: string;
 }
 
 interface CalendarData {
@@ -196,9 +199,9 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-gray-100 dark:bg-gray-700">
               <StatCard
-                label="Standart darslar"
-                value={String(activeGroup.currentMonth.standardLessons)}
-                sub="bayramlarsiz"
+                label={activeGroup.isProRata ? "Pro-rata darslar" : "Standart darslar"}
+                value={String(activeGroup.isProRata && activeGroup.proRataLessons ? activeGroup.proRataLessons : activeGroup.currentMonth.standardLessons)}
+                sub={activeGroup.isProRata ? "pro-rata" : "bayramlarsiz"}
                 color="text-gray-900 dark:text-gray-100"
               />
               <StatCard
@@ -212,7 +215,7 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
               <StatCard
                 label="1 dars narxi"
                 value={fmt(activeGroup.currentMonth.pricePerLesson)}
-                sub={`${fmt(activeGroup.currentMonth.monthlyAmount)} / ${activeGroup.currentMonth.standardLessons}`}
+                sub={`${fmt(activeGroup.currentMonth.monthlyAmount)} / ${activeGroup.isProRata && activeGroup.proRataLessons ? activeGroup.proRataLessons : activeGroup.currentMonth.standardLessons}`}
                 color="text-indigo-600"
               />
               <StatCard
@@ -227,6 +230,16 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
 
             {/* To'lov xulosasi */}
             <div className="p-4 space-y-2">
+              {activeGroup.isProRata && (
+                <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+                    📐 Pro-rata to'lov
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    O'quvchi {activeGroup.joinedAt ? new Date(activeGroup.joinedAt).toLocaleDateString('uz-UZ') : 'asl vaqtda'} qo'shilgan. {activeGroup.proRataLessons} ta dars to'lanadi.
+                  </p>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Oylik narx (chegirmadan keyin)</span>
                 <span className="font-medium">{fmt(activeGroup.currentMonth.monthlyAmount)}</span>
@@ -279,6 +292,9 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
 
                 const dateNum = parseInt(day.date.split('-')[2]);
                 const isToday = day.date === new Date().toISOString().slice(0, 10);
+                const isBeforeJoined = activeGroup.isProRata && activeGroup.joinedAt
+                  ? day.date < activeGroup.joinedAt.split('T')[0]
+                  : false;
 
                 return (
                   <div
@@ -286,29 +302,32 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
                     className={clsx(
                       'aspect-square rounded-lg flex flex-col items-center justify-center text-sm relative transition',
                       isToday && 'ring-2 ring-indigo-500',
-                      day.isHolidayLesson && 'bg-red-100 dark:bg-red-900/30',
-                      day.isLessonDay && !day.isHoliday && 'bg-emerald-100 dark:bg-emerald-900/30',
-                      day.isHoliday && !day.isLessonDay && 'bg-orange-50 dark:bg-orange-900/20',
+                      isBeforeJoined && 'opacity-40',
+                      day.isHolidayLesson && !isBeforeJoined && 'bg-red-100 dark:bg-red-900/30',
+                      day.isLessonDay && !day.isHoliday && !isBeforeJoined && 'bg-emerald-100 dark:bg-emerald-900/30',
+                      day.isHoliday && !day.isLessonDay && !isBeforeJoined && 'bg-orange-50 dark:bg-orange-900/20',
                       !day.isLessonDay && !day.isHoliday && 'bg-gray-50 dark:bg-gray-700/30',
+                      isBeforeJoined && day.isLessonDay && 'bg-gray-100 dark:bg-gray-600/30',
                     )}
-                    title={day.holidayName || (day.isLessonDay ? 'Dars kuni' : '')}
+                    title={isBeforeJoined ? 'Qo\'shilishdan oldin' : day.holidayName || (day.isLessonDay ? 'Dars kuni' : '')}
                   >
                     <span className={clsx(
                       'font-medium',
-                      day.isHolidayLesson && 'text-red-700 dark:text-red-300 line-through',
-                      day.isLessonDay && !day.isHoliday && 'text-emerald-700 dark:text-emerald-300',
-                      day.isHoliday && !day.isLessonDay && 'text-orange-600 dark:text-orange-300',
-                      !day.isLessonDay && !day.isHoliday && 'text-gray-400 dark:text-gray-500',
+                      isBeforeJoined && 'text-gray-300 dark:text-gray-600',
+                      !isBeforeJoined && day.isHolidayLesson && 'text-red-700 dark:text-red-300 line-through',
+                      !isBeforeJoined && day.isLessonDay && !day.isHoliday && 'text-emerald-700 dark:text-emerald-300',
+                      !isBeforeJoined && day.isHoliday && !day.isLessonDay && 'text-orange-600 dark:text-orange-300',
+                      !isBeforeJoined && !day.isLessonDay && !day.isHoliday && 'text-gray-400 dark:text-gray-500',
                     )}>
                       {dateNum}
                     </span>
-                    {day.isLessonDay && !day.isHoliday && (
+                    {!isBeforeJoined && day.isLessonDay && !day.isHoliday && (
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400">●</span>
                     )}
-                    {day.isHolidayLesson && (
+                    {!isBeforeJoined && day.isHolidayLesson && (
                       <Umbrella className="w-3 h-3 text-red-500 absolute top-0.5 right-0.5" />
                     )}
-                    {day.isHoliday && !day.isLessonDay && (
+                    {!isBeforeJoined && day.isHoliday && !day.isLessonDay && (
                       <span className="text-[10px] text-orange-500">🏖</span>
                     )}
                   </div>
@@ -330,6 +349,12 @@ export default function CalendarPage({ studentId }: { studentId?: number }) {
                 <div className="w-3 h-3 rounded bg-orange-50 dark:bg-orange-900/20 border border-orange-200"></div>
                 Bayram/dam olish
               </div>
+              {activeGroup.isProRata && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                  <div className="w-3 h-3 rounded bg-gray-100 dark:bg-gray-600/30 opacity-40 border border-gray-300"></div>
+                  Qo'shilishdan oldin
+                </div>
+              )}
             </div>
           </div>
 

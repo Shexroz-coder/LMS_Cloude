@@ -647,7 +647,7 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
   studentId: number; onClose: () => void; onEdit: () => void;
 }) => {
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'info' | 'attendance' | 'grades' | 'payments'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'attendance' | 'payments'>('info');
   const [editingJoinedAt, setEditingJoinedAt] = useState<{ groupId: number; groupName: string; current: string } | null>(null);
   const [joinedAtValue, setJoinedAtValue] = useState('');
   const [savingJoinedAt, setSavingJoinedAt] = useState(false);
@@ -655,6 +655,18 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
   const { data: s, isLoading } = useQuery(
     ['student-detail', studentId],
     () => api.get(`/students/${studentId}`).then(r => r.data.data)
+  );
+
+  const { data: attendanceData, isLoading: attendanceLoading } = useQuery(
+    ['student-attendance', studentId],
+    () => api.get(`/attendance/student/${studentId}`).then(r => r.data.data),
+    { enabled: activeTab === 'attendance' }
+  );
+
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery(
+    ['student-payments', studentId],
+    () => api.get(`/payments/student/${studentId}`).then(r => r.data.data),
+    { enabled: activeTab === 'payments' }
   );
 
   const saveJoinedAt = async () => {
@@ -677,7 +689,6 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
   const tabs = [
     { key: 'info' as const, label: "Ma'lumot", icon: UserCheck },
     { key: 'attendance' as const, label: 'Davomat', icon: CheckCircle },
-    { key: 'grades' as const, label: 'Baholar', icon: TrendingUp },
     { key: 'payments' as const, label: "To'lovlar", icon: CreditCard },
   ];
 
@@ -895,13 +906,94 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
               )}
 
               {activeTab === 'attendance' && (
-                <EmptyTab icon={Clock} text="Davomat tarixi" sub="Darslar qo'shilganidan keyin ko'rinadi" />
-              )}
-              {activeTab === 'grades' && (
-                <EmptyTab icon={TrendingUp} text="Baholar tarixi" sub="Baholar qo'yilganidan keyin ko'rinadi" />
+                attendanceLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+                  </div>
+                ) : !attendanceData?.records || attendanceData.records.length === 0 ? (
+                  <EmptyTab icon={Clock} text="Davomat tarixi" sub="Darslar qo'shilganidan keyin ko'rinadi" />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-4 px-3 py-2 bg-gradient-to-r from-blue-50 to-blue-50 rounded-lg border border-blue-100">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Jami darslar</p>
+                        <p className="text-lg font-bold text-blue-600">{attendanceData.total}</p>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Keldi</p>
+                        <p className="text-lg font-bold text-green-600">{attendanceData.present}</p>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Davomat %</p>
+                        <p className="text-lg font-bold text-emerald-600">{attendanceData.rate}%</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {attendanceData.records.map((record: any, idx: number) => {
+                        const statusEmoji = record.status === 'PRESENT' ? '✅' : record.status === 'ABSENT' ? '❌' : '🕐';
+                        const statusColor = record.status === 'PRESENT' ? 'text-green-600' : record.status === 'ABSENT' ? 'text-red-600' : 'text-amber-600';
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-800">{record.lesson.group.name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{record.lesson.topic || 'Mavzu ko\'rsatilmagan'}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600">{format(new Date(record.lesson.date), 'd MMM')}</span>
+                              <span className={clsx('text-lg', statusColor)}>{statusEmoji}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
               )}
               {activeTab === 'payments' && (
-                <EmptyTab icon={CreditCard} text="To'lovlar tarixi" sub="To'lovlar amalga oshirilganidan keyin ko'rinadi" />
+                paymentsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+                  </div>
+                ) : !paymentsData?.payments || paymentsData.payments.length === 0 ? (
+                  <EmptyTab icon={CreditCard} text="To'lovlar tarixi" sub="To'lovlar amalga oshirilganidan keyin ko'rinadi" />
+                ) : (
+                  <div className="space-y-3">
+                    {paymentsData.balance && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-3 rounded-lg bg-green-50 border border-green-100">
+                          <p className="text-xs text-green-600 font-medium mb-0.5">Balans</p>
+                          <p className="text-lg font-bold text-green-700">{formatMoney(paymentsData.balance.balance)}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                          <p className="text-xs text-red-600 font-medium mb-0.5">Qarz</p>
+                          <p className="text-lg font-bold text-red-700">{formatMoney(paymentsData.balance.debt)}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentsData.nextDueDate && (
+                      <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
+                        <p className="text-xs text-amber-600 font-medium mb-0.5">Keyingi to'lov sanasi</p>
+                        <p className="text-sm font-semibold text-amber-700">{format(new Date(paymentsData.nextDueDate), 'd-MMMM yyyy')}</p>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-100 pt-3">
+                      <h4 className="text-xs font-bold text-gray-700 mb-2 px-1">To'lov tarixi</h4>
+                      <div className="space-y-1">
+                        {paymentsData.payments.map((payment: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-800">{formatMoney(payment.amount)}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{payment.description || 'To\'lov'}</p>
+                            </div>
+                            <span className="text-xs font-medium text-gray-600">{format(new Date(payment.paidAt), 'd MMM')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
               )}
             </div>
           </>

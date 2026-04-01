@@ -7,6 +7,7 @@ import { backToMenu } from '../utils/keyboards';
 import { formatMoney, formatDate, paymentMethodLabel, escapeHtml, brandHeader, brandFooter } from '../utils/format';
 import prisma from '../../lib/prisma';
 import { InlineKeyboard } from 'grammy';
+import { countLessonsInMonth, countStandardLessonsInMonth, countLessonsInMonthFromDate } from '../../utils/schedule.utils';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -71,18 +72,71 @@ export async function handlePayments(ctx: BotContext, studentId?: number) {
       text += `💳 Balans: <b>0 so'm</b>\n`;
     }
 
-    // ── Kurslar va narxlar ──
+    // ── Kurslar, narxlar va dars hisob-kitobi ──
     if (calc && calc.groups.length > 0) {
-      text += `\n📚 <b>Kurslar va narxlar</b>\n`;
+      text += `\n📚 <b>Kurslar va hisob-kitob</b>\n`;
       text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
-      for (const g of calc.groups) {
-        text += `├ 📖 ${escapeHtml(g.courseName)}\n`;
-        text += `│    ${escapeHtml(g.groupName)} — <b>${formatMoney(g.monthlyPrice)}</b>/oy\n`;
+      // Har bir kurs uchun batafsil
+      const student = await prisma.student.findUnique({
+        where: { id: studentId! },
+        include: {
+          groupStudents: {
+            where: { status: 'ACTIVE' },
+            include: {
+              group: {
+                include: {
+                  course: { select: { name: true, monthlyPrice: true } },
+                  schedules: { select: { daysOfWeek: true } },
+                }
+              }
+            }
+          }
+        }
+      });
+
+      let totalAdjusted = 0;
+
+      if (student) {
+        for (const gs of student.groupStudents) {
+          const course = gs.group.course;
+          const basePrice = Number(course.monthlyPrice);
+          const uniqueDays = [...new Set(gs.group.schedules.flatMap(s => s.daysOfWeek))];
+          const standardLessons = await countStandardLessonsInMonth(now.getFullYear(), now.getMonth(), uniqueDays);
+          const actualLessons = await countLessonsInMonth(now.getFullYear(), now.getMonth(), uniqueDays);
+          const holidayLessons = standardLessons - actualLessons;
+          const pricePerLesson = standardLessons > 0 ? basePrice / standardLessons : 0;
+
+          // Pro-rata tekshiruvi
+          const joinedAt = new Date(gs.joinedAt);
+          const isProRata = joinedAt.getFullYear() === now.getFullYear() && joinedAt.getMonth() === now.getMonth() && joinedAt.getDate() > 1;
+
+          let adjustedAmount: number;
+          if (isProRata) {
+            const proRataLessons = await countLessonsInMonthFromDate(now.getFullYear(), now.getMonth(), uniqueDays, joinedAt);
+            adjustedAmount = Math.round(proRataLessons * pricePerLesson);
+            text += `├ 📖 ${escapeHtml(course.name)}\n`;
+            text += `│  Narx: ${formatMoney(basePrice)}/oy\n`;
+            text += `│  📐 Pro-rata: ${joinedAt.getDate()}-${monthName}dan\n`;
+            text += `│  📅 Darslar: ${proRataLessons} ta (${standardLessons} dan)\n`;
+            text += `│  💵 <b>${formatMoney(adjustedAmount)}</b>\n`;
+          } else {
+            const holidayCredit = Math.round(holidayLessons * pricePerLesson);
+            adjustedAmount = Math.round(basePrice - holidayCredit);
+            text += `├ 📖 ${escapeHtml(course.name)}\n`;
+            text += `│  Narx: ${formatMoney(basePrice)}/oy\n`;
+            text += `│  📅 Darslar: ${actualLessons}/${standardLessons} ta\n`;
+            if (holidayLessons > 0) {
+              text += `│  🏖 Dam olish: -${holidayLessons} dars (-${formatMoney(holidayCredit)})\n`;
+            }
+            text += `│  💵 <b>${formatMoney(adjustedAmount)}</b>\n`;
+          }
+          totalAdjusted += adjustedAmount;
+        }
       }
 
       text += `└─────────────────────\n`;
-      text += `💵 Jami oylik: <b>${formatMoney(calc.totalMonthly)}</b>\n`;
+      text += `💵 Jami: <b>${formatMoney(totalAdjusted)}</b>\n`;
 
       if (calc.discountText) {
         text += `🏷 Chegirma: <b>${calc.discountText}</b>\n`;

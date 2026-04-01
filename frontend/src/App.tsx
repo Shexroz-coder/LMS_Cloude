@@ -26,7 +26,6 @@ import TeacherLayout from './components/layout/TeacherLayout';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherGroupsPage from './pages/teacher/TeacherGroupsPage';
 import AttendancePage from './pages/teacher/AttendancePage';
-import GradesPage from './pages/teacher/GradesPage';
 import CoinsPage from './pages/teacher/CoinsPage';
 import TeacherSchedulePage from './pages/teacher/TeacherSchedulePage';
 
@@ -34,7 +33,6 @@ import TeacherSchedulePage from './pages/teacher/TeacherSchedulePage';
 import StudentLayout from './components/layout/StudentLayout';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentSchedulePage from './pages/student/StudentSchedulePage';
-import StudentGradesPage from './pages/student/StudentGradesPage';
 import StudentCoinsPage from './pages/student/StudentCoinsPage';
 import StudentPaymentsPage from './pages/student/StudentPaymentsPage';
 
@@ -121,7 +119,6 @@ const App = () => {
         <Route path="schedule" element={<TeacherSchedulePage />} />
         <Route path="groups" element={<TeacherGroupsPage />} />
         <Route path="attendance" element={<AttendancePage />} />
-        <Route path="grades" element={<GradesPage />} />
         <Route path="coins" element={<CoinsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
@@ -136,7 +133,6 @@ const App = () => {
         <Route index element={<StudentDashboard />} />
         <Route path="schedule" element={<StudentSchedulePage />} />
         <Route path="calendar" element={<StudentCalendarPage />} />
-        <Route path="grades" element={<StudentGradesPage />} />
         <Route path="coins" element={<StudentCoinsPage />} />
         <Route path="payments" element={<StudentPaymentsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

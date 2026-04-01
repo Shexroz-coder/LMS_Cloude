@@ -8,7 +8,6 @@ import { studentMainMenu, parentMainMenu, adminMenu, teacherMainMenu, childrenLi
 import { escapeHtml, formatMoney, brandHeader, brandFooter } from '../utils/format';
 import { handleScheduleToday, handleScheduleWeek } from './schedule';
 import { handleAttendance } from './attendance';
-import { handleGrades } from './grades';
 import { handlePayments, handlePaymentsArchive } from './payments';
 import { handleCoins } from './coins';
 import { handleProfile } from './profile';
@@ -191,7 +190,6 @@ export async function routeCallback(ctx: BotContext) {
 
     // ── O'quvchi: Ma'lumotlar ──
     if (data === 'attendance') { await handleAttendance(ctx); return; }
-    if (data === 'grades') { await handleGrades(ctx); return; }
     if (data === 'payments') { await handlePayments(ctx); return; }
     if (data === 'coins') { await handleCoins(ctx); return; }
     if (data === 'leaderboard') { await handleLeaderboard(ctx); return; }
@@ -224,11 +222,6 @@ export async function routeCallback(ctx: BotContext) {
     if (data.startsWith('child_attendance_')) {
       const childId = parseInt(data.replace('child_attendance_', ''));
       await handleAttendance(ctx, childId);
-      return;
-    }
-    if (data.startsWith('child_grades_')) {
-      const childId = parseInt(data.replace('child_grades_', ''));
-      await handleGrades(ctx, childId);
       return;
     }
     if (data.startsWith('child_payments_')) {

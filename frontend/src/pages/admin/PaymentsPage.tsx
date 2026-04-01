@@ -61,6 +61,8 @@ interface StudentObligation {
   promiseDate: string | null;
   promiseAmount: number | null;
   promiseNote: string | null;
+  isProRata?: boolean;
+  proRataLessons?: number;
 }
 
 const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
@@ -436,11 +438,16 @@ const PaymentsPage = () => {
                         <div className="text-xs text-gray-400 dark:text-gray-500">{o.courseName}</div>
                       </td>
                       <td>
-                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                        <div className="font-semibold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-2">
                           {o.holidayCredit > 0 ? formatMoney(o.adjustedAmount) : formatMoney(o.monthlyAmount)}
+                          {o.isProRata && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                              📐 Pro-rata
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-gray-400 dark:text-gray-500">
-                          {o.lessonsPerMonth}/{o.standardLessons} dars · {formatMoney(o.pricePerLesson)}/dars
+                          {o.isProRata ? `📐 Pro-rata: ${o.proRataLessons} dars` : `${o.lessonsPerMonth}/${o.standardLessons} dars`} · {formatMoney(o.pricePerLesson)}/dars
                         </div>
                         {o.holidayCredit > 0 && (
                           <div className="text-[11px] text-green-600 font-medium">🏖 -{formatMoney(o.holidayCredit)} dam olish</div>

@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Users, UserCheck, BookOpen, Calendar, ClipboardCheck,
-  Star, CreditCard, BarChart3, Wallet, Coins, Bell,
+  CreditCard, BarChart3, Wallet, Coins, Bell,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
   ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff
 } from 'lucide-react';
@@ -72,7 +72,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/admin/students', icon: Users, label: t('nav.students') },
           { to: '/admin/teachers', icon: UserCheck, label: t('nav.teachers') },
           { to: '/admin/groups', icon: BookOpen, label: t('nav.groups') },
-          { to: '/admin/courses', icon: Star, label: t('nav.courses') },
+          { to: '/admin/courses', icon: BookOpen, label: t('nav.courses') },
           { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
           { to: '/admin/holidays', icon: CalendarOff, label: 'Bayramlar' },
         ]
@@ -107,7 +107,6 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/teacher/schedule', icon: Calendar, label: t('nav.schedule') },
           { to: '/teacher/groups', icon: BookOpen, label: t('nav.groups') },
           { to: '/teacher/attendance', icon: ClipboardCheck, label: t('nav.attendance') },
-          { to: '/teacher/grades', icon: Star, label: t('nav.grades') },
           { to: '/teacher/coins', icon: Coins, label: t('nav.coins') },
         ]
       },
@@ -121,7 +120,6 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
       { to: '/student', icon: LayoutDashboard, label: t('nav.dashboard') },
       { to: '/student/schedule', icon: Calendar, label: t('nav.schedule') },
       { to: '/student/calendar', icon: CalendarOff, label: 'Dars Kalendari' },
-      { to: '/student/grades', icon: Star, label: t('nav.grades') },
       { to: '/student/coins', icon: Coins, label: t('nav.coins') },
       { to: '/student/payments', icon: CreditCard, label: t('nav.payments') },
       { to: '/student/notifications', icon: Bell, label: t('nav.notifications') },

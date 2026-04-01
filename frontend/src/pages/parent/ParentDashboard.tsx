@@ -5,7 +5,7 @@ import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import clsx from 'clsx';
 import {
-  CreditCard, Star, Calendar, Users, TrendingDown, Wallet,
+  CreditCard, Calendar, Users, TrendingDown, Wallet,
   ChevronRight, BookOpen,
 } from 'lucide-react';
 
@@ -14,11 +14,6 @@ const DAYS = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
 
 // ─── Child data hook ─────────────────────────────────────────────────────────
 function useChildData(studentId: number | null) {
-  const { data: gradesData } = useQuery(['parent-grades', studentId], async () => {
-    const r = await api.get(`/grades/student/${studentId}?limit=10`);
-    return r.data?.data;
-  }, { enabled: !!studentId });
-
   const { data: paymentsData } = useQuery(['parent-payments', studentId], async () => {
     const r = await api.get(`/payments/student/${studentId}`);
     return r.data?.data;
@@ -35,20 +30,16 @@ function useChildData(studentId: number | null) {
     return Array.isArray(d) ? d : d?.groups || [];
   }, { enabled: !!studentId });
 
-  return { gradesData, paymentsData, attendanceData, groups };
+  return { paymentsData, attendanceData, groups };
 }
 
 // ─── Child Panel ─────────────────────────────────────────────────────────────
 function ChildPanel({ studentId }: { studentId: number }) {
   const now = new Date();
   const todayDay = now.getDay();
-  const { gradesData, paymentsData, attendanceData, groups } = useChildData(studentId);
+  const { paymentsData, attendanceData, groups } = useChildData(studentId);
 
-  const avgScore = gradesData?.stats?.avgScore || 0;
   const balance = paymentsData?.balance;
-
-  const recentGrades: { id: number; score: number; type: string; lesson: { topic: string; date: string } }[] =
-    gradesData?.grades?.slice(0, 5) || [];
 
   const recentPayments: { id: number; amount: number; paidAt: string; paymentMethod: string }[] =
     paymentsData?.payments?.slice(0, 3) || [];
@@ -104,11 +95,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
   return (
     <div className="space-y-4">
       {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card text-center p-4">
-          <div className="text-2xl font-bold text-indigo-600">{avgScore.toFixed(0)}</div>
-          <p className="text-xs text-gray-400 mt-1">O'rtacha ball</p>
-        </div>
+      <div className="grid grid-cols-2 gap-3">
         <div className="card text-center p-4">
           <div className={clsx('text-2xl font-bold',
             attendancePct >= 80 ? 'text-emerald-600' :
@@ -156,36 +143,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {/* Recent grades */}
-        <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <Star size={15} className="text-amber-500" /> So'nggi baholar
-          </h3>
-          {recentGrades.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Hali baho yo'q</p>
-          ) : (
-            <div className="space-y-2">
-              {recentGrades.map((g) => {
-                const score = Number(g.score);
-                const color =
-                  score >= 91 ? 'text-violet-600' :
-                  score >= 76 ? 'text-emerald-600' :
-                  score >= 61 ? 'text-amber-600' : 'text-red-500';
-                return (
-                  <div key={g.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <div>
-                      <p className="text-sm text-gray-700 font-medium">{g.lesson?.topic}</p>
-                      <p className="text-xs text-gray-400">{g.type}</p>
-                    </div>
-                    <span className={clsx('font-bold text-lg', color)}>{score}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
+      <div className="grid grid-cols-1 gap-4">
         {/* Attendance */}
         <div className="card">
           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">

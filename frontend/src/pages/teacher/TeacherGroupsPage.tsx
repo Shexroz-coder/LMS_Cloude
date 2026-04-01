@@ -98,12 +98,6 @@ const TeacherGroupsPage = () => {
               >
                 📋 Davomat
               </Link>
-              <Link
-                to={`/teacher/grades?groupId=${group.id}`}
-                className="flex-1 text-center text-xs font-medium bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 py-2 rounded-xl transition"
-              >
-                ⭐ Baholar
-              </Link>
             </div>
           </div>
         ))}

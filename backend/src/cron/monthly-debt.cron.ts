@@ -8,7 +8,7 @@ import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
 import { escapeHtml } from '../telegram/utils/format';
-import { countStandardLessonsInMonth, countLessonsInMonth } from '../utils/schedule.utils';
+import { countStandardLessonsInMonth, countLessonsInMonth, countLessonsInMonthFromDate, countStandardLessonsFromDate } from '../utils/schedule.utils';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -78,7 +78,7 @@ export async function calculateMonthlyDebts() {
         }
       }
 
-      // MonthlyFee yozish — har bir guruh uchun dam olish kunlarini hisobga olgan holda
+      // MonthlyFee yozish — har bir guruh uchun dam olish kunlarini va pro-rata hisobga olgan holda
       let discountDistributed = 0;
       for (let idx = 0; idx < student.groupStudents.length; idx++) {
         const gs = student.groupStudents[idx];
@@ -98,7 +98,18 @@ export async function calculateMonthlyDebts() {
         // 1 dars narxi = chegirmali oylik / standart darslar
         const pricePerLesson = standardLessons > 0 ? finalAmount / standardLessons : 0;
         const holidayCredit = Math.round(holidayLessons * pricePerLesson);
-        const adjustedAmount = Math.round(finalAmount - holidayCredit);
+        let adjustedAmount = Math.round(finalAmount - holidayCredit);
+
+        // ── Pro-rata: o'quvchi shu oyda qo'shilgan bo'lsa, faqat qo'shilgan kundan hisoblash ──
+        const joinedAt = new Date(gs.joinedAt);
+        let isProRata = false;
+        let proRataLessons = 0;
+        if (joinedAt.getFullYear() === currentYear && joinedAt.getMonth() === currentMonth && joinedAt.getDate() > 1) {
+          isProRata = true;
+          // Qo'shilgan kundan boshlab darslar soni (bayramlar chiqariladi)
+          proRataLessons = await countLessonsInMonthFromDate(currentYear, currentMonth, uniqueDays, joinedAt);
+          adjustedAmount = Math.round(proRataLessons * pricePerLesson);
+        }
 
         totalAdjusted += adjustedAmount;
         totalHolidayCredit += holidayCredit;
@@ -116,10 +127,10 @@ export async function calculateMonthlyDebts() {
             discountAmount: discountPart,
             finalAmount,
             standardLessons,
-            lessonsCount: actualLessons,
+            lessonsCount: isProRata ? proRataLessons : actualLessons,
             holidayLessons,
             adjustedAmount,
-            holidayCredit,
+            holidayCredit: isProRata ? 0 : holidayCredit,
           },
           create: {
             studentId: student.id,
@@ -129,12 +140,16 @@ export async function calculateMonthlyDebts() {
             discountAmount: discountPart,
             finalAmount,
             standardLessons,
-            lessonsCount: actualLessons,
+            lessonsCount: isProRata ? proRataLessons : actualLessons,
             holidayLessons,
             adjustedAmount,
-            holidayCredit,
+            holidayCredit: isProRata ? 0 : holidayCredit,
           },
         });
+
+        if (isProRata) {
+          console.log(`  📐 Pro-rata: ${student.user.fullName} — ${gs.group.course.name}: ${proRataLessons}/${actualLessons} dars, ${formatMoney(adjustedAmount)}`);
+        }
       }
 
       // Qarz — moslashtirilgan (dam olish kunlari hisobga olingan) summa
@@ -161,7 +176,7 @@ export async function calculateMonthlyDebts() {
         create: { studentId: student.id, balance: 0, debt: monthlyFee, lastUpdated: new Date() },
       });
 
-      // Telegram xabar — qarz haqida (dam olish kunlari bilan)
+      // Telegram xabar — qarz haqida (dam olish kunlari + pro-rata bilan)
       if (newDebt > 0 && student.user.telegramChatId) {
         try {
           let msg = `📋 <b>Oylik hisob — ${monthName}</b>\n\n`;
@@ -169,6 +184,13 @@ export async function calculateMonthlyDebts() {
           msg += `💰 Oylik to'lov: <b>${formatMoney(monthlyFee)}</b>\n`;
           if (discount > 0) msg += `🏷 Chegirma: -${formatMoney(discount)}\n`;
           if (totalHolidayCredit > 0) msg += `🏖 Dam olish kunlari tushimi: -${formatMoney(totalHolidayCredit)}\n`;
+          // Pro-rata qo'shilganlarni ko'rsatish
+          for (const gs of student.groupStudents) {
+            const jd = new Date(gs.joinedAt);
+            if (jd.getFullYear() === currentYear && jd.getMonth() === currentMonth && jd.getDate() > 1) {
+              msg += `📐 ${gs.group.course.name}: ${jd.getDate()}-${monthName}dan boshlab (pro-rata)\n`;
+            }
+          }
           msg += `\n🔴 Sizning qarzingiz: <b>${formatMoney(newDebt)}</b>\n\n`;
           msg += `⚠️ Iltimos, to'lovni o'z vaqtida amalga oshiring.`;
 
