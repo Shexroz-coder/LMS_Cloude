@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
   UserCheck, Plus, Search, Edit2, Trash2, X,
-  Phone, BookOpen, Percent, DollarSign, Eye
+  Phone, BookOpen, Percent, DollarSign, Eye, BarChart3
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../api/axios';
 import { clsx } from 'clsx';
+import TeacherAttendanceReport from '../../components/TeacherAttendanceReport';
 
 interface Teacher {
   id: number; userId: number;
@@ -24,6 +25,7 @@ const TeachersPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Teacher | null>(null);
+  const [showAttendanceReport, setShowAttendanceReport] = useState(false);
 
   const { data, isLoading } = useQuery(
     ['teachers', search],
@@ -42,7 +44,14 @@ const TeachersPage = () => {
   );
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
+      {/* Attendance Report Section */}
+      {showAttendanceReport && (
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <TeacherAttendanceReport />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -51,9 +60,14 @@ const TeachersPage = () => {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Jami {teachers.length} ta ustoz</p>
         </div>
-        <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-1.5 text-sm self-start sm:self-auto">
-          <Plus className="w-4 h-4" /> Yangi ustoz
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 self-start sm:self-auto">
+          <button onClick={() => setShowAttendanceReport(!showAttendanceReport)} className="btn-secondary flex items-center gap-1.5 text-sm">
+            <BarChart3 className="w-4 h-4" /> Davomat nazorati
+          </button>
+          <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-1.5 text-sm">
+            <Plus className="w-4 h-4" /> Yangi ustoz
+          </button>
+        </div>
       </div>
 
       {/* Search */}

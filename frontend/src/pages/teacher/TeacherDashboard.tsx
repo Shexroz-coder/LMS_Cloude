@@ -207,17 +207,17 @@ const TeacherDashboard = () => {
         </div>
       </div>
 
-      {/* ── Oylik ma'lumotlari ──────────────────────────── */}
+      {/* ── Ish haqi ma'lumotlari ──────────────────────────── */}
       {salaryData && (
         <div className="card dark:bg-gray-800 dark:border-gray-700">
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center text-sm">💰</span>
-            Oylik ma'lumotlari — {now.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
+            Ish haqi ma'lumotlari — {now.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
           </h3>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-violet-600 dark:text-violet-400 font-medium uppercase">Oylik turi</p>
+              <p className="text-[10px] text-violet-600 dark:text-violet-400 font-medium uppercase">Ish haqi turi</p>
               <p className="text-sm font-bold text-violet-800 dark:text-violet-300 mt-1">
                 {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                   ? `${salaryData.salaryValue}% to'lovdan`

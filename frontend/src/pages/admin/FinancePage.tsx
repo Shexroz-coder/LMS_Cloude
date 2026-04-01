@@ -258,7 +258,7 @@ export default function FinancePage() {
           { key: 'overview',  label: "Ko'rinish",     accent: 'indigo' },
           { key: 'income',    label: `💳 Kirimlar (${payments.length})`, accent: 'emerald' },
           { key: 'expenses',  label: `💸 Xarajatlar (${expensesList.length})`, accent: 'red' },
-          { key: 'salaries',  label: `👨‍🏫 Oyliklar (${salaryData.salaries.length})`, accent: 'blue' },
+          { key: 'salaries',  label: `👨‍🏫 Ish haqi (${salaryData.salaries.length})`, accent: 'blue' },
           { key: 'archive',   label: `📦 Arxiv (${allTime?.expenseCount || 0})`, accent: 'amber' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as typeof tab)}
@@ -576,7 +576,7 @@ export default function FinancePage() {
                   {salariesLoading ? (
                     <tr><td colSpan={6} className="text-center py-10 text-gray-400 dark:text-gray-500">Yuklanmoqda...</td></tr>
                   ) : salaryData.salaries.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-10 text-gray-400 dark:text-gray-500">Bu oyda oylik to'lanmagan</td></tr>
+                    <tr><td colSpan={6} className="text-center py-10 text-gray-400 dark:text-gray-500">Bu oyda ish haqi to'lanmagan</td></tr>
                   ) : (salaryData.salaries as SalaryRecord[]).map(s => (
                     <tr key={s.id} className="border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-5 py-3">

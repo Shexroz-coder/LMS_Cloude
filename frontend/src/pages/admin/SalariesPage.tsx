@@ -110,7 +110,7 @@ function PayModal({
           {/* Calculated amount */}
           <div className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl p-3">
             <div>
-              <p className="text-xs text-gray-500">Hisoblangan oylik</p>
+              <p className="text-xs text-gray-500">Hisoblab chiqqan ish haqi</p>
               <p className="font-bold text-red-700">{fmt(teacher.calculatedSalary)}</p>
             </div>
             <div className="text-right">
@@ -400,7 +400,7 @@ export default function SalariesPage() {
       <div className="rounded-2xl bg-gradient-to-r from-red-600 via-red-700 to-black p-5 text-white">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold">Ustoz Oyliqlari</h1>
+            <h1 className="text-xl font-bold">Ustoz Ish haqi</h1>
             <p className="text-red-200 text-sm mt-0.5">Live hisob-kitob · {monthLabel}</p>
           </div>
           <select
@@ -418,7 +418,7 @@ export default function SalariesPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             {[
               { label: 'Kutilayotgan daromad', value: summary.totalRevenue,    icon: TrendingUp,  color: 'text-emerald-200' },
-              { label: 'Hisoblangan oylik',    value: summary.totalCalculated, icon: Wallet,      color: 'text-amber-200'   },
+              { label: 'Hisoblab chiqqan ish haqi',    value: summary.totalCalculated, icon: Wallet,      color: 'text-amber-200'   },
               { label: "To'langan",            value: summary.totalPaid,       icon: CheckCircle, color: 'text-emerald-300' },
               { label: 'Kutilmoqda',           value: summary.totalPending,    icon: Clock,       color: 'text-red-300'     },
             ].map(s => (
@@ -440,7 +440,7 @@ export default function SalariesPage() {
         <div>
           <p className="font-semibold mb-0.5">Live hisob-kitob qanday ishlaydi?</p>
           <p className="text-xs text-blue-600">
-            Har bir ustoz uchun uning guruhlaridagi <strong>faol o'quvchilar</strong> kutilayotgan oylik
+            Har bir ustoz uchun uning guruhlaridagi <strong>faol o'quvchilar</strong> kutilayotgan ish haqi
             to'lovlari hisoblanadi (chegirmalar inobatga olinadi), keyin ustoz foizi yoki soatbay narxiga ko'paytiriladi.
             Qatorni bosib guruhlar bo'yicha tafsilotni ko'ring.
           </p>
@@ -450,7 +450,7 @@ export default function SalariesPage() {
       {/* Table */}
       <div className="card dark:bg-gray-800 overflow-hidden p-0">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="font-bold text-gray-800 dark:text-gray-100">Ustozlar oyliqlari — {monthLabel}</h3>
+          <h3 className="font-bold text-gray-800 dark:text-gray-100">Ustozlar ish haqi — {monthLabel}</h3>
           <span className="text-xs text-gray-400 dark:text-gray-500">{teachers.length} ta ustoz</span>
         </div>
         <div className="overflow-x-auto">
@@ -460,7 +460,7 @@ export default function SalariesPage() {
                 <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Ustoz</th>
                 <th className="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Ish haqi turi</th>
                 <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Daromad asosi</th>
-                <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Hisoblangan</th>
+                <th className="text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Hisoblab chiqqan</th>
                 <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Holat</th>
                 <th className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-5 py-3">Amal</th>
               </tr>
@@ -497,7 +497,7 @@ export default function SalariesPage() {
                 <p className="font-bold text-gray-700 dark:text-gray-300">{fmt(summary.totalRevenue)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 dark:text-gray-500">Jami oylik</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Jami ish haqi</p>
                 <p className="font-bold text-red-700 dark:text-red-400">{fmt(summary.totalCalculated)}</p>
               </div>
               {summary.totalPaid > 0 && (

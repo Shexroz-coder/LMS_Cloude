@@ -440,3 +440,117 @@ export const getStudentAttendance = async (req: AuthRequest, res: Response): Pro
     sendError(res, 'Davomatni olishda xato.', 500);
   }
 };
+
+// ══════════════════════════════════════════════
+// GET /attendance/teacher-report — Ustozlar davomat nazorati (ADMIN)
+// ══════════════════════════════════════════════
+export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { date, month } = req.query as Record<string, string>;
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (month) {
+      // month format: YYYY-MM
+      const [year, monthNum] = month.split('-').map(Number);
+      startDate = new Date(year, monthNum - 1, 1);
+      endDate = new Date(year, monthNum, 0, 23, 59, 59);
+    } else if (date) {
+      // date format: YYYY-MM-DD
+      const dateObj = new Date(date);
+      startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0);
+      endDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59);
+    } else {
+      // Default to today
+      const today = new Date();
+      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    }
+
+    // Get all lessons for the date range with attendance records
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        date: { gte: startDate, lte: endDate },
+        status: { in: ['COMPLETED', 'SCHEDULED'] }
+      },
+      include: {
+        group: {
+          include: {
+            teacher: { include: { user: { select: { id: true, fullName: true } } } },
+            course: { select: { name: true } },
+            groupStudents: { where: { status: 'ACTIVE' }, select: { id: true } }
+          }
+        },
+        attendance: { select: { id: true, status: true } },
+        _count: { select: { attendance: true } }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    // Group by teacher
+    interface TeacherReport {
+      teacherId: number;
+      teacherName: string;
+      lessons: Array<{
+        lessonId: number;
+        date: Date;
+        groupName: string;
+        courseName: string;
+        totalStudents: number;
+        markedCount: number;
+        isMarked: boolean;
+      }>;
+    }
+
+    const reportMap = new Map<number, TeacherReport>();
+
+    for (const lesson of lessons) {
+      const teacherId = lesson.group.teacher.id;
+      const teacherName = lesson.group.teacher.user.fullName;
+
+      if (!reportMap.has(teacherId)) {
+        reportMap.set(teacherId, {
+          teacherId,
+          teacherName,
+          lessons: []
+        });
+      }
+
+      const report = reportMap.get(teacherId)!;
+      report.lessons.push({
+        lessonId: lesson.id,
+        date: lesson.date,
+        groupName: lesson.group.name,
+        courseName: lesson.group.course.name,
+        totalStudents: lesson.group.groupStudents.length,
+        markedCount: lesson._count.attendance,
+        isMarked: lesson._count.attendance > 0
+      });
+    }
+
+    // Convert map to array
+    const teachers = Array.from(reportMap.values());
+
+    // Calculate summary
+    const totalLessons = lessons.length;
+    const markedLessons = lessons.filter(l => l._count.attendance > 0).length;
+    const unmarkedLessons = totalLessons - markedLessons;
+
+    sendSuccess(res, {
+      summary: {
+        totalLessons,
+        markedLessons,
+        unmarkedLessons,
+        dateRange: {
+          from: startDate.toISOString().split('T')[0],
+          to: endDate.toISOString().split('T')[0]
+        }
+      },
+      teachers: teachers.sort((a, b) => a.teacherName.localeCompare(b.teacherName))
+    });
+  } catch (err) {
+    console.error('getTeacherAttendanceReport error:', err);
+    sendError(res, 'Davomat hisovatini olishda xato.', 500);
+  }
+};

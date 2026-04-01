@@ -657,13 +657,13 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
     () => api.get(`/students/${studentId}`).then(r => r.data.data)
   );
 
-  const { data: attendanceData, isLoading: attendanceLoading } = useQuery(
+  const { data: attendanceData, isLoading: attendanceLoading, isError: attendanceError } = useQuery(
     ['student-attendance', studentId],
     () => api.get(`/attendance/student/${studentId}`).then(r => r.data.data),
-    { enabled: activeTab === 'attendance' }
+    { enabled: activeTab === 'attendance', staleTime: 30000 }
   );
 
-  const { data: paymentsData, isLoading: paymentsLoading } = useQuery(
+  const { data: paymentsData, isLoading: paymentsLoading, isError: paymentsError } = useQuery(
     ['student-payments', studentId],
     () => api.get(`/payments/student/${studentId}`).then(r => r.data.data),
     { enabled: activeTab === 'payments' }
@@ -731,7 +731,7 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
             <div className="grid grid-cols-3 border-b border-gray-100">
               {[
                 { label: 'Balans', value: formatMoney(Number(s.balance?.balance || 0)), color: 'text-emerald-600' },
-                { label: 'Qarz', value: Number(s.balance?.debt || 0) > 0 ? formatMoney(Number(s.balance?.debt)) : '0', color: Number(s.balance?.debt || 0) > 0 ? 'text-red-500' : 'text-gray-400' },
+                { label: 'Qarz', value: Number(s.balance?.debt || 0) > 0 ? formatMoney(Number(s.balance?.debt || 0)) : '0', color: Number(s.balance?.debt || 0) > 0 ? 'text-red-500' : 'text-gray-400' },
                 { label: 'Coin', value: String(s.coinBalance), color: 'text-amber-500', icon: Coins },
               ].map((stat, i) => (
                 <div key={i} className={clsx('text-center py-3', i < 2 && 'border-r border-gray-100')}>
@@ -865,14 +865,14 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                       {s.parent && (
                         <InfoRow icon={Phone} label={`${s.parent.fullName} (${s.parent.phone})`} />
                       )}
-                      {s.discountType && (
+                      {s.discountType && s.discountValue ? (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-gray-400 text-xs w-20 flex-shrink-0">Chegirma:</span>
                           <span className="badge badge-yellow text-xs">
-                            {s.discountType === 'PERCENTAGE' ? `${s.discountValue}%` : formatMoney(Number(s.discountValue))}
+                            {s.discountType === 'PERCENTAGE' ? `${s.discountValue}%` : formatMoney(Number(s.discountValue || 0))}
                           </span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </Section>
 
@@ -883,7 +883,7 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                         {[
                           { label: 'Jami darslar', value: s.stats.totalLessons || 0, icon: BookOpen, color: 'text-blue-500' },
                           { label: 'Keldi/Kelmadi', value: `${s.stats.presentCount || 0}/${s.stats.totalLessons || 0}`, icon: CheckCircle, color: 'text-green-500' },
-                          { label: "O'rtacha baho", value: (s.stats.avgScore || 0).toFixed(1), icon: TrendingUp, color: 'text-purple-500' },
+                          { label: 'Kechikdi', value: s.stats.lateCount || 0, icon: Clock, color: 'text-amber-500' },
                           { label: "Jami to'lov", value: formatMoney(s.stats.totalPayments || 0), icon: CreditCard, color: 'text-emerald-500' },
                         ].map((stat, i) => (
                           <div key={i} className="p-3 rounded-xl bg-gray-50">
@@ -910,6 +910,8 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                   <div className="flex items-center justify-center py-12">
                     <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
                   </div>
+                ) : attendanceError ? (
+                  <EmptyTab icon={AlertCircle} text="Xato yuz berdi" sub="Davomat ma'lumotini yuklashda xato" />
                 ) : !attendanceData?.records || attendanceData.records.length === 0 ? (
                   <EmptyTab icon={Clock} text="Davomat tarixi" sub="Darslar qo'shilganidan keyin ko'rinadi" />
                 ) : (
@@ -954,6 +956,8 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                   <div className="flex items-center justify-center py-12">
                     <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
                   </div>
+                ) : paymentsError ? (
+                  <EmptyTab icon={AlertCircle} text="Xato yuz berdi" sub="To'lovlar ma'lumotini yuklashda xato" />
                 ) : !paymentsData?.payments || paymentsData.payments.length === 0 ? (
                   <EmptyTab icon={CreditCard} text="To'lovlar tarixi" sub="To'lovlar amalga oshirilganidan keyin ko'rinadi" />
                 ) : (
@@ -962,11 +966,11 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="p-3 rounded-lg bg-green-50 border border-green-100">
                           <p className="text-xs text-green-600 font-medium mb-0.5">Balans</p>
-                          <p className="text-lg font-bold text-green-700">{formatMoney(paymentsData.balance.balance)}</p>
+                          <p className="text-lg font-bold text-green-700">{formatMoney(Number(paymentsData.balance.balance || 0))}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-red-50 border border-red-100">
                           <p className="text-xs text-red-600 font-medium mb-0.5">Qarz</p>
-                          <p className="text-lg font-bold text-red-700">{formatMoney(paymentsData.balance.debt)}</p>
+                          <p className="text-lg font-bold text-red-700">{formatMoney(Number(paymentsData.balance.debt || 0))}</p>
                         </div>
                       </div>
                     )}
@@ -985,7 +989,7 @@ const StudentProfileDrawer = ({ studentId, onClose, onEdit }: {
                           <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-800">{formatMoney(payment.amount)}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{payment.description || 'To\'lov'}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{payment.note || payment.paymentMethod || 'To\'lov'}</p>
                             </div>
                             <span className="text-xs font-medium text-gray-600">{format(new Date(payment.paidAt), 'd MMM')}</span>
                           </div>

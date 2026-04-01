@@ -2,6 +2,8 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
+import bot from '../telegram/bot';
+import { escapeHtml } from '../telegram/utils/format';
 
 
 // ══════════════════════════════════════════════
@@ -63,7 +65,7 @@ export const awardCoins = async (req: AuthRequest, res: Response): Promise<void>
 
     const student = await prisma.student.findUnique({
       where: { id: parseInt(studentId) },
-      include: { user: { select: { fullName: true } } }
+      include: { user: { select: { id: true, fullName: true, telegramChatId: true } } }
     });
 
     if (!student) {
@@ -90,6 +92,75 @@ export const awardCoins = async (req: AuthRequest, res: Response): Promise<void>
       return { transaction, newBalance: newBalance.coinBalance };
     });
 
+    // O'quvchiga LMS Notification yuborish
+    try {
+      const reasonText = reason ? ` (${reason})` : '';
+      await prisma.notification.create({
+        data: {
+          userId: student.user.id,
+          title: '🎉 Tabriklaymiz!',
+          body: `Sizga ${coinAmount} ta coin taqdim etildi!${reasonText}`,
+          type: 'COIN'
+        }
+      });
+    } catch (e) {
+      console.error('❌ O\'quvchi notification xatosi:', e);
+    }
+
+    // Ota-onaga xabari yuborish (agar mavjud bo'lsa)
+    try {
+      const parent = await prisma.user.findFirst({
+        where: {
+          role: 'PARENT',
+          parentStudents: { some: { id: parseInt(studentId) } }
+        },
+        select: { id: true, fullName: true, telegramChatId: true }
+      });
+
+      if (parent) {
+        const reasonText = reason ? ` (${reason})` : '';
+        await prisma.notification.create({
+          data: {
+            userId: parent.id,
+            title: '🎯 Farzandingiz mukofot oldi',
+            body: `${student.user.fullName} ${coinAmount} ta coin oldi!${reasonText}`,
+            type: 'COIN'
+          }
+        });
+
+        // Ota-onaga Telegram xabari
+        if (parent.telegramChatId) {
+          try {
+            const msg = `🎉 <b>Farzandingiz mukofot oldi!</b>\n\n` +
+              `👤 <b>${escapeHtml(student.user.fullName)}</b>\n` +
+              `🎁 Coin: <b>${coinAmount} ta</b>\n` +
+              `📝 Sabab: ${reason ? escapeHtml(reason) : 'Yaxshi ishlash'}\n\n` +
+              `Jami balans: <b>${result.newBalance} coin</b>`;
+
+            await bot.api.sendMessage(parent.telegramChatId, msg, { parse_mode: 'HTML' });
+          } catch (e) {
+            console.error('❌ Ota-onaga Telegram xabari yuborishda xato:', e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('❌ Ota-ona notification xatosi:', e);
+    }
+
+    // O'quvchiga Telegram xabari
+    if (student.user.telegramChatId) {
+      try {
+        const msg = `🎉 <b>Tabriklaymiz!</b>\n\n` +
+          `Sizga <b>${coinAmount} ta coin</b> taqdim etildi!\n` +
+          `📝 Sabab: ${reason ? escapeHtml(reason) : 'Yaxshi ishlash'}\n\n` +
+          `Jami balans: <b>${result.newBalance} coin</b>`;
+
+        await bot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
+      } catch (e) {
+        console.error('❌ O\'quvchiga Telegram xabari yuborishda xato:', e);
+      }
+    }
+
     sendSuccess(res, result, `${amount} ta coin berildi!`, 201);
   } catch (err) {
     console.error('awardCoins error:', err);
@@ -115,7 +186,10 @@ export const deductCoins = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    const student = await prisma.student.findUnique({ where: { id: parseInt(studentId) } });
+    const student = await prisma.student.findUnique({
+      where: { id: parseInt(studentId) },
+      include: { user: { select: { fullName: true, id: true, telegramChatId: true } } }
+    });
     if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
 
     if (student.coinBalance < deductAmount) {
@@ -139,6 +213,75 @@ export const deductCoins = async (req: AuthRequest, res: Response): Promise<void
         data: { coinBalance: { decrement: deductAmount } }
       });
     });
+
+    // O'quvchiga LMS Notification yuborish
+    try {
+      const reasonText = reason ? ` (${reason})` : '';
+      await prisma.notification.create({
+        data: {
+          userId: student.user.id,
+          title: '⚠️ Coin olindi',
+          body: `Sizdan ${deductAmount} ta coin olindi!${reasonText}`,
+          type: 'COIN'
+        }
+      });
+    } catch (e) {
+      console.error('❌ O\'quvchi notification xatosi:', e);
+    }
+
+    // Ota-onaga xabari yuborish (agar mavjud bo'lsa)
+    try {
+      const parent = await prisma.user.findFirst({
+        where: {
+          role: 'PARENT',
+          parentStudents: { some: { id: parseInt(studentId) } }
+        },
+        select: { id: true, fullName: true, telegramChatId: true }
+      });
+
+      if (parent) {
+        const reasonText = reason ? ` (${reason})` : '';
+        await prisma.notification.create({
+          data: {
+            userId: parent.id,
+            title: '⚠️ Farzandingizdan coin olindi',
+            body: `${student.user.fullName} dan ${deductAmount} ta coin olindi!${reasonText}`,
+            type: 'COIN'
+          }
+        });
+
+        // Ota-onaga Telegram xabari
+        if (parent.telegramChatId) {
+          try {
+            const msg = `⚠️ <b>Farzandingizdan coin olindi</b>\n\n` +
+              `👤 <b>${escapeHtml(student.user.fullName)}</b>\n` +
+              `❌ Coin: <b>${deductAmount} ta</b>\n` +
+              `📝 Sabab: ${reason ? escapeHtml(reason) : 'Qoidalarga murosaat'}\n\n` +
+              `Jami balans: <b>${result.coinBalance} coin</b>`;
+
+            await bot.api.sendMessage(parent.telegramChatId, msg, { parse_mode: 'HTML' });
+          } catch (e) {
+            console.error('❌ Ota-onaga Telegram xabari yuborishda xato:', e);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('❌ Ota-ona notification xatosi:', e);
+    }
+
+    // O'quvchiga Telegram xabari
+    if (student.user.telegramChatId) {
+      try {
+        const msg = `⚠️ <b>Coin olindi</b>\n\n` +
+          `Sizdan <b>${deductAmount} ta coin</b> olindi!\n` +
+          `📝 Sabab: ${reason ? escapeHtml(reason) : 'Qoidalarga murosaat'}\n\n` +
+          `Jami balans: <b>${result.coinBalance} coin</b>`;
+
+        await bot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
+      } catch (e) {
+        console.error('❌ O\'quvchiga Telegram xabari yuborishda xato:', e);
+      }
+    }
 
     sendSuccess(res, { newBalance: result.coinBalance }, `${amount} ta coin olindi.`);
   } catch (err) {

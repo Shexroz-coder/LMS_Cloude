@@ -1,3 +1,5 @@
+process.env.TZ = 'Asia/Tashkent';
+
 /**
  * Oylik qarzdorlik hisoblash + To'lov eslatma cron
  *
@@ -216,6 +218,44 @@ export async function calculateMonthlyDebts() {
       totalDebtAdded += Math.max(0, newDebt - currentDebt);
     }
 
+    // Admin xabari yuborish
+    if (processed > 0) {
+      const adminChatId = process.env.TELEGRAM_ADMIN_ID;
+      if (adminChatId) {
+        try {
+          const msg = `📊 <b>Oylik Qarz Hisoblash Xulosa</b>\n\n` +
+            `📅 <b>${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}</b>\n` +
+            `👥 Qayta ishlanganlar: <b>${processed}</b> o'quvchi\n` +
+            `💰 Qo'shilgan qarz: <b>${formatMoney(totalDebtAdded)}</b>\n\n` +
+            `✅ Jarayon muvaffaqiyatli yakunlandi`;
+
+          await bot.api.sendMessage(adminChatId, msg, { parse_mode: 'HTML' });
+        } catch (e) {
+          console.error('❌ Admin Telegram xabari yuborishda xato:', e);
+        }
+      }
+
+      // Admin uchun LMS notification
+      try {
+        const admin = await prisma.user.findFirst({
+          where: { role: 'ADMIN' },
+          select: { id: true }
+        });
+        if (admin) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: `${MONTH_NAMES[now.getMonth()]} oylik qarz hisoblash`,
+              body: `${processed} ta o'quvchining qarzlari hisoblandi. Jami qo'shilgan qarz: ${formatMoney(totalDebtAdded)}`,
+              type: 'SYSTEM'
+            }
+          });
+        }
+      } catch (e) {
+        console.error('❌ Admin notification xatosi:', e);
+      }
+    }
+
     console.log(`✅ [CRON] Oylik qarz hisoblash tugadi: ${processed} ta, +${totalDebtAdded} so'm`);
     return { processed, totalDebtAdded };
   } catch (error) {
@@ -359,6 +399,43 @@ export async function sendPaymentReminders() {
           type: 'PAYMENT',
         },
       });
+    }
+
+    // Admin xabari yuborish
+    if (sent > 0) {
+      const adminChatId = process.env.TELEGRAM_ADMIN_ID;
+      if (adminChatId) {
+        try {
+          const msg = `🔔 <b>To'lov Eslatmasi Xulosa</b>\n\n` +
+            `📅 <b>${nextMonthName} ${nextMonth.getFullYear()}</b> oyi uchun\n` +
+            `👥 Eslatma yuborilgan: <b>${sent}</b> o'quvchi\n\n` +
+            `✅ Jarayon muvaffaqiyatli yakunlandi`;
+
+          await bot.api.sendMessage(adminChatId, msg, { parse_mode: 'HTML' });
+        } catch (e) {
+          console.error('❌ Admin Telegram xabari yuborishda xato:', e);
+        }
+      }
+
+      // Admin uchun LMS notification
+      try {
+        const admin = await prisma.user.findFirst({
+          where: { role: 'ADMIN' },
+          select: { id: true }
+        });
+        if (admin) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              title: `${nextMonthName} to'lov eslatmasi yuborildi`,
+              body: `${sent} ta o'quvchiga ${nextMonthName} oyi uchun to'lov eslatmasi yuborildi`,
+              type: 'SYSTEM'
+            }
+          });
+        }
+      } catch (e) {
+        console.error('❌ Admin notification xatosi:', e);
+      }
     }
 
     console.log(`✅ [CRON] ${sent} ta o'quvchiga to'lov eslatmasi yuborildi`);

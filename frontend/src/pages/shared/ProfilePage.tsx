@@ -107,7 +107,7 @@ const ProfilePage = () => {
         <div className="card dark:bg-gray-800 dark:border-gray-700">
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Wallet size={18} className="text-indigo-600" />
-            Oylik ma'lumotlari
+            Ish haqi ma'lumotlari
             <span className="text-xs text-gray-400 font-normal ml-auto">
               {now.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}
             </span>
@@ -116,7 +116,7 @@ const ProfilePage = () => {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 text-center">
               <Briefcase size={16} className="text-blue-500 mx-auto mb-1" />
-              <div className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">Oylik turi</div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">Ish haqi turi</div>
               <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
                 {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? 'Foiz' : 'Soatlik'}
               </div>
@@ -130,7 +130,7 @@ const ProfilePage = () => {
             </div>
             <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-3 text-center col-span-2">
               <Banknote size={16} className="text-indigo-500 mx-auto mb-1" />
-              <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-0.5">Hisoblangan oylik</div>
+              <div className="text-xs text-indigo-600 dark:text-indigo-400 mb-0.5">Hisoblab chiqqan ish haqi</div>
               <div className="text-lg font-bold text-indigo-800 dark:text-indigo-300">
                 {formatMoney(salaryData.calculatedSalary || 0)}
               </div>

@@ -1,3 +1,5 @@
+process.env.TZ = 'Asia/Tashkent';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
