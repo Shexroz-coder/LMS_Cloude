@@ -32,29 +32,6 @@ const studentInclude = {
 };
 
 // ══════════════════════════════════════════════
-// GET /students/me — Joriy o'quvchi o'z profilini olish
-// ══════════════════════════════════════════════
-export const getMyStudent = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.id;
-    const student = await prisma.student.findUnique({
-      where: { userId },
-      include: studentInclude,
-    });
-
-    if (!student) {
-      sendError(res, "O'quvchi topilmadi.", 404);
-      return;
-    }
-
-    sendSuccess(res, student);
-  } catch (err) {
-    console.error('getMyStudent error:', err);
-    sendError(res, "Ma'lumotlarni olishda xato.", 500);
-  }
-};
-
-// ══════════════════════════════════════════════
 // GET /students — Barcha o'quvchilar
 // ══════════════════════════════════════════════
 export const getStudents = async (req: AuthRequest, res: Response): Promise<void> => {
