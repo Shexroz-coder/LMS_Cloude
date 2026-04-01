@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/axios';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-import { Users, TrendingUp, Wallet, ChevronDown, ChevronRight, CheckCircle, Clock } from 'lucide-react';
+import { Users, TrendingUp, Wallet, ChevronDown, ChevronRight, CheckCircle, Clock, UserCheck, Plus, X } from 'lucide-react';
 
 const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
@@ -358,6 +358,87 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
   );
 }
 
+// ─── Staff Pay Modal ───────────────────────────────────────────────────────────
+function StaffPayModal({
+  user,
+  month,
+  onClose,
+  onPay,
+  loading,
+}: {
+  user: { id: number; fullName: string; role: string };
+  month: string;
+  onClose: () => void;
+  onPay: (data: { userId: number; month: string; amount: number; note: string; position: string }) => void;
+  loading: boolean;
+}) {
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [position, setPosition] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+          <div>
+            <h3 className="font-bold text-gray-800 dark:text-gray-100">Ish haqi / Bonus</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{user.fullName}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Lavozim</label>
+            <input
+              value={position}
+              onChange={e => setPosition(e.target.value)}
+              placeholder="Masalan: Resepshnist, Direktor..."
+              className="w-full mt-1 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Summa (so'm)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder="1 500 000"
+              className="w-full mt-1 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Izoh (ixtiyoriy)</label>
+            <input
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Bonus sababi..."
+              className="w-full mt-1 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+            />
+          </div>
+        </div>
+        <div className="flex gap-3 p-5 border-t border-gray-100 dark:border-gray-700">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+            Bekor
+          </button>
+          <button
+            onClick={() => {
+              const a = parseFloat(amount);
+              if (!a || a <= 0) { toast.error("Summa kiritilishi shart"); return; }
+              onPay({ userId: user.id, month, amount: a, note, position });
+            }}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+          >
+            {loading ? '...' : "To'lash"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function SalariesPage() {
   const qc = useQueryClient();
@@ -366,6 +447,7 @@ export default function SalariesPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [payTarget, setPayTarget] = useState<TeacherCalc | null>(null);
+  const [staffPayTarget, setStaffPayTarget] = useState<{ id: number; fullName: string; role: string } | null>(null);
   const months = getMonthOptions();
 
   const { data: calcData, isLoading } = useQuery<{ teachers: TeacherCalc[]; summary: CalcSummary }>(
@@ -392,6 +474,32 @@ export default function SalariesPage() {
   const teachers = calcData?.teachers || [];
   const summary = calcData?.summary;
   const monthLabel = months.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
+  // ── Staff queries
+  const { data: staffUsers } = useQuery(
+    'staff-users',
+    () => api.get('/salaries/staff/users').then(r => r.data?.data || []),
+    { staleTime: 60_000 }
+  );
+  const { data: staffHistory, refetch: refetchStaffHistory } = useQuery(
+    ['staff-salary-history', selectedMonth],
+    () => api.get(`/salaries/staff/history?month=${selectedMonth}`).then(r => r.data?.data || { salaries: [], totalPaid: 0 }),
+    { staleTime: 30_000 }
+  );
+
+  const staffPayMutation = useMutation(
+    (data: { userId: number; month: string; amount: number; note: string; position: string }) =>
+      api.post('/salaries/staff/pay', data),
+    {
+      onSuccess: () => {
+        qc.invalidateQueries(['staff-salary-history']);
+        qc.invalidateQueries('staff-users');
+        setStaffPayTarget(null);
+        void toast.success("Ish haqi to'landi! ✅");
+      },
+      onError: () => void toast.error('Xato yuz berdi'),
+    }
+  );
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -511,7 +619,81 @@ export default function SalariesPage() {
         )}
       </div>
 
-      {/* Pay Modal */}
+      {/* ── Xodimlar Ish haqi ── */}
+      <div className="card dark:bg-gray-800 overflow-hidden p-0">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UserCheck size={16} className="text-red-500" />
+            <h3 className="font-bold text-gray-800 dark:text-gray-100">Xodimlar Ish haqi / Bonus</h3>
+          </div>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{monthLabel}</span>
+        </div>
+
+        {/* Xodimlar ro'yxati */}
+        <div className="divide-y divide-gray-50 dark:divide-gray-700">
+          {(staffUsers || []).length === 0 ? (
+            <div className="py-10 text-center text-gray-400 text-sm">Xodimlar topilmadi</div>
+          ) : (
+            (staffUsers || []).map((u: { id: number; fullName: string; role: string; phone: string; staffSalaries?: Array<{ amount: string | number; paidAt: string; position?: string }> }) => (
+              <div key={u.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">{u.fullName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{u.phone} · {u.role}</p>
+                  {u.staffSalaries && u.staffSalaries.length > 0 && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      So'nggi: {fmt(Number(u.staffSalaries[0].amount))}
+                      {u.staffSalaries[0].position ? ` · ${u.staffSalaries[0].position}` : ''}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setStaffPayTarget({ id: u.id, fullName: u.fullName, role: u.role })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/50"
+                >
+                  <Plus size={12} />
+                  Ish haqi
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Joriy oy tarixi */}
+        {staffHistory && staffHistory.salaries && staffHistory.salaries.length > 0 && (
+          <div className="border-t border-gray-100 dark:border-gray-700">
+            <div className="px-5 py-2 bg-gray-50 dark:bg-gray-700/50">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                {monthLabel} — To'lovlar tarixi
+              </p>
+            </div>
+            <div className="divide-y divide-gray-50 dark:divide-gray-700">
+              {staffHistory.salaries.map((s: { id: number; user?: { fullName: string }; amount: string | number; position?: string; note?: string; paidAt: string; paidBy?: { fullName: string } }) => (
+                <div key={s.id} className="flex items-center justify-between px-5 py-2.5">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{s.user?.fullName}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {s.position && <span className="mr-2">{s.position}</span>}
+                      {s.note && <span className="italic">{s.note}</span>}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmt(Number(s.amount))}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {new Date(s.paidAt).toLocaleDateString('uz-UZ')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-2 bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Jami to'langan ({monthLabel})</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(staffHistory.totalPaid || 0)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Teacher Pay Modal */}
       {payTarget && (
         <PayModal
           teacher={payTarget}
@@ -519,6 +701,17 @@ export default function SalariesPage() {
           onClose={() => setPayTarget(null)}
           onPay={data => payMutation.mutate(data)}
           loading={payMutation.isLoading}
+        />
+      )}
+
+      {/* Staff Pay Modal */}
+      {staffPayTarget && (
+        <StaffPayModal
+          user={staffPayTarget}
+          month={selectedMonth}
+          onClose={() => setStaffPayTarget(null)}
+          onPay={data => staffPayMutation.mutate(data)}
+          loading={staffPayMutation.isLoading}
         />
       )}
     </div>

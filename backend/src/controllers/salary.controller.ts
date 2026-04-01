@@ -413,3 +413,140 @@ export const getSalaryHistory = async (req: AuthRequest, res: Response): Promise
     sendError(res, 'Oylik tarixini olishda xato.', 500);
   }
 };
+
+// ─────────────────────────────────────────────────────────
+// GET /salaries/staff/users — Ish haqi berish mumkin bo'lgan xodimlar
+// (TEACHER bo'lmagan faol foydalanuvchilar: ADMIN, va boshqalar)
+// ─────────────────────────────────────────────────────────
+export const getStaffUsers = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { in: ['ADMIN'] }, // Ustoz bo'lmagan xodimlar
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phone: true,
+        role: true,
+        staffSalaries: {
+          orderBy: { paidAt: 'desc' },
+          take: 3,
+          select: {
+            id: true,
+            month: true,
+            amount: true,
+            position: true,
+            status: true,
+            paidAt: true,
+          },
+        },
+      },
+      orderBy: { fullName: 'asc' },
+    });
+
+    sendSuccess(res, users);
+  } catch (err) {
+    console.error('getStaffUsers error:', err);
+    sendError(res, 'Xodimlarni olishda xato.', 500);
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// POST /salaries/staff/pay — Xodimga ish haqi / bonus berish
+// ─────────────────────────────────────────────────────────
+export const payStaffSalary = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId, amount, month, note, position } = req.body;
+
+    if (!userId || !amount || !month) {
+      sendError(res, 'userId, amount va month kiritilishi shart.', 400);
+      return;
+    }
+
+    const paidAmount = parseFloat(amount);
+    if (isNaN(paidAmount) || paidAmount <= 0) {
+      sendError(res, 'Summa 0 dan katta bo\'lishi kerak.', 400);
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      select: { id: true, fullName: true, role: true, isActive: true },
+    });
+    if (!user || !user.isActive) {
+      sendError(res, 'Foydalanuvchi topilmadi.', 404);
+      return;
+    }
+
+    const monthDate = new Date(month + '-01T00:00:00.000Z');
+
+    // StaffSalary yozuvi yaratish
+    const salary = await (prisma.staffSalary as any).create({
+      data: {
+        userId: user.id,
+        month: monthDate,
+        amount: paidAmount,
+        note: note || null,
+        position: position || null,
+        status: 'PAID',
+        paidAt: new Date(),
+        paidById: req.user!.id,
+      },
+      include: {
+        user: { select: { fullName: true, phone: true, role: true } },
+        paidBy: { select: { fullName: true } },
+      },
+    });
+
+    // Expense jadvaliga ham yozish
+    const monthLabel = monthDate.toLocaleDateString('uz-UZ', { year: 'numeric', month: 'long' });
+    await prisma.expense.create({
+      data: {
+        category: 'SALARY',
+        amount: paidAmount,
+        date: new Date(),
+        description: `${user.fullName}${position ? ' (' + position + ')' : ''} — ${monthLabel} ish haqi${note ? '. ' + note : ''}`,
+        addedBy: req.user?.id ?? null,
+      },
+    });
+
+    sendSuccess(res, salary, 'Ish haqi muvaffaqiyatli to\'landi!', 201);
+  } catch (err) {
+    console.error('payStaffSalary error:', err);
+    sendError(res, 'Ish haqi to\'lashda xato.', 500);
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// GET /salaries/staff/history — Xodimlar ish haqi tarixi
+// ─────────────────────────────────────────────────────────
+export const getStaffSalaryHistory = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { month, userId } = req.query as Record<string, string>;
+
+    const where: Record<string, unknown> = {};
+    if (userId) where.userId = parseInt(userId);
+    if (month) {
+      const d = new Date(month + '-01T00:00:00.000Z');
+      where.month = { gte: d, lt: new Date(d.getFullYear(), d.getMonth() + 1, 1) };
+    }
+
+    const salaries = await (prisma.staffSalary as any).findMany({
+      where,
+      include: {
+        user: { select: { id: true, fullName: true, phone: true, role: true } },
+        paidBy: { select: { fullName: true } },
+      },
+      orderBy: { paidAt: 'desc' },
+    });
+
+    const totalPaid = salaries.reduce((s: number, r: any) => s + Number(r.amount), 0);
+
+    sendSuccess(res, { salaries, totalPaid });
+  } catch (err) {
+    console.error('getStaffSalaryHistory error:', err);
+    sendError(res, 'Xodim ish haqi tarixini olishda xato.', 500);
+  }
+};

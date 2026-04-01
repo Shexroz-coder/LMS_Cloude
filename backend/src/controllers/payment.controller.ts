@@ -905,17 +905,31 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
     const nextHolidayCredit = Math.round(nextHolidayLessons * nextPricePerLesson);
     const nextMonthAmount = Math.round(monthlyAmount - nextHolidayCredit);
 
-    // O'tilgan darslar soni (o'quvchi qo'shilgan kundan)
-    const completedLessonsCount = await prisma.lesson.count({
-      where: {
-        groupId: group.id,
-        date: { gte: joinedAt, lte: today },
-        status: 'COMPLETED',
-      }
-    });
+    // ── Jadval bo'yicha darslar soni (qo'shilgan kundan bugungi kungacha)
+    // MUHIM: davomat (completed lessons) emas, balki JADVAL asosida!
+    // Keldi-kelmagan muhim emas — jadvalda dars bor = to'lov bor.
+    let scheduledLessonsSinceJoin = 0;
+    {
+      let y = joinedAt.getFullYear();
+      let m = joinedAt.getMonth();
+      const endY = today.getFullYear();
+      const endM = today.getMonth();
 
-    // Umumiy to'lanishi kerak bo'lgan summa (o'tilgan darslar × dars narxi)
-    const theoreticalAmount = Math.round(completedLessonsCount * pricePerLesson);
+      while (y < endY || (y === endY && m <= endM)) {
+        if (y === joinedAt.getFullYear() && m === joinedAt.getMonth()) {
+          // Birinchi oy — qo'shilgan kundan hisoblash (pro-rata)
+          scheduledLessonsSinceJoin += await countLessonsInMonthFromDate(y, m, uniqueDays, joinedAt);
+        } else {
+          // To'liq oylar — bayramlarsiz barcha dars kunlari
+          scheduledLessonsSinceJoin += await countLessonsInMonth(y, m, uniqueDays);
+        }
+        m++;
+        if (m > 11) { m = 0; y++; }
+      }
+    }
+
+    // Jadval bo'yicha to'lanishi kerak bo'lgan nazariy summa
+    const theoreticalAmount = Math.round(scheduledLessonsSinceJoin * pricePerLesson);
 
     // Haqiqatda to'langan summa
     const totalPaidResult = await prisma.payment.aggregate({
@@ -924,12 +938,23 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
     });
     const totalPaid = Number(totalPaidResult._sum.amount || 0);
 
-    // Hisoblangan qarz
-    const calculatedDebt = Math.max(0, theoreticalAmount - totalPaid);
+    // DB da saqlangan qarz (cron tomonidan oylik hisoblangan)
     const currentDebt = Number(student.balance?.debt || 0);
+    const currentBalance = Number(student.balance?.balance || 0);
 
-    // DB da saqlangan qarzni ustunlik berish
-    const debtAmount = currentDebt > 0 ? currentDebt : calculatedDebt;
+    // Qarz: cron hisoblagan qiymat asosiy manba.
+    // Agar cron hali ishlamagan bo'lsa (yangi o'quvchi), jadval asosida hisoblash.
+    const scheduledDebt = Math.max(0, theoreticalAmount - totalPaid - currentBalance);
+    const debtAmount = currentDebt > 0 ? currentDebt : scheduledDebt;
+
+    // Davomat (ma'lumot uchun, qarz hisoblashda ishlatilmaydi)
+    const completedLessonsCount = await prisma.lesson.count({
+      where: {
+        groupId: group.id,
+        date: { gte: joinedAt, lte: today },
+        status: 'COMPLETED',
+      }
+    });
 
     sendSuccess(res, {
       monthlyAmount: Math.round(monthlyAmount),
@@ -957,9 +982,12 @@ export const calculateStudentPayment = async (req: AuthRequest, res: Response): 
       },
       currentDebt,
       currentBalance: Number(student.balance?.balance || 0),
-      completedLessons: completedLessonsCount,
+      // Jadval bo'yicha ma'lumotlar (asosiy hisob-kitob)
+      scheduledLessonsSinceJoin,
       theoreticalAmount,
       totalPaid: Math.round(totalPaid),
+      // Davomat (faqat ma'lumot uchun, qarz hisoblashda ishlatilmaydi)
+      completedLessons: completedLessonsCount,
       joinedAt,
       groupName: group.name,
       courseName: course.name,
