@@ -9,10 +9,27 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-lms_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lms_password}
       - POSTGRES_DB=${POSTGRES_DB:-lms_robotic}
+    # PostgreSQL xotira optimallashtirish
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c max_connections=50
+      -c effective_cache_size=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=8MB
+      -c log_min_duration_statement=2000
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - lms_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms_user} -d ${POSTGRES_DB:-lms_robotic}" ]
       interval: 10s
@@ -25,11 +42,22 @@ services:
     container_name: lms_redis
     restart: unless-stopped
     env_file: .env
-    command: redis-server --requirepass ${REDIS_PASSWORD:-redispassword}
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-redispassword}
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --save ""
     volumes:
       - redis_data:/data
     networks:
       - lms_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispassword}", "ping" ]
       interval: 10s
@@ -47,7 +75,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-lms_password}@postgres:5432/${POSTGRES_DB:-lms_robotic}
+      # connection_limit — Prisma pool PostgreSQL max_connections ga mos
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lms_user}:${POSTGRES_PASSWORD:-lms_password}@postgres:5432/${POSTGRES_DB:-lms_robotic}?connection_limit=10&pool_timeout=20
       REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379
       JWT_SECRET: ${JWT_SECRET:-supersecretjwtkey_changeme_in_production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-superrefreshsecret_changeme_in_production}
@@ -57,6 +86,8 @@ services:
       UPLOAD_DIR: /app/uploads
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_ADMIN_ID: ${TELEGRAM_ADMIN_ID:-}
+      # Node.js heap limit — OOM (xotira to'lishi) dan saqlash
+      NODE_OPTIONS: "--max-old-space-size=512"
     volumes:
       - uploads_data:/app/uploads
     ports:
@@ -68,6 +99,12 @@ services:
         condition: service_healthy
     networks:
       - lms_network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:5000/health" ]
       interval: 30s
@@ -95,6 +132,12 @@ services:
       - backend
     networks:
       - lms_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
 
 # ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:

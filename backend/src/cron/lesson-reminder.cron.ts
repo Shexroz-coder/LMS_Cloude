@@ -47,6 +47,8 @@ export async function sendLessonReminders() {
             student: {
               include: {
                 user: { select: { id: true, fullName: true, telegramChatId: true, phone: true } },
+                // Ota-onani birga yuklash — N+1 muammosidan qochish
+                parent: { select: { telegramChatId: true, fullName: true } },
               },
             },
           },
@@ -102,15 +104,8 @@ export async function sendLessonReminders() {
             }
           }
 
-          // Ota-onaga xabar
-          const parentUser = await prisma.user.findFirst({
-            where: {
-              role: 'PARENT',
-              parentStudents: { some: { id: student.id } },
-              telegramChatId: { not: null },
-            },
-            select: { telegramChatId: true, fullName: true },
-          });
+          // Ota-onaga xabar — allaqachon yuklangan (N+1 yo'q)
+          const parentUser = student.parent?.telegramChatId ? student.parent : null;
 
           if (parentUser?.telegramChatId) {
             const parentMsg = `🔔 <b>Dars eslatmasi</b>\n\n` +

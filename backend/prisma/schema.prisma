@@ -274,6 +274,8 @@ model Group {
   monthlyFees  MonthlyFee[]
   payments     Payment[]
 
+  @@index([status])
+  @@index([teacherId])
   @@map("groups")
 }
 
@@ -289,6 +291,7 @@ model GroupStudent {
 
   @@unique([groupId, studentId])
   @@index([status])
+  @@index([studentId]) // O'quvchining barcha guruhlari uchun
   @@map("group_students")
 }
 
@@ -323,6 +326,10 @@ model Lesson {
   grades     Grade[]
   materials  LessonMaterial[]
 
+  // Eng ko'p ishlatiladigan query: groupId + date oralig'i
+  @@index([groupId, date])
+  @@index([date])
+  @@index([status])
   @@map("lessons")
 }
 
@@ -338,6 +345,7 @@ model Attendance {
   student Student @relation(fields: [studentId], references: [id])
 
   @@unique([lessonId, studentId])
+  @@index([studentId])
   @@map("attendance")
 }
 
@@ -436,6 +444,8 @@ model Payment {
 
   @@index([studentId])
   @@index([isDeleted])
+  @@index([paidAt])            // Oylik daromad so'rovlari uchun
+  @@index([studentId, paidAt]) // O'quvchi to'lov tarixi uchun
   @@map("payments")
 }
 
@@ -488,6 +498,7 @@ model Expense {
 
   user User? @relation(fields: [addedBy], references: [id])
 
+  @@index([date]) // Oylik xarajat so'rovlari uchun
   @@map("expenses")
 }
 
@@ -542,6 +553,8 @@ model CoinTransaction {
   student Student @relation(fields: [studentId], references: [id])
   giver   User?   @relation("CoinGiver", fields: [givenBy], references: [id])
 
+  @@index([studentId])
+  @@index([createdAt])
   @@map("coin_transactions")
 }
 
@@ -561,6 +574,8 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isRead]) // O'qilmagan bildirishnomalar uchun
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 
