@@ -15,6 +15,18 @@ const MONTH_NAMES = [
   'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'
 ];
 
+/**
+ * Mahalliy vaqt (Toshkent UTC+5) bo'yicha YYYY-MM-DD formatida sana.
+ * MUHIM: toISOString() UTC ga o'giradi — buning natijasida tun yarimida
+ * sanalar 1 kun orqaga siljiydi. Bu funksiya local vaqtni to'g'ri qaytaradi.
+ */
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // ── Teacher tekshirish va topish ──────────────────
 async function getTeacher(ctx: BotContext) {
   const chatId = String(ctx.chat?.id);
@@ -281,26 +293,26 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
       }
 
       if (isToday) {
-        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       } else if (daysAgo === 1) {
         // Kecha — sababsiz tahrirlash mumkin
-        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       } else {
         // Eski kun — sabab kerak
-        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       }
     } else {
       // Dars yaratilmagan (o'tib ketgan kun)
       unmarkedCount++;
       if (isToday) {
         text += `⬜ <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan</b>\n`;
-        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`📝 ${dateStr} ${dayName} — Bugun`, `att_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       } else if (daysAgo === 1) {
         text += `⬜ <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan</b>\n`;
-        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`📝 ${dateStr} ${dayName} — Kecha`, `att_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       } else {
         text += `🔴 <code>${dateStr}</code> (${dayName}) — <b>belgilanmagan!</b>\n`;
-        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${scheduledDate.toISOString().slice(0, 10)}`).row();
+        kb.text(`⚠️ ${dateStr} ${dayName} — Kechikkan`, `att_late_day_${groupId}_${formatLocalDate(scheduledDate)}`).row();
       }
     }
   }
@@ -392,19 +404,24 @@ export async function handleAttDay(ctx: BotContext, groupId: number, dateStr: st
       ? att.status === 'PRESENT' ? '✅' : att.status === 'ABSENT' ? '❌' : att.status === 'LATE' ? '⏰' : '📋'
       : '⬜';
 
+    // O'quvchi ismi — faqat ism (15 belgigacha qisqartiramiz)
+    const shortName = gs.student.user.fullName.split(' ').slice(0, 2).join(' ').slice(0, 18);
+
     text += `${statusIcon} ${escapeHtml(gs.student.user.fullName)}\n`;
 
-    kb.text(att?.status === 'PRESENT' ? '✅' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
-      .text(att?.status === 'ABSENT' ? '❌' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
-      .text(att?.status === 'LATE' ? '⏰' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_LATE`)
-      .text(`${gs.student.user.fullName.split(' ')[0]}`, 'att_noop')
+    // Birinchi qator: Ism + 3 ta status tugmasi
+    kb.text(`${att?.status === 'PRESENT' ? '✅' : '◻'}Keldi`,   `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
+      .text(`${att?.status === 'ABSENT'  ? '❌' : '◻'}Kelmadi`, `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
+      .text(`${att?.status === 'LATE'    ? '⏰' : '◻'}Kech`,    `att_mark_${lesson.id}_${gs.studentId}_LATE`)
       .row();
+    // Ikkinchi qator: O'quvchi nomi (noop)
+    kb.text(`👤 ${shortName}`, 'att_noop').row();
   }
 
-  text += '\n<i>✅ Keldi | ❌ Kelmadi | ⏰ Kechikdi</i>';
+  text += '\n<i>◻Keldi = Keldi | ◻Kelmadi = Kelmadi | ◻Kech = Kechikdi</i>';
 
   kb.text('✅ Barchasi keldi', `att_all_present_${lesson.id}_${groupId}`).row();
-  kb.text('📝 Darsni tugatish', `att_complete_${lesson.id}_${groupId}`).row();
+  kb.text('📝 Darsni yakunlash', `att_complete_${lesson.id}_${groupId}`).row();
   kb.text('⬅️ Kunlar', `att_group_${groupId}`).text('🏠 Menyu', 'main_menu').row();
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
@@ -453,8 +470,18 @@ export async function handleLateAttReason(ctx: BotContext) {
   }
 
   // Sabab bilan darsga o'tish
-  const teacher = await getTeacher(ctx);
-  if (!teacher) return;
+  // MUHIM: bu yerda ctx.editMessageText yo'q (text message context) — to'g'ridan DB dan olamiz
+  const chatId = String(ctx.chat?.id);
+  const user = await (await import('../services/data.service')).getUserByChatId(chatId);
+  if (!user || user.role !== 'TEACHER') {
+    await ctx.reply('❌ Faqat o\'qituvchilar uchun.');
+    return;
+  }
+  const teacher = await prisma.teacher.findUnique({ where: { userId: user.id } });
+  if (!teacher) {
+    await ctx.reply('❌ O\'qituvchi profili topilmadi.');
+    return;
+  }
 
   const group = await prisma.group.findFirst({
     where: { id: groupId, teacherId: teacher.id },
@@ -522,14 +549,15 @@ export async function handleLateAttReason(ctx: BotContext) {
 
     text += `${statusIcon} ${escapeHtml(gs.student.user.fullName)}\n`;
 
-    kb.text(att?.status === 'PRESENT' ? '✅' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
-      .text(att?.status === 'ABSENT' ? '❌' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
-      .text(att?.status === 'LATE' ? '⏰' : '◻️', `att_mark_${lesson.id}_${gs.studentId}_LATE`)
-      .text(`${gs.student.user.fullName.split(' ')[0]}`, 'att_noop')
+    const shortName = gs.student.user.fullName.split(' ').slice(0, 2).join(' ').slice(0, 18);
+    kb.text(`${att?.status === 'PRESENT' ? '✅' : '◻'}Keldi`,   `att_mark_${lesson.id}_${gs.studentId}_PRESENT`)
+      .text(`${att?.status === 'ABSENT'  ? '❌' : '◻'}Kelmadi`, `att_mark_${lesson.id}_${gs.studentId}_ABSENT`)
+      .text(`${att?.status === 'LATE'    ? '⏰' : '◻'}Kech`,    `att_mark_${lesson.id}_${gs.studentId}_LATE`)
       .row();
+    kb.text(`👤 ${shortName}`, 'att_noop').row();
   }
 
-  text += '\n<i>✅ Keldi | ❌ Kelmadi | ⏰ Kechikdi</i>';
+  text += '\n<i>◻Keldi = Keldi | ◻Kelmadi = Kelmadi | ◻Kech = Kechikdi</i>';
 
   kb.text('✅ Barchasi keldi', `att_all_present_${lesson.id}_${groupId}`).row();
   kb.text('📝 Darsni tugatish', `att_complete_${lesson.id}_${groupId}`).row();
@@ -569,7 +597,7 @@ export async function handleAttMark(ctx: BotContext, lessonId: number, studentId
 
     if (lesson) {
       // Sahifani yangilash — handleAttDay chaqirish
-      const dateStr = new Date(lesson.date).toISOString().slice(0, 10);
+      const dateStr = formatLocalDate(new Date(lesson.date));
       await handleAttDay(ctx, lesson.groupId, dateStr);
     }
   } catch (err) {
@@ -612,7 +640,7 @@ export async function handleAttAllPresent(ctx: BotContext, lessonId: number, gro
   });
 
   if (lesson) {
-    const dateStr = new Date(lesson.date).toISOString().slice(0, 10);
+    const dateStr = formatLocalDate(new Date(lesson.date));
     await handleAttDay(ctx, groupId, dateStr);
   }
 }
