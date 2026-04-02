@@ -33,6 +33,8 @@ export async function calculateMonthlyDebts() {
       where: { status: 'ACTIVE' },
       include: {
         user: { select: { fullName: true, id: true, telegramChatId: true } },
+        // Ota-onani birga yuklash — N+1 muammosidan qochish
+        parent: { select: { telegramChatId: true, fullName: true } },
         balance: true,
         groupStudents: {
           where: { status: 'ACTIVE' },
@@ -279,6 +281,8 @@ export async function sendPaymentReminders() {
       where: { status: 'ACTIVE' },
       include: {
         user: { select: { fullName: true, id: true, telegramChatId: true } },
+        // Ota-onani birga yuklash — N+1 muammosidan qochish
+        parent: { select: { telegramChatId: true, fullName: true } },
         groupStudents: {
           where: { status: 'ACTIVE' },
           include: {
@@ -364,15 +368,8 @@ export async function sendPaymentReminders() {
         }
       }
 
-      // Ota-onaga ham xabar
-      const parentUser = await prisma.user.findFirst({
-        where: {
-          role: 'PARENT',
-          parentStudents: { some: { id: student.id } },
-          telegramChatId: { not: null },
-        },
-        select: { telegramChatId: true, fullName: true },
-      });
+      // Ota-onaga ham xabar — allaqachon yuklangan (N+1 yo'q)
+      const parentUser = student.parent?.telegramChatId ? student.parent : null;
 
       if (parentUser?.telegramChatId) {
         try {
@@ -468,6 +465,7 @@ export async function sendPromiseDateReminders() {
         student: {
           include: {
             user: { select: { id: true, fullName: true, telegramChatId: true } },
+            parent: { select: { telegramChatId: true } },
           },
         },
       },
@@ -480,6 +478,7 @@ export async function sendPromiseDateReminders() {
       student: {
         id: number;
         user: { id: number; fullName: string; telegramChatId: string | null };
+        parent: { telegramChatId: string | null } | null;
       };
     }>;
 
@@ -529,15 +528,8 @@ export async function sendPromiseDateReminders() {
         }
       }
 
-      // Ota-onaga ham xabar
-      const parentUser = await prisma.user.findFirst({
-        where: {
-          role: 'PARENT',
-          parentStudents: { some: { id: sb.student.id } },
-          telegramChatId: { not: null },
-        },
-        select: { telegramChatId: true },
-      });
+      // Ota-onaga ham xabar — student.parent dan olamiz (allaqachon yuklangan)
+      const parentUser = sb.student.parent?.telegramChatId ? sb.student.parent : null;
 
       if (parentUser?.telegramChatId) {
         try {

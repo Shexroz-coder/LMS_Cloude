@@ -9,9 +9,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-lms_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lms_password}
       - POSTGRES_DB=${POSTGRES_DB:-lms_robotic}
-    # PostgreSQL xotira optimallashtirish
+    # PostgreSQL xotira optimallashtirish + Toshkent vaqt zonasi
     command: >
       postgres
+      -c timezone=Asia/Tashkent
+      -c log_timezone=Asia/Tashkent
       -c shared_buffers=128MB
       -c work_mem=4MB
       -c maintenance_work_mem=64MB
