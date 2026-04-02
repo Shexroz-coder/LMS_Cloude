@@ -235,9 +235,15 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
   }
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const monthName = MONTH_NAMES[now.getMonth()];
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const monthName = MONTH_NAMES[m];
+
+  // MUHIM: Date.UTC ishlatiladi — TZ=Tashkent bo'lganda new Date(y,m,1)
+  // local midnight = UTC-da kechqurun (oldingisi), bu PostgreSQL DATE ni
+  // 1 kun orqaga siljitadi. Date.UTC bilan UTC yarim tunidan boshlaymiz.
+  const monthStart = new Date(Date.UTC(y, m, 1));
+  const monthEnd   = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59));
 
   // Shu oyning darslarini topish
   const lessons = await prisma.lesson.findMany({
@@ -350,9 +356,11 @@ export async function handleAttDay(ctx: BotContext, groupId: number, dateStr: st
     return;
   }
 
-  const lessonDate = new Date(dateStr + 'T00:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // MUHIM: 'Z' suffiksi — UTC yarim tuni. TZ=Tashkent bo'lganda
+  // 'T00:00:00' local tun = UTC da kechqurun → PostgreSQL DATE 1 kun orqaga siljiydi.
+  const lessonDate = new Date(dateStr + 'T00:00:00.000Z');
+  const todayStr = formatLocalDate(new Date());
+  const today = new Date(todayStr + 'T00:00:00.000Z');
 
   // Kelajak kunni blok qilish
   if (lessonDate > today) {
@@ -389,8 +397,10 @@ export async function handleAttDay(ctx: BotContext, groupId: number, dateStr: st
     });
   }
 
-  const dayName = DAY_NAMES[lessonDate.getDay()];
-  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
+  // UTC getterlar — kunning o'rtasi orqali timezone xavfsiz display
+  const dispDate = new Date(dateStr + 'T12:00:00.000Z');
+  const dayName = DAY_NAMES[dispDate.getUTCDay()];
+  const dateDisplay = `${dispDate.getUTCDate()}-${MONTH_NAMES[dispDate.getUTCMonth()]}`;
 
   let text = brandHeader('✅', `DAVOMAT — ${escapeHtml(group.name)}`);
   text += `📅 ${dateDisplay} (${dayName}) | 🕐 ${lesson.startTime}-${lesson.endTime}\n`;
@@ -437,9 +447,11 @@ export async function handleAttLateDay(ctx: BotContext, groupId: number, dateStr
   ctx.session.lateAttGroupId = groupId;
   ctx.session.lateAttDate = dateStr;
 
-  const lessonDate = new Date(dateStr + 'T00:00:00');
-  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
-  const dayName = DAY_NAMES[lessonDate.getDay()];
+  const lessonDate = new Date(dateStr + 'T00:00:00.000Z');
+  // Display uchun local getterlar (Tashkent vaqti)
+  const tmpDate = new Date(dateStr + 'T12:00:00.000Z'); // kunning o'rtasi — timezone xavfsiz
+  const dateDisplay = `${tmpDate.getUTCDate()}-${MONTH_NAMES[tmpDate.getUTCMonth()]}`;
+  const dayName = DAY_NAMES[tmpDate.getUTCDay()];
 
   let text = brandHeader('⚠️', 'KECHIKKAN DAVOMAT');
   text += `📅 <b>${dateDisplay} (${dayName})</b>\n\n`;
@@ -500,7 +512,7 @@ export async function handleLateAttReason(ctx: BotContext) {
     return;
   }
 
-  const lessonDate = new Date(dateStr + 'T00:00:00');
+  const lessonDate = new Date(dateStr + 'T00:00:00.000Z');
 
   // Darsni topish yoki yaratish
   let lesson = await prisma.lesson.findFirst({
@@ -531,8 +543,10 @@ export async function handleLateAttReason(ctx: BotContext) {
     });
   }
 
-  const dayName = DAY_NAMES[lessonDate.getDay()];
-  const dateDisplay = `${lessonDate.getDate()}-${MONTH_NAMES[lessonDate.getMonth()]}`;
+  // UTC getterlar — kunning o'rtasi orqali timezone xavfsiz display
+  const dispDate = new Date(dateStr + 'T12:00:00.000Z');
+  const dayName = DAY_NAMES[dispDate.getUTCDay()];
+  const dateDisplay = `${dispDate.getUTCDate()}-${MONTH_NAMES[dispDate.getUTCMonth()]}`;
 
   let text = brandHeader('⚠️', `KECHIKKAN DAVOMAT — ${escapeHtml(group.name)}`);
   text += `📅 ${dateDisplay} (${dayName}) | 🕐 ${lesson.startTime}-${lesson.endTime}\n`;
