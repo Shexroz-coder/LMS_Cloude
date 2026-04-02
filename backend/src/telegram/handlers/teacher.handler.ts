@@ -264,8 +264,8 @@ export async function handleAttGroupSelect(ctx: BotContext, groupId: number) {
     current.setDate(current.getDate() + 1);
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // today — Toshkent sanasidan UTC midnight: scheduledDate (Date.UTC) bilan mos
+  const today = new Date(formatLocalDate(new Date()) + 'T00:00:00.000Z');
 
   let text = brandHeader('✅', `DAVOMAT — ${escapeHtml(group.name)}`);
   text += `📚 ${group.course.name} | 📅 ${monthName}\n\n`;
