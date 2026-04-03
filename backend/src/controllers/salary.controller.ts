@@ -194,7 +194,7 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
 export const calculateAllSalaries = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { month } = req.query as Record<string, string>;
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    const targetMonth = month || (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; })();
     const [yr, mo] = targetMonth.split('-').map(Number);
     const year = yr;
     const monthIndex = mo - 1;
@@ -243,7 +243,7 @@ export const calculateMySalary = async (req: AuthRequest, res: Response): Promis
     }
 
     const { month } = req.query as Record<string, string>;
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    const targetMonth = month || (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; })();
     const [yr, mo] = targetMonth.split('-').map(Number);
 
     const result = await calcTeacherSalaryForMonth(teacher.id, yr, mo - 1);
@@ -267,7 +267,7 @@ export const calculateTeacherSalary = async (req: AuthRequest, res: Response): P
   try {
     const teacherId = parseInt(req.params.teacherId);
     const { month } = req.query as Record<string, string>;
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    const targetMonth = month || (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; })();
     const [yr, mo] = targetMonth.split('-').map(Number);
 
     const result = await calcTeacherSalaryForMonth(teacherId, yr, mo - 1);

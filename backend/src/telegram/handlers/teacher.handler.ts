@@ -664,9 +664,10 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
-  await prisma.lesson.update({
+  const lesson = await prisma.lesson.update({
     where: { id: lessonId },
     data: { status: 'COMPLETED' },
+    select: { date: true, durationHours: true },
   });
 
   // Belgilanmagan o'quvchilarni ABSENT qilish
@@ -681,18 +682,80 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
   });
 
   const markedIds = new Set(existingAttendance.map(a => a.studentId));
-
   for (const gs of groupStudents) {
     if (!markedIds.has(gs.studentId)) {
       await prisma.attendance.create({
-        data: {
-          lessonId,
-          studentId: gs.studentId,
-          status: 'ABSENT',
-          markedAt: new Date(),
+        data: { lessonId, studentId: gs.studentId, status: 'ABSENT', markedAt: new Date() },
+      });
+    }
+  }
+
+  // ── Ustoz oyligini avtomatik hisoblash ───────────────
+  try {
+    const lessonDate = new Date(lesson.date);
+    const y = lessonDate.getUTCFullYear();
+    const m = lessonDate.getUTCMonth();
+    const monthStart = new Date(Date.UTC(y, m, 1));
+    const monthEnd   = new Date(Date.UTC(y, m + 1, 1));
+
+    const teacherFull = await prisma.teacher.findUnique({
+      where: { id: teacher.id },
+      select: { salaryType: true, salaryValue: true, groups: { select: { id: true } } },
+    });
+
+    if (teacherFull) {
+      const salaryType  = teacherFull.salaryType  || 'PER_LESSON_HOUR';
+      const salaryValue = Number(teacherFull.salaryValue || 0);
+      const groupIds    = teacherFull.groups.map(g => g.id);
+
+      let calculatedSalary = 0;
+      let totalHours = 0;
+
+      if (salaryType === 'PER_LESSON_HOUR') {
+        // Shu oyda COMPLETED bo'lgan barcha darslar soatlarini yig'amiz
+        const completedLessons = await prisma.lesson.findMany({
+          where: { groupId: { in: groupIds }, date: { gte: monthStart, lt: monthEnd }, status: 'COMPLETED' },
+          select: { durationHours: true },
+        });
+        totalHours       = completedLessons.reduce((s, l) => s + Number(l.durationHours), 0);
+        calculatedSalary = Math.round(totalHours * salaryValue);
+
+      } else if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
+        // Shu oyda guruhlar bo'yicha to'lovlar yig'indisi × foiz
+        const payments = await prisma.payment.aggregate({
+          where: { groupId: { in: groupIds }, isDeleted: false, paidAt: { gte: monthStart, lt: monthEnd } },
+          _sum: { amount: true },
+        });
+        calculatedSalary = Math.round(Number(payments._sum?.amount || 0) * salaryValue / 100);
+
+      } else {
+        // FIXED_MONTHLY — belgilangan oylik
+        calculatedSalary = salaryValue;
+      }
+
+      // TeacherSalary jadvalini yangilash (to'langan qismga tegmaymiz)
+      const monthDate = new Date(Date.UTC(y, m, 1));
+      await prisma.teacherSalary.upsert({
+        where: { teacherId_month: { teacherId: teacher.id, month: monthDate } },
+        update: {
+          calculatedSalary,
+          totalHours,
+          studentsRevenue: 0,
+        },
+        create: {
+          teacherId: teacher.id,
+          month: monthDate,
+          calculatedSalary,
+          totalHours,
+          studentsRevenue: 0,
+          paidSalary: 0,
+          status: 'PENDING',
         },
       });
     }
+  } catch (err) {
+    console.error('❌ Ustoz oylik hisoblashda xato:', err);
+    // Salary xatosi darsni yakunlashga to'sqinlik qilmasin
   }
 
   // Statistika ko'rsatish
@@ -702,14 +765,13 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
   });
 
   const present = attendance.filter(a => a.status === 'PRESENT').length;
-  const absent = attendance.filter(a => a.status === 'ABSENT').length;
-  const late = attendance.filter(a => a.status === 'LATE').length;
+  const absent  = attendance.filter(a => a.status === 'ABSENT').length;
+  const late    = attendance.filter(a => a.status === 'LATE').length;
 
   let text = brandHeader('📝', 'DARS YAKUNLANDI');
   text += `\n✅ Keldi: <b>${present}</b>\n`;
   text += `❌ Kelmadi: <b>${absent}</b>\n`;
   text += `⏰ Kechikdi: <b>${late}</b>\n\n`;
-
   text += '<b>Tafsilotlar:</b>\n';
   for (const a of attendance) {
     const icon = a.status === 'PRESENT' ? '✅' : a.status === 'ABSENT' ? '❌' : '⏰';
@@ -722,53 +784,84 @@ export async function handleAttComplete(ctx: BotContext, lessonId: number, group
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }
 
-// ── Maosh (hozirgi oy) ─────────────────────────────────
+// ── Maosh (hozirgi oy) — LIVE hisob ──────────────────
 export async function handleTeacherSalary(ctx: BotContext) {
   const teacher = await getTeacher(ctx);
   if (!teacher) return;
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const monthName = MONTH_NAMES[now.getMonth()];
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const monthName  = MONTH_NAMES[m];
+  const monthStart = new Date(Date.UTC(y, m, 1));
+  const monthEnd   = new Date(Date.UTC(y, m + 1, 1));
 
-  const salaryTypeText = teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
-    ? `${Number(teacher.salaryValue)}% to'lovlardan`
-    : teacher.salaryType === 'PER_LESSON_HOUR'
-      ? `${formatMoney(Number(teacher.salaryValue))}/soat`
-      : `${formatMoney(Number(teacher.salaryValue))}/oy`;
+  const salaryType  = teacher.salaryType  || 'PER_LESSON_HOUR';
+  const salaryValue = Number(teacher.salaryValue || 0);
 
-  // Hozirgi oy maoshi
-  const currentSalary = await prisma.teacherSalary.findFirst({
-    where: { teacherId: teacher.id, month: { gte: monthStart, lte: monthEnd } },
+  const salaryTypeText = salaryType === 'PERCENTAGE_FROM_PAYMENT'
+    ? `${salaryValue}% to'lovlardan`
+    : salaryType === 'PER_LESSON_HOUR'
+      ? `${formatMoney(salaryValue)}/soat`
+      : `${formatMoney(salaryValue)}/oy`;
+
+  // Ustoz guruhlari
+  const teacherGroups = await prisma.group.findMany({
+    where: { teacherId: teacher.id },
+    select: { id: true },
   });
+  const groupIds = teacherGroups.map(g => g.id);
 
-  // Hozirgi oyda nechta dars o'tdi
-  const lessonCount = await prisma.lesson.count({
-    where: {
-      group: { teacherId: teacher.id },
-      date: { gte: monthStart, lte: monthEnd },
-      status: 'COMPLETED',
-    },
+  // COMPLETED darslar
+  const completedLessons = await prisma.lesson.findMany({
+    where: { groupId: { in: groupIds }, date: { gte: monthStart, lt: monthEnd }, status: 'COMPLETED' },
+    select: { durationHours: true },
   });
+  const lessonCount = completedLessons.length;
+  const totalHours  = completedLessons.reduce((s, l) => s + Number(l.durationHours), 0);
 
-  let text = brandHeader('💰', `MAOSHIM — ${monthName} ${now.getFullYear()}`);
+  // LIVE hisob-kitob
+  let liveCalculated = 0;
+  if (salaryType === 'PER_LESSON_HOUR') {
+    liveCalculated = Math.round(totalHours * salaryValue);
+  } else if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
+    const payments = await prisma.payment.aggregate({
+      where: { groupId: { in: groupIds }, isDeleted: false, paidAt: { gte: monthStart, lt: monthEnd } },
+      _sum: { amount: true },
+    });
+    liveCalculated = Math.round(Number(payments._sum?.amount || 0) * salaryValue / 100);
+  } else {
+    liveCalculated = salaryValue;
+  }
+
+  // To'lov yozuvi (to'langan qism)
+  const monthDate    = new Date(Date.UTC(y, m, 1));
+  const salaryRecord = await prisma.teacherSalary.findUnique({
+    where: { teacherId_month: { teacherId: teacher.id, month: monthDate } },
+  });
+  const paidSalary = salaryRecord ? Number(salaryRecord.paidSalary) : 0;
+  const remaining  = Math.max(0, liveCalculated - paidSalary);
+
+  let text = brandHeader('💰', `MAOSHIM — ${monthName} ${y}`);
   text += `📋 Hisoblash turi: <b>${salaryTypeText}</b>\n\n`;
-
   text += `<b>📅 ${monthName} oyi:</b>\n`;
   text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
   text += `📚 O'tilgan darslar: <b>${lessonCount}</b>\n`;
+  if (salaryType === 'PER_LESSON_HOUR') {
+    text += `⏱ Jami soatlar: <b>${totalHours.toFixed(1)}</b> soat\n`;
+  }
+  text += `💰 Hisoblangan maosh: <b>${formatMoney(liveCalculated)}</b>\n`;
 
-  if (currentSalary) {
-    const statusIcon = currentSalary.status === 'PAID' ? '✅' : '⏳';
-    text += `${statusIcon} Hisoblangan: <b>${formatMoney(Number(currentSalary.calculatedSalary))}</b>\n`;
-    text += `💵 To'langan: <b>${formatMoney(Number(currentSalary.paidSalary))}</b>\n`;
-    const diff = Number(currentSalary.calculatedSalary) - Number(currentSalary.paidSalary);
-    if (diff > 0) {
-      text += `🔴 Qoldiq: <b>${formatMoney(diff)}</b>\n`;
+  if (paidSalary > 0) {
+    const statusIcon = remaining === 0 ? '✅' : '⏳';
+    text += `${statusIcon} To'langan: <b>${formatMoney(paidSalary)}</b>\n`;
+    if (remaining > 0) {
+      text += `🔴 Qoldiq: <b>${formatMoney(remaining)}</b>\n`;
     }
+  } else if (liveCalculated > 0) {
+    text += `⏳ Hali to'lanmagan\n`;
   } else {
-    text += `⏳ Hali hisoblanmagan\n`;
+    text += `📭 Bu oyda yakunlangan dars yo'q\n`;
   }
 
   const kb = new InlineKeyboard();
