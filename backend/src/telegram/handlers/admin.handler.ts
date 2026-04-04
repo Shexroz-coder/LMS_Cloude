@@ -942,3 +942,201 @@ export async function handleBroadcastHistory(ctx: BotContext) {
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
 }
+
+// ─── Admin: Ustozlar Davomat Nazorati ────────────────────────────────────────
+
+const DAY_NAMES_UZ = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Juma', 'Shan'];
+const MONTH_NAMES_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+
+function formatLocalDateAdmin(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export async function handleAdminAttendanceMonitor(ctx: BotContext, dateStr?: string) {
+  if (!(await checkAdmin(ctx))) return;
+
+  // Default: bugun (Toshkent vaqti)
+  const todayStr = formatLocalDateAdmin(new Date());
+  const targetDateStr = dateStr || todayStr;
+  const targetDate = new Date(targetDateStr + 'T00:00:00.000Z');
+
+  // targetDate ning hafta kuni (0=Yak ... 6=Shan)
+  const dispDate = new Date(targetDateStr + 'T12:00:00.000Z');
+  const weekday = dispDate.getUTCDay(); // 0..6
+  const dayLabel = DAY_NAMES_UZ[weekday];
+  const dateLabel = `${dispDate.getUTCDate()}-${MONTH_NAMES_SHORT[dispDate.getUTCMonth()]}`;
+  const isToday = targetDateStr === todayStr;
+
+  // O'sha kunda (weekday) jadval bor barcha aktiv guruhlarni olish
+  // weekdayMap: JS 0=Sun..6=Sat → Prisma DayOfWeek: SUNDAY, MONDAY, ...
+  // Guruhlarni topish: o'sha weekday da dars bor, ACTIVE
+  // daysOfWeek = Int[] (0=Yak, 1=Dush, ... 6=Shan) — JS getUTCDay() bilan mos
+  const groups = await prisma.group.findMany({
+    where: {
+      status: 'ACTIVE',
+      schedules: { some: { daysOfWeek: { has: weekday } } },
+    },
+    include: {
+      teacher: { include: { user: { select: { fullName: true } } } },
+      schedules: { where: { daysOfWeek: { has: weekday } } },
+      _count: { select: { groupStudents: true } },
+    },
+    orderBy: { teacher: { user: { fullName: 'asc' } } },
+  });
+
+  if (groups.length === 0) {
+    const kb = new InlineKeyboard();
+    // Navigation: prev / next
+    const prevDate = new Date(targetDate);
+    prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+    const nextDate = new Date(targetDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    kb.text('⬅️ Oldingi kun', `admin_att_monitor_${formatLocalDateAdmin(prevDate)}`);
+    kb.text('Keyingi kun ➡️', `admin_att_monitor_${formatLocalDateAdmin(nextDate)}`).row();
+    kb.text('📅 Bugun', `admin_att_monitor_${todayStr}`).row();
+    kb.text('⬅️ Bosh menyu', 'main_menu');
+
+    const text = `📋 <b>DAVOMAT NAZORATI</b>\n`
+      + `━━━━━━━━━━━━━━━━━━━━━━━\n`
+      + `📅 ${dayLabel}, ${dateLabel}${isToday ? ' (bugun)' : ''}\n\n`
+      + `<i>Bu kunda hech qanday dars yo'q</i>`;
+    try {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+    } catch {
+      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
+    }
+    return;
+  }
+
+  // Mavjud lesson recordlarini olish (targetDate uchun)
+  const nextDay = new Date(targetDate);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+  const existingLessons = await prisma.lesson.findMany({
+    where: {
+      date: { gte: targetDate, lt: nextDay },
+      groupId: { in: groups.map(g => g.id) },
+    },
+    include: {
+      _count: { select: { attendance: true } },
+    },
+  });
+
+  // GroupId → lesson map
+  const lessonByGroup = new Map(existingLessons.map(l => [l.groupId, l]));
+
+  // Teacher ga guruhlarini guruhlash
+  const teacherMap = new Map<string, {
+    name: string;
+    groups: Array<{
+      groupName: string;
+      lessonStatus: 'COMPLETED' | 'PARTIAL' | 'MISSING';
+      attendanceCount: number;
+      totalStudents: number;
+      startTime: string;
+    }>;
+  }>();
+
+  for (const group of groups) {
+    const teacherName = (group as any).teacher.user.fullName;
+    const teacherId = String(group.teacherId);
+    const lesson = lessonByGroup.get(group.id);
+    const totalStudents = (group as any)._count.groupStudents as number;
+    const scheduleItem = (group as any).schedules?.[0];
+    const startTime = scheduleItem?.startTime
+      ? String(scheduleItem.startTime).slice(0, 5)
+      : '--:--';
+
+    let lessonStatus: 'COMPLETED' | 'PARTIAL' | 'MISSING';
+    let attendanceCount = 0;
+
+    if (!lesson) {
+      lessonStatus = 'MISSING';
+    } else if (lesson.status === 'COMPLETED') {
+      lessonStatus = 'COMPLETED';
+      attendanceCount = (lesson as any)._count.attendance as number;
+    } else {
+      // lesson bor lekin COMPLETED emas
+      attendanceCount = (lesson as any)._count.attendance as number;
+      lessonStatus = attendanceCount > 0 ? 'PARTIAL' : 'MISSING';
+    }
+
+    if (!teacherMap.has(teacherId)) {
+      teacherMap.set(teacherId, { name: teacherName, groups: [] });
+    }
+    teacherMap.get(teacherId)!.groups.push({
+      groupName: group.name,
+      lessonStatus,
+      attendanceCount,
+      totalStudents,
+      startTime,
+    });
+  }
+
+  // Statistika
+  let completedCount = 0;
+  let partialCount = 0;
+  let missingCount = 0;
+
+  for (const [, teacher] of teacherMap) {
+    for (const g of teacher.groups) {
+      if (g.lessonStatus === 'COMPLETED') completedCount++;
+      else if (g.lessonStatus === 'PARTIAL') partialCount++;
+      else missingCount++;
+    }
+  }
+
+  let text = `📋 <b>DAVOMAT NAZORATI</b>\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `📅 ${dayLabel}, ${dateLabel}${isToday ? ' (bugun)' : ''}\n`;
+  text += `✅ ${completedCount} | ⚠️ ${partialCount} | ❌ ${missingCount}\n`;
+  text += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  for (const [, teacher] of teacherMap) {
+    text += `👨‍🏫 <b>${escapeHtml(teacher.name)}</b>\n`;
+    for (const g of teacher.groups) {
+      const icon = g.lessonStatus === 'COMPLETED' ? '✅'
+        : g.lessonStatus === 'PARTIAL' ? '⚠️' : '❌';
+      const attInfo = g.lessonStatus !== 'MISSING'
+        ? ` (${g.attendanceCount}/${g.totalStudents} o'q)`
+        : '';
+      text += `  ${icon} ${escapeHtml(g.groupName)} — ${g.startTime}${attInfo}\n`;
+    }
+    text += '\n';
+  }
+
+  // 7 kunlik navigation
+  const kb = new InlineKeyboard();
+  const prevDate = new Date(targetDate);
+  prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+  const nextDate = new Date(targetDate);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+
+  kb.text('⬅️ Oldingi kun', `admin_att_monitor_${formatLocalDateAdmin(prevDate)}`);
+  kb.text('Keyingi kun ➡️', `admin_att_monitor_${formatLocalDateAdmin(nextDate)}`).row();
+
+  // 7 kunlik tezkor navigatsiya (bugundan -3 to +3)
+  const today = new Date(todayStr + 'T00:00:00.000Z');
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() + i);
+    const ds = formatLocalDateAdmin(d);
+    const dd = new Date(ds + 'T12:00:00.000Z');
+    const label = i === 0 ? '📍' : `${dd.getUTCDate()}/${dd.getUTCMonth() + 1}`;
+    const mark = ds === targetDateStr ? `[${label}]` : label;
+    kb.text(mark, `admin_att_monitor_${ds}`);
+    if (i === 0) kb.row();
+  }
+  kb.row();
+  kb.text('🔄 Yangilash', `admin_att_monitor_${targetDateStr}`);
+  kb.text('⬅️ Bosh menyu', 'main_menu');
+
+  try {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb });
+  } catch {
+    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
+  }
+}

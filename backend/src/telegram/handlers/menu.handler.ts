@@ -16,7 +16,7 @@ import { handleNotifications } from './notifications';
 import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
 import { handleParentRegister } from './start.handler';
 import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete, handleTeacherGiveCoin, handleTeacherCoinGroupSelect, handleTeacherCoinStudentSelect } from './teacher.handler';
-import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport, handleAdminBroadcast, handleBroadcastTarget, handleBroadcastDeleteAll, handleBroadcastResend, handleBroadcastHistory } from './admin.handler';
+import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport, handleAdminBroadcast, handleBroadcastTarget, handleBroadcastDeleteAll, handleBroadcastResend, handleBroadcastHistory, handleAdminAttendanceMonitor } from './admin.handler';
 
 // ── Asosiy menyu ko'rsatish ───────────────────────
 export async function handleMainMenu(ctx: BotContext) {
@@ -381,6 +381,14 @@ export async function routeCallback(ctx: BotContext) {
     if (data.startsWith('broadcast_resend_')) {
       const target = data.replace('broadcast_resend_', '');
       await handleBroadcastResend(ctx, target);
+      return;
+    }
+
+    // ── Admin: Davomat nazorati ──
+    if (data === 'admin_att_monitor') { await handleAdminAttendanceMonitor(ctx); return; }
+    if (data.startsWith('admin_att_monitor_')) {
+      const dateStr = data.replace('admin_att_monitor_', '');
+      await handleAdminAttendanceMonitor(ctx, dateStr);
       return;
     }
 
