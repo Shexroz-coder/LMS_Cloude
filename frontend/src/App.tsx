@@ -18,6 +18,7 @@ import SalariesPage from './pages/admin/SalariesPage';
 import AnnouncementsPage from './pages/admin/AnnouncementsPage';
 import CoursesPage from './pages/admin/CoursesPage';
 import ReportsPage from './pages/admin/ReportsPage';
+import AttendanceExportPage from './pages/admin/AttendanceExportPage';
 import AdminCoinsPage from './pages/admin/AdminCoinsPage';
 import HolidaysPage from './pages/admin/HolidaysPage';
 
@@ -105,6 +106,7 @@ const App = () => {
         <Route path="coins" element={<AdminCoinsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="attendance-export" element={<AttendanceExportPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

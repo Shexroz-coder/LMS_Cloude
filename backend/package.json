@@ -32,7 +32,8 @@
     "grammy": "^1.21.1",
     "socket.io": "^4.7.4",
     "uuid": "^9.0.1",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
