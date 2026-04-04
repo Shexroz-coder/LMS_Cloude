@@ -29,7 +29,7 @@ RUN apk add --no-cache openssl
 
 # Install only production dependencies
 COPY package*.json ./
-RUN npm ci --frozen-lockfile --only=production
+RUN npm install --omit=dev --ignore-scripts
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
