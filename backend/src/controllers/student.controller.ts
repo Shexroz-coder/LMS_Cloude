@@ -612,6 +612,90 @@ export const getAttendanceStats = async (req: AuthRequest, res: Response): Promi
 };
 
 // ══════════════════════════════════════════════
+// PATCH /students/:id/deactivate — O'quvchini o'chirib qo'yish (disable)
+// ══════════════════════════════════════════════
+export const deactivateStudent = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    const { leftReason, leftAt } = req.body;
+
+    const student = await prisma.student.findUnique({
+      where: { id },
+      include: { user: { select: { fullName: true, isActive: true } } },
+    });
+
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+    if (student.status === 'INACTIVE') { sendError(res, "O'quvchi allaqachon nofaol.", 400); return; }
+
+    await prisma.$transaction([
+      // Status INACTIVE ga o'tkazish
+      prisma.student.update({
+        where: { id },
+        data: {
+          status: 'INACTIVE',
+          leftAt:     leftAt ? new Date(leftAt) : new Date(),
+          leftReason: leftReason || null,
+        },
+      }),
+      // Barcha aktiv guruhlardan chiqarish
+      prisma.groupStudent.updateMany({
+        where: { studentId: id, status: 'ACTIVE' },
+        data:  { status: 'LEFT' },
+      }),
+      // user.isActive = false (lekinda login qila olmaydi)
+      prisma.user.update({
+        where: { id: student.userId },
+        data:  { isActive: false },
+      }),
+    ]);
+
+    sendSuccess(res, null, `${student.user.fullName} nofaol holatga o'tkazildi.`);
+  } catch (err) {
+    console.error('deactivateStudent error:', err);
+    sendError(res, "O'quvchini nofaol qilishda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// PATCH /students/:id/reactivate — O'quvchini qayta faollashtirish
+// ══════════════════════════════════════════════
+export const reactivateStudent = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const student = await prisma.student.findUnique({
+      where: { id },
+      include: { user: { select: { fullName: true, isActive: true } } },
+    });
+
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+    if (student.status === 'ACTIVE') { sendError(res, "O'quvchi allaqachon faol.", 400); return; }
+
+    await prisma.$transaction([
+      // Status ACTIVE ga qaytarish
+      prisma.student.update({
+        where: { id },
+        data: {
+          status:     'ACTIVE',
+          leftAt:     null,
+          leftReason: null,
+        },
+      }),
+      // user.isActive = true (login qila oladi)
+      prisma.user.update({
+        where: { id: student.userId },
+        data:  { isActive: true },
+      }),
+    ]);
+
+    sendSuccess(res, null, `${student.user.fullName} qayta faollashtirildi.`);
+  } catch (err) {
+    console.error('reactivateStudent error:', err);
+    sendError(res, "O'quvchini faollashtirishda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /students/debtors — Qarzdorlar ro'yxati
 // ══════════════════════════════════════════════
 export const getDebtors = async (req: AuthRequest, res: Response): Promise<void> => {

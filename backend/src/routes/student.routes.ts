@@ -6,6 +6,8 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
+  deactivateStudent,
+  reactivateStudent,
   addToGroup,
   removeFromGroup,
   getAttendanceStats,
@@ -28,6 +30,10 @@ router.post('/', authorize('ADMIN'), createStudent);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'PARENT'), getStudentById);
 router.put('/:id', authorize('ADMIN'), updateStudent);
 router.delete('/:id', authorize('ADMIN'), deleteStudent);
+
+// Faollashtirish / Nofaol qilish
+router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);
+router.patch('/:id/reactivate', authorize('ADMIN'), reactivateStudent);
 
 // Guruh boshqaruvi
 router.post('/:id/groups/:groupId', authorize('ADMIN'), addToGroup);

@@ -5,7 +5,8 @@ import {
   Search, Plus, Filter, Download, Users, AlertCircle,
   ChevronLeft, ChevronRight, Eye, Edit2, Trash2, X,
   Phone, Calendar, MapPin, BookOpen, Coins, CreditCard,
-  CheckCircle, Clock, TrendingUp, UserCheck, Pencil, CalendarDays
+  CheckCircle, Clock, TrendingUp, UserCheck, Pencil, CalendarDays,
+  UserX, UserCheck2, RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -57,6 +58,9 @@ const StudentsPage = () => {
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Student | null>(null);
+  const [deactivateConfirm, setDeactivateConfirm] = useState<Student | null>(null);
+  const [deactivateReason, setDeactivateReason] = useState('');
+  const [reactivateConfirm, setReactivateConfirm] = useState<Student | null>(null);
   const [dueDayStudent, setDueDayStudent] = useState<Student | null>(null);
 
   // Debounce effect
@@ -98,6 +102,34 @@ const StudentsPage = () => {
         setDeleteConfirm(null);
       },
       onError: (_err: unknown) => { void toast.error("Xato yuz berdi"); }
+    }
+  );
+
+  // Deactivate mutation
+  const deactivateMutation = useMutation(
+    ({ id, reason }: { id: number; reason: string }) =>
+      api.patch(`/students/${id}/deactivate`, { leftReason: reason }),
+    {
+      onSuccess: () => {
+        void toast.success("O'quvchi nofaol holatga o'tkazildi");
+        qc.invalidateQueries('students');
+        setDeactivateConfirm(null);
+        setDeactivateReason('');
+      },
+      onError: () => { void toast.error("Xato yuz berdi"); }
+    }
+  );
+
+  // Reactivate mutation
+  const reactivateMutation = useMutation(
+    (id: number) => api.patch(`/students/${id}/reactivate`),
+    {
+      onSuccess: () => {
+        void toast.success("O'quvchi qayta faollashtirildi! Endi guruhga qo'shishingiz mumkin.");
+        qc.invalidateQueries('students');
+        setReactivateConfirm(null);
+      },
+      onError: () => { void toast.error("Xato yuz berdi"); }
     }
   );
 
@@ -263,7 +295,7 @@ const StudentsPage = () => {
                   const debt = Number(s.balance?.debt || 0);
                   const bal = Number(s.balance?.balance || 0);
                   return (
-                    <tr key={s.id} className="hover:bg-gray-50/70 transition-colors">
+                    <tr key={s.id} className={`hover:bg-gray-50/70 transition-colors ${s.status === 'INACTIVE' ? 'opacity-60 bg-gray-50/50' : ''}`}>
                       <td className="text-gray-400 text-xs">{(page - 1) * 15 + i + 1}</td>
                       <td>
                         <div className="flex items-center gap-3">
@@ -325,15 +357,36 @@ const StudentsPage = () => {
                             className="p-1.5 rounded-lg hover:bg-primary-50 text-gray-400 hover:text-primary-600 transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setEditStudent(s)} title="Tahrirlash"
-                            className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => setDueDayStudent(s)} title="To'lov kuni"
-                            className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
-                            <Calendar className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => setDeleteConfirm(s)} title="O'chirish"
+                          {s.status !== 'INACTIVE' && (
+                            <button onClick={() => setEditStudent(s)} title="Tahrirlash"
+                              className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {s.status !== 'INACTIVE' && (
+                            <button onClick={() => setDueDayStudent(s)} title="To'lov kuni"
+                              className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                          )}
+                          {s.status === 'INACTIVE' ? (
+                            <button
+                              onClick={() => setReactivateConfirm(s)}
+                              title="Qayta faollashtirish"
+                              className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setDeactivateConfirm(s); setDeactivateReason(''); }}
+                              title="Nofaol qilish (chiqarib yuborish)"
+                              className="p-1.5 rounded-lg hover:bg-orange-50 text-gray-400 hover:text-orange-500 transition-colors"
+                            >
+                              <UserX className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button onClick={() => setDeleteConfirm(s)} title="Butunlay o'chirish"
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -405,15 +458,103 @@ const StudentsPage = () => {
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">O'chirishni tasdiqlang</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              <strong>{deleteConfirm.user.fullName}</strong> o'quvchini o'chirmoqchimisiz?
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Butunlay o'chirishni tasdiqlang</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>{deleteConfirm.user.fullName}</strong> o'quvchini tizimdan butunlay o'chirmoqchimisiz?
             </p>
+            <p className="text-xs text-red-500 mb-5">⚠️ Bu amal qaytarib bo'lmaydi. Barcha ma'lumotlar o'chadi.</p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">Bekor</button>
               <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isLoading}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-60">
                 {deleteMutation.isLoading ? 'Jarayonda...' : "O'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Nofaol qilish (Deactivate) modali ─── */}
+      {deactivateConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <UserX className="w-5 h-5 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">O'quvchini chiqarib yuborish</h3>
+                <p className="text-sm text-gray-500">{deactivateConfirm.user.fullName}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              O'quvchi barcha guruhlardan chiqariladi va nofaol holatga o'tkaziladi.
+              Kerak bo'lsa qayta faollashtirish mumkin.
+            </p>
+
+            <div className="mb-5">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Ketish sababi (ixtiyoriy)
+              </label>
+              <textarea
+                value={deactivateReason}
+                onChange={e => setDeactivateReason(e.target.value)}
+                placeholder="Masalan: shaxsiy sabab, boshqa shaharga ko'chish..."
+                rows={3}
+                className="input w-full text-sm resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDeactivateConfirm(null); setDeactivateReason(''); }}
+                className="btn-secondary flex-1"
+              >
+                Bekor
+              </button>
+              <button
+                onClick={() => deactivateMutation.mutate({ id: deactivateConfirm.id, reason: deactivateReason })}
+                disabled={deactivateMutation.isLoading}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                <UserX className="w-4 h-4" />
+                {deactivateMutation.isLoading ? 'Jarayonda...' : 'Nofaol qilish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Qayta faollashtirish (Reactivate) modali ─── */}
+      {reactivateConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <RotateCcw className="w-6 h-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Qayta faollashtirishni tasdiqlang</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>{reactivateConfirm.user.fullName}</strong> o'quvchini tizimga qaytarasizmi?
+            </p>
+            <p className="text-xs text-gray-400 mb-5">
+              Faollashtirilgandan so'ng o'quvchini kerakli guruhga qo'shishingiz mumkin.
+            </p>
+            {reactivateConfirm.leftReason && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-xl text-left">
+                <p className="text-xs text-gray-500 font-semibold mb-0.5">Ketish sababi:</p>
+                <p className="text-sm text-gray-700">{reactivateConfirm.leftReason}</p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setReactivateConfirm(null)} className="btn-secondary flex-1">Bekor</button>
+              <button
+                onClick={() => reactivateMutation.mutate(reactivateConfirm.id)}
+                disabled={reactivateMutation.isLoading}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                {reactivateMutation.isLoading ? 'Jarayonda...' : 'Faollashtirish'}
               </button>
             </div>
           </div>
