@@ -8,7 +8,7 @@ RUN apk add --no-cache openssl
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci --frozen-lockfile
+RUN npm install --ignore-scripts
 
 # Copy source
 COPY . .
