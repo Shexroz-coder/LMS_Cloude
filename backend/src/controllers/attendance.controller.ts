@@ -60,7 +60,11 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // ═══ BAYRAM/DAM OLISH KUNI TEKSHIRUVI ═══
-    const lessonDateObj = new Date(date);
+    // date ni 'YYYY-MM-DD' string sifatida ishlatamiz — UTC midnight
+    const dateStr = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? date
+      : new Date(date).toISOString().slice(0, 10);
+    const lessonDateObj = new Date(dateStr + 'T00:00:00.000Z');
     const holidayCheck = await isHolidayDate(lessonDateObj);
     if (holidayCheck.isHoliday && !forcedLesson) {
       sendError(res, `Bu kun dam olish kuni: "${holidayCheck.holidayName}". Dars o'tkazish uchun "forcedLesson: true" yuboring.`, 400);
@@ -96,17 +100,15 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
     // 1 darslik narxni hisoblash
     const monthlyPrice = Number(group.course.monthlyPrice);
     const scheduledDays = [...new Set(group.schedules.flatMap(s => s.daysOfWeek))];
-    const lessonDate = new Date(date);
+    const lessonDate = lessonDateObj; // UTC midnight of the lesson date
     const lessonsInMonth = await countLessonsInMonth(
-      lessonDate.getFullYear(), lessonDate.getMonth(), scheduledDays
+      lessonDate.getUTCFullYear(), lessonDate.getUTCMonth(), scheduledDays
     );
     const basePricePerLesson = lessonsInMonth > 0 ? monthlyPrice / lessonsInMonth : 0;
 
-    // Dars mavjudmi? (kuniga 1 ta dars)
-    const dayStart = new Date(lessonDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(lessonDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Dars mavjudmi? (kuniga 1 ta dars) — UTC based range
+    const dayStart = new Date(dateStr + 'T00:00:00.000Z');
+    const dayEnd   = new Date(dateStr + 'T23:59:59.999Z');
 
     let lesson = await prisma.lesson.findFirst({
       where: {
@@ -119,7 +121,7 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       lesson = await prisma.lesson.create({
         data: {
           groupId: parsedGroupId,
-          date: new Date(date),
+          date: lessonDate,
           startTime,
           endTime,
           topic: topic || undefined,
@@ -302,10 +304,12 @@ export const getGroupAttendance = async (req: AuthRequest, res: Response): Promi
     const groupId = parseInt(req.params.groupId);
     const { month } = req.query as { month?: string };
 
-    const startDate = month
-      ? new Date(month + '-01')
-      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    const now = new Date();
+    const [gy, gm] = month
+      ? month.split('-').map(Number)
+      : [now.getFullYear(), now.getMonth() + 1];
+    const startDate = new Date(Date.UTC(gy, gm - 1, 1));
+    const endDate   = new Date(Date.UTC(gy, gm, 0, 23, 59, 59, 999));
 
     const lessons = await prisma.lesson.findMany({
       where: { groupId, date: { gte: startDate, lte: endDate } },
@@ -332,9 +336,11 @@ export const getGroupAttendance = async (req: AuthRequest, res: Response): Promi
 // ══════════════════════════════════════════════
 export const getTodayAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    // TZ=Asia/Tashkent — local getters return Tashkent date
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const start = new Date(todayStr + 'T00:00:00.000Z');
+    const end   = new Date(todayStr + 'T23:59:59.999Z');
 
     let teacherWhere = {};
     if (req.user?.role === 'TEACHER') {
@@ -377,10 +383,12 @@ export const getTodayAttendance = async (req: AuthRequest, res: Response): Promi
 export const getAttendanceStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { month, groupId } = req.query as Record<string, string>;
-    const startDate = month
-      ? new Date(month + '-01')
-      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    const sn = new Date();
+    const [sy, sm] = month
+      ? month.split('-').map(Number)
+      : [sn.getFullYear(), sn.getMonth() + 1];
+    const startDate = new Date(Date.UTC(sy, sm - 1, 1));
+    const endDate   = new Date(Date.UTC(sy, sm, 0, 23, 59, 59, 999));
 
     const where: Record<string, unknown> = { lesson: { date: { gte: startDate, lte: endDate } } };
     if (groupId) where.lesson = { ...where.lesson as object, groupId: parseInt(groupId) };
@@ -432,9 +440,14 @@ export const getStudentAttendance = async (req: AuthRequest, res: Response): Pro
       orderBy: { lesson: { date: 'desc' } },
       take: parseInt(limit)
     });
-    const total = records.length;
+    const total   = records.length;
     const present = records.filter(r => r.status === 'PRESENT').length;
-    sendSuccess(res, { records, total, present, rate: total > 0 ? Math.round(present / total * 100) : 0 });
+    const late    = records.filter(r => r.status === 'LATE').length;
+    const absent  = records.filter(r => r.status === 'ABSENT').length;
+    const excused = records.filter(r => r.status === 'EXCUSED').length;
+    // LATE ham kelgan hisoblanadi — davomat % da hisobga olinadi
+    const rate = total > 0 ? Math.round((present + late) / total * 100) : 0;
+    sendSuccess(res, { records, total, present, late, absent, excused, rate });
   } catch (err) {
     console.error('getStudentAttendance error:', err);
     sendError(res, 'Davomatni olishda xato.', 500);
@@ -452,20 +465,21 @@ export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response
     let endDate: Date;
 
     if (month) {
-      // month format: YYYY-MM
+      // month format: YYYY-MM — UTC based month range
       const [year, monthNum] = month.split('-').map(Number);
-      startDate = new Date(year, monthNum - 1, 1);
-      endDate = new Date(year, monthNum, 0, 23, 59, 59);
+      startDate = new Date(Date.UTC(year, monthNum - 1, 1));
+      endDate   = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
     } else if (date) {
-      // date format: YYYY-MM-DD
-      const dateObj = new Date(date);
-      startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0);
-      endDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59);
+      // date format: YYYY-MM-DD — UTC based day range
+      const ds = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date(date).toISOString().slice(0, 10);
+      startDate = new Date(ds + 'T00:00:00.000Z');
+      endDate   = new Date(ds + 'T23:59:59.999Z');
     } else {
-      // Default to today
-      const today = new Date();
-      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      // Default to today (Tashkent local date since TZ=Asia/Tashkent)
+      const n = new Date();
+      const ds = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+      startDate = new Date(ds + 'T00:00:00.000Z');
+      endDate   = new Date(ds + 'T23:59:59.999Z');
     }
 
     // Get all lessons for the date range with attendance records

@@ -171,16 +171,20 @@ export async function handleTeacherGroups(ctx: BotContext) {
 //  DAVOMAT BELGILASH TIZIMI
 // ══════════════════════════════════════════════════════
 
-// Yordamchi: ikkita sanani solishtirish (faqat kun)
+// Yordamchi: ikkita sanani solishtirish (faqat kun) — UTC getters ishlatiladi
+// DB dagi sanalar UTC midnight saqlanadi, shuning uchun UTC getters to'g'ri ishlaydi
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return a.getUTCFullYear() === b.getUTCFullYear() &&
+         a.getUTCMonth()    === b.getUTCMonth()    &&
+         a.getUTCDate()     === b.getUTCDate();
 }
 
 function daysBetween(a: Date, b: Date): number {
   const msPerDay = 86400000;
-  const d1 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const d2 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((d2.getTime() - d1.getTime()) / msPerDay);
+  // UTC-based day truncation to avoid local time offset issues
+  const d1 = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
+  const d2 = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
+  return Math.round((d2 - d1) / msPerDay);
 }
 
 // ── 1-qadam: Guruh tanlash ───────────────────────────
