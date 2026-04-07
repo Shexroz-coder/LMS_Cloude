@@ -769,6 +769,28 @@ export const cleanupInactiveStudents = async (req: AuthRequest, res: Response): 
 };
 
 // ══════════════════════════════════════════════
+// PATCH /students/:id/accept-lead — Arizani qabul qilish (LEAD → DEMO)
+// Admin yangi arizani bir marta qabul qilgach, yangi arizalar panelidан yo'qoladi
+// ══════════════════════════════════════════════
+export const acceptLead = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { sendError(res, 'Noto\'g\'ri ID.', 400); return; }
+
+    const student = await prisma.student.findUnique({ where: { id }, select: { id: true, status: true } });
+    if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
+    if (student.status !== 'LEAD') { sendError(res, 'Faqat LEAD holattagi ariza qabul qilinadi.', 400); return; }
+
+    await prisma.student.update({ where: { id }, data: { status: 'DEMO' } });
+
+    sendSuccess(res, null, 'Ariza qabul qilindi. O\'quvchi DEMO holatiga o\'tkazildi.');
+  } catch (err) {
+    console.error('acceptLead error:', err);
+    sendError(res, 'Arizani qabul qilishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /students/debtors — Qarzdorlar ro'yxati
 // ══════════════════════════════════════════════
 export const getDebtors = async (req: AuthRequest, res: Response): Promise<void> => {

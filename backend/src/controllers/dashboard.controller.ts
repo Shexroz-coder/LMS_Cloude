@@ -349,7 +349,11 @@ const TIME_LABELS_LEAD: Record<string, string> = {
 export const getNewLeads = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const leads = await prisma.student.findMany({
-      where: { status: 'LEAD' },
+      where: {
+        status: 'LEAD',
+        // Faol guruhda yo'q bo'lgan LEAD larni ko'rsatish
+        groupStudents: { none: { status: 'ACTIVE' } },
+      },
       include: {
         user: {
           select: { id: true, fullName: true, phone: true, createdAt: true },

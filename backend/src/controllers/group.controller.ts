@@ -386,11 +386,27 @@ export const addStudentToGroup = async (req: AuthRequest, res: Response): Promis
     if (existing) {
       if (existing.status === 'ACTIVE') { sendError(res, 'O\'quvchi allaqachon bu guruhda.', 409); return; }
       const updated = await prisma.groupStudent.update({ where: { id: existing.id }, data: { status: 'ACTIVE', joinedAt: new Date() } });
+      // Student LEAD/DEMO/INACTIVE bo'lsa → ACTIVE ga o'tkazish
+      await prisma.student.update({
+        where: { id: parseInt(studentId) },
+        data: { status: 'ACTIVE' },
+      });
+      // Foydalanuvchi login bloklanmagan bo'lsin
+      const st = await prisma.student.findUnique({ where: { id: parseInt(studentId) }, select: { userId: true } });
+      if (st) await prisma.user.update({ where: { id: st.userId }, data: { isActive: true } });
       sendSuccess(res, updated, 'O\'quvchi guruhga qaytarildi.', 201);
       return;
     }
 
     const gs = await prisma.groupStudent.create({ data: { groupId, studentId: parseInt(studentId), joinedAt: new Date() } });
+    // Student LEAD/DEMO bo'lsa → ACTIVE ga o'tkazish
+    await prisma.student.update({
+      where: { id: parseInt(studentId) },
+      data: { status: 'ACTIVE' },
+    });
+    // Foydalanuvchi login bloklanmagan bo'lsin
+    const newSt = await prisma.student.findUnique({ where: { id: parseInt(studentId) }, select: { userId: true } });
+    if (newSt) await prisma.user.update({ where: { id: newSt.userId }, data: { isActive: true } });
     sendSuccess(res, gs, 'O\'quvchi guruhga qo\'shildi!', 201);
   } catch (err) {
     console.error('addStudentToGroup error:', err);

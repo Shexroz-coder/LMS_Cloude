@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, UserCheck, TrendingUp, AlertCircle,
   CreditCard, BookOpen, CheckCircle, Clock, Loader2, Bell,
-  UserPlus, ArrowRight, Calendar, Sparkles
+  UserPlus, ArrowRight, Calendar, Sparkles, CheckCircle2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar
@@ -38,6 +39,7 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // ── Real stats ────────────────────────────────
   const { data: stats, isLoading: statsLoading } = useQuery(
@@ -90,6 +92,20 @@ const AdminDashboard = () => {
   );
   const newLeads: Lead[] = leadsData?.leads || [];
   const leadsCount: number = leadsData?.count || 0;
+
+  // ── Accept lead mutation ──────────────────────
+  const acceptLeadMutation = useMutation(
+    (studentId: number) => api.patch(`/students/${studentId}/accept-lead`),
+    {
+      onSuccess: () => {
+        toast.success('Ariza qabul qilindi!');
+        queryClient.invalidateQueries('admin-new-leads');
+      },
+      onError: () => {
+        toast.error('Xato yuz berdi, qayta urinib ko\'ring');
+      },
+    }
+  );
 
   if (statsLoading) {
     return (
@@ -186,13 +202,23 @@ const AdminDashboard = () => {
           {newLeads.length > 0 && (
             <div className="relative mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {newLeads.slice(0, 6).map(lead => (
-                <div key={lead.studentId} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 hover:bg-white/15 transition-colors cursor-pointer"
-                  onClick={() => navigate('/admin/students?status=LEAD')}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <UserPlus className="w-3.5 h-3.5 text-indigo-200" />
-                    <span className="text-white text-sm font-medium truncate">{lead.fullName}</span>
+                <div key={lead.studentId} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 hover:bg-white/15 transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => navigate('/admin/students?status=LEAD')}>
+                      <UserPlus className="w-3.5 h-3.5 text-indigo-200 flex-shrink-0" />
+                      <span className="text-white text-sm font-medium truncate">{lead.fullName}</span>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); acceptLeadMutation.mutate(lead.studentId); }}
+                      disabled={acceptLeadMutation.isLoading}
+                      title="Arizani qabul qilish"
+                      className="flex-shrink-0 flex items-center gap-1 bg-white/20 hover:bg-emerald-500 text-white text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      Qabul
+                    </button>
                   </div>
-                  <div className="text-indigo-200 text-xs space-y-0.5">
+                  <div className="text-indigo-200 text-xs space-y-0.5 cursor-pointer" onClick={() => navigate('/admin/students?status=LEAD')}>
                     <div>📞 {lead.phone}</div>
                     {lead.interestedCourse && <div>📚 {lead.interestedCourse}</div>}
                     {lead.preferredDays.length > 0 && (

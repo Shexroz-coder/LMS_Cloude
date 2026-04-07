@@ -9,6 +9,7 @@ import {
   deactivateStudent,
   reactivateStudent,
   cleanupInactiveStudents,
+  acceptLead,
   addToGroup,
   removeFromGroup,
   getAttendanceStats,
@@ -35,6 +36,8 @@ router.delete('/:id', authorize('ADMIN'), deleteStudent);
 // Faollashtirish / Nofaol qilish
 router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);
 router.patch('/:id/reactivate', authorize('ADMIN'), reactivateStudent);
+// Yangi arizani qabul qilish (LEAD → DEMO)
+router.patch('/:id/accept-lead', authorize('ADMIN'), acceptLead);
 // Eski INACTIVE o'quvchilarni tozalash (bir martalik migratsiya)
 router.post('/cleanup-inactive', authorize('ADMIN'), cleanupInactiveStudents);
 
