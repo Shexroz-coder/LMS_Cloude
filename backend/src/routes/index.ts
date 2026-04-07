@@ -17,6 +17,7 @@ import aiAssistantRoutes from './ai-assistant.routes';
 import paymeRoutes from './payme.routes';
 import holidayRoutes from './holiday.routes';
 import { authenticate } from '../middleware/auth.middleware';
+import prisma from '../lib/prisma';
 
 const router = Router();
 
@@ -35,6 +36,17 @@ router.use('/auth', authRoutes);
 
 // PayMe webhook — public (auth PayMe tomonidan tekshiriladi)
 router.use('/payme', paymeRoutes);
+
+// Public: courses list (ro'yxatdan o'tish formasi uchun)
+router.get('/public/courses', async (_req, res) => {
+  try {
+    const courses = await prisma.course.findMany({
+      select: { id: true, name: true, description: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ success: true, data: courses });
+  } catch { res.json({ success: true, data: [] }); }
+});
 
 // Protected routes
 router.use('/students', authenticate, studentRoutes);

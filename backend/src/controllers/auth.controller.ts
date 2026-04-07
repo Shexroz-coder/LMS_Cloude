@@ -9,6 +9,15 @@ import {
 } from '../utils/jwt.utils';
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { AuthRequest } from '../types';
+import bot from '../telegram/bot';
+import { escapeHtml } from '../telegram/utils/format';
+
+const DAY_NAMES_UZ = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+const TIME_LABELS: Record<string, string> = {
+  morning:   '🌅 Ertalab (9:00–12:00)',
+  afternoon: '☀️ Kunduz (12:00–17:00)',
+  evening:   '🌆 Kechqurun (17:00–21:00)',
+};
 
 
 // =====================
@@ -276,5 +285,135 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     sendSuccess(res, updated, 'Profil yangilandi.');
   } catch {
     sendError(res, 'Profilni yangilashda xato.', 500);
+  }
+};
+
+// =====================
+// POST /auth/register — Ochiq ro'yxatdan o'tish (autentifikatsiya talab etilmaydi)
+// =====================
+export const register = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const {
+      fullName,
+      phone,
+      password,
+      preferredDays = [],    // [1,3,5] — Du,Cho,Ju
+      preferredTime = '',    // 'morning' | 'afternoon' | 'evening'
+      interestedCourseId,
+    } = req.body;
+
+    // Majburiy maydonlar
+    if (!fullName || !phone || !password) {
+      sendError(res, 'Ism, telefon va parol majburiy.', 400);
+      return;
+    }
+    if (password.length < 6) {
+      sendError(res, 'Parol kamida 6 belgidan iborat bo\'lishi kerak.', 400);
+      return;
+    }
+
+    // Telefon unikalligi
+    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (existing) {
+      sendError(res, 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.', 409);
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    // Tranzaksiya: User + Student
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          fullName,
+          phone,
+          passwordHash,
+          role: 'STUDENT',
+          isActive: true,
+        },
+      });
+
+      const student = await tx.student.create({
+        data: {
+          userId: user.id,
+          status: 'LEAD',
+          // @ts-ignore — yangi maydonlar: Prisma migrate deploy dan keyin ishlaydi
+          preferredDays: Array.isArray(preferredDays) ? preferredDays.map(Number) : [],
+          preferredTime: preferredTime || null,
+          interestedCourseId: interestedCourseId ? parseInt(interestedCourseId) : null,
+        } as any,
+      });
+
+      return { user, student };
+    });
+
+    // ── Adminga Telegram xabar ──────────────────────
+    setImmediate(async () => {
+      try {
+        const admins = await prisma.user.findMany({
+          where: { role: 'ADMIN', telegramChatId: { not: null }, isActive: true },
+          select: { telegramChatId: true },
+        });
+
+        let courseName = '';
+        if (interestedCourseId) {
+          const course = await prisma.course.findUnique({
+            where: { id: parseInt(interestedCourseId) },
+            select: { name: true },
+          });
+          courseName = course?.name || '';
+        }
+
+        const days = (Array.isArray(preferredDays) ? preferredDays : [])
+          .map((d: number) => DAY_NAMES_UZ[d] || d)
+          .join(', ');
+
+        const msg =
+          `🆕 <b>Yangi ariza!</b>\n\n` +
+          `👤 <b>${escapeHtml(fullName)}</b>\n` +
+          `📞 ${escapeHtml(phone)}\n` +
+          (courseName ? `📚 Kurs: ${escapeHtml(courseName)}\n` : '') +
+          (days ? `📅 Qulay kunlar: ${days}\n` : '') +
+          (preferredTime ? `🕐 Vaqt: ${TIME_LABELS[preferredTime] || preferredTime}\n` : '') +
+          `\n<i>O'quvchilar bo'limida LEAD holatda ko'ring.</i>`;
+
+        for (const admin of admins) {
+          if (admin.telegramChatId) {
+            await bot.api.sendMessage(admin.telegramChatId, msg, { parse_mode: 'HTML' }).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('Register admin notify error:', e);
+      }
+    });
+
+    // ── Tokenlar yaratish (avtomatik login) ─────────
+    const payload = { userId: result.user.id, role: result.user.role, phone: result.user.phone };
+    const accessToken  = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_DAYS);
+    await prisma.refreshToken.create({
+      data: { userId: result.user.id, token: refreshToken, expiresAt },
+    });
+
+    sendSuccess(res, {
+      accessToken,
+      refreshToken,
+      user: {
+        id:        result.user.id,
+        fullName:  result.user.fullName,
+        phone:     result.user.phone,
+        role:      result.user.role,
+        language:  result.user.language,
+        avatarUrl: result.user.avatarUrl,
+        student:   { id: result.student.id, coinBalance: 0 },
+      },
+    }, 'Muvaffaqiyatli ro\'yxatdan o\'tdingiz! Tez orada siz bilan bog\'lanamiz.', 201);
+
+  } catch (err) {
+    console.error('Register error:', err);
+    sendError(res, 'Ro\'yxatdan o\'tishda xato.', 500);
   }
 };

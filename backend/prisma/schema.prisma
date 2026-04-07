@@ -187,6 +187,10 @@ model Student {
   leftReason     String?       @map("left_reason") @db.VarChar(500)
   paymentDueDay  Int?          @map("payment_due_day")   // Oylik to'lov kuni (1-28)
   paymentRemindDaysBefore Int? @default(3) @map("payment_remind_days_before")
+  // O'z-o'zidan ro'yxatdan o'tish uchun
+  preferredDays Int[]          @default([]) @map("preferred_days")
+  preferredTime String?        @map("preferred_time") @db.VarChar(20)
+  interestedCourseId Int?      @map("interested_course_id")
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)

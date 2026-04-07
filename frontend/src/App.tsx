@@ -4,6 +4,7 @@ import { Role } from './types';
 
 // Pages — Auth
 import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 
 // Pages — Admin
 import AdminLayout from './components/layout/AdminLayout';
@@ -85,6 +86,7 @@ const App = () => {
     <Routes>
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<RootRedirect />} />
 
       {/* ── Admin ── */}

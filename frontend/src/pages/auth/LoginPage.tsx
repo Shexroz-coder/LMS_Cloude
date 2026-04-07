@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Bot } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -133,8 +133,18 @@ const LoginPage = () => {
             </button>
           </form>
 
+          {/* Register CTA */}
+          <div className="mt-5 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Hisob yo'qmi?{' '}
+              <Link to="/register" className="font-semibold text-primary-600 dark:text-primary-400 hover:underline">
+                Ro'yxatdan o'tish →
+              </Link>
+            </p>
+          </div>
+
           {/* Roles info */}
-          <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
+          <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
             <p className="text-xs text-gray-400 dark:text-gray-500 text-center mb-3">Rollar:</p>
             <div className="grid grid-cols-2 gap-2">
               {[

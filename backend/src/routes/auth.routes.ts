@@ -1,8 +1,11 @@
 import { Router } from 'express';
-import { login, logout, refreshToken, getMe, changePassword, updateProfile } from '../controllers/auth.controller';
+import { login, logout, refreshToken, getMe, changePassword, updateProfile, register } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
+
+// POST /api/v1/auth/register — ochiq ro'yxatdan o'tish
+router.post('/register', register);
 
 // POST /api/v1/auth/login
 router.post('/login', login);

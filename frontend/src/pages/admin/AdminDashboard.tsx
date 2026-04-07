@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Users, UserCheck, TrendingUp, AlertCircle,
-  CreditCard, BookOpen, CheckCircle, Clock, Loader2, Bell
+  CreditCard, BookOpen, CheckCircle, Clock, Loader2, Bell,
+  UserPlus, ArrowRight, Calendar, Sparkles
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -20,9 +22,22 @@ const PAYMENT_METHODS: Record<string, string> = {
   CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online'
 };
 
+interface Lead {
+  studentId: number;
+  userId: number;
+  fullName: string;
+  phone: string;
+  registeredAt: string;
+  preferredDays: string[];
+  preferredTime: string | null;
+  interestedCourse: string | null;
+  hasGroup: boolean;
+}
+
 const AdminDashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   // ── Real stats ────────────────────────────────
   const { data: stats, isLoading: statsLoading } = useQuery(
@@ -67,6 +82,15 @@ const AdminDashboard = () => {
   );
   const nearDues = (upcomingDues as { daysLeft: number; isOverdue: boolean }[]).filter(d => d.daysLeft <= 5 || d.isOverdue);
 
+  // ── New leads (self-registered) ──────────────
+  const { data: leadsData } = useQuery(
+    'admin-new-leads',
+    () => api.get('/dashboard/new-leads').then(r => r.data?.data).catch(() => null),
+    { refetchInterval: 60_000 }
+  );
+  const newLeads: Lead[] = leadsData?.leads || [];
+  const leadsCount: number = leadsData?.count || 0;
+
   if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -105,6 +129,87 @@ const AdminDashboard = () => {
           Tizim ishlayapti
         </div>
       </div>
+
+      {/* ── 🆕 Yangi arizalar (LEAD) ─────────────────── */}
+      {leadsCount > 0 && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 p-5 shadow-lg">
+          {/* Decorative blobs */}
+          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-8 -left-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white font-bold text-lg">{leadsCount} ta yangi ariza!</span>
+                  <span className="bg-white/25 text-white text-xs px-2 py-0.5 rounded-full font-medium animate-pulse">
+                    Yangi
+                  </span>
+                </div>
+                <p className="text-indigo-100 text-sm">
+                  Ro'yxatdan o'tib guruh kutayotgan o'quvchilar
+                </p>
+                {/* Preview of first 3 names */}
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {newLeads.slice(0, 3).map(lead => (
+                    <div key={lead.studentId} className="bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center text-xs text-white font-bold">
+                        {lead.fullName[0]}
+                      </div>
+                      <span className="text-white text-xs font-medium">{lead.fullName.split(' ')[0]}</span>
+                      {lead.interestedCourse && (
+                        <span className="text-indigo-200 text-xs">• {lead.interestedCourse}</span>
+                      )}
+                    </div>
+                  ))}
+                  {leadsCount > 3 && (
+                    <div className="bg-white/15 rounded-lg px-2.5 py-1 text-xs text-indigo-100">
+                      +{leadsCount - 3} ta
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/admin/students?status=LEAD')}
+              className="flex-shrink-0 flex items-center gap-1.5 bg-white text-indigo-700 font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-indigo-50 transition-colors shadow-sm"
+            >
+              Ko'rish <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Mini cards for each lead's preferences */}
+          {newLeads.length > 0 && (
+            <div className="relative mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {newLeads.slice(0, 6).map(lead => (
+                <div key={lead.studentId} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 hover:bg-white/15 transition-colors cursor-pointer"
+                  onClick={() => navigate('/admin/students?status=LEAD')}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <UserPlus className="w-3.5 h-3.5 text-indigo-200" />
+                    <span className="text-white text-sm font-medium truncate">{lead.fullName}</span>
+                  </div>
+                  <div className="text-indigo-200 text-xs space-y-0.5">
+                    <div>📞 {lead.phone}</div>
+                    {lead.interestedCourse && <div>📚 {lead.interestedCourse}</div>}
+                    {lead.preferredDays.length > 0 && (
+                      <div>📅 {lead.preferredDays.join(', ')}</div>
+                    )}
+                    {lead.preferredTime && <div>🕐 {lead.preferredTime}</div>}
+                    <div className="text-indigo-300 text-xs mt-1">
+                      <Calendar className="w-3 h-3 inline mr-1" />
+                      {new Date(lead.registeredAt).toLocaleDateString('uz-UZ')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── To'lov eslatmalari ───────────────────── */}
       {nearDues.length > 0 && (

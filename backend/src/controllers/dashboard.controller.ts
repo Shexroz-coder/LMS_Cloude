@@ -335,3 +335,59 @@ export const getTodaySchedule = async (req: AuthRequest, res: Response): Promise
     sendError(res, 'Bugungi jadvalda xato.', 500);
   }
 };
+
+// ══════════════════════════════════════════════
+// GET /dashboard/new-leads — Yangi ro'yxatdan o'tganlar (LEAD)
+// ══════════════════════════════════════════════
+const DAY_NAMES_LEAD = ['Yak', 'Du', 'Se', 'Cho', 'Pay', 'Ju', 'Sha'];
+const TIME_LABELS_LEAD: Record<string, string> = {
+  morning:   'Ertalab (9–12)',
+  afternoon: 'Kunduz (12–17)',
+  evening:   'Kechqurun (17–21)',
+};
+
+export const getNewLeads = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const leads = await prisma.student.findMany({
+      where: { status: 'LEAD' },
+      include: {
+        user: {
+          select: { id: true, fullName: true, phone: true, createdAt: true },
+        },
+        groupStudents: {
+          where: { status: 'ACTIVE' },
+          select: { id: true },
+        },
+      },
+      orderBy: { user: { createdAt: 'desc' } },
+      take: 50,
+    });
+
+    // Course names for leads with interestedCourseId
+    const courseIds = [...new Set(leads.map(l => (l as any).interestedCourseId).filter(Boolean))];
+    const courses = courseIds.length > 0
+      ? await prisma.course.findMany({ where: { id: { in: courseIds } }, select: { id: true, name: true } })
+      : [];
+    const courseMap = new Map(courses.map(c => [c.id, c.name]));
+
+    const result = leads.map(l => {
+      const la = l as any;
+      return {
+        studentId:      l.id,
+        userId:         l.user.id,
+        fullName:       l.user.fullName,
+        phone:          l.user.phone,
+        registeredAt:   l.user.createdAt,
+        preferredDays:  (la.preferredDays || []).map((d: number) => DAY_NAMES_LEAD[d] || d),
+        preferredTime:  la.preferredTime ? TIME_LABELS_LEAD[la.preferredTime] || la.preferredTime : null,
+        interestedCourse: la.interestedCourseId ? courseMap.get(la.interestedCourseId) || null : null,
+        hasGroup:       l.groupStudents.length > 0,
+      };
+    });
+
+    sendSuccess(res, { count: result.length, leads: result });
+  } catch (err) {
+    console.error('getNewLeads error:', err);
+    sendError(res, 'Yangi arizalarni olishda xato.', 500);
+  }
+};
