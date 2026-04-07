@@ -696,6 +696,79 @@ export const reactivateStudent = async (req: AuthRequest, res: Response): Promis
 };
 
 // ══════════════════════════════════════════════
+// POST /students/cleanup-inactive — Eski INACTIVE o'quvchilarni tozalash
+// INACTIVE holattagi o'quvchilarning ACTIVE GroupStudent yozuvlarini LEFT ga o'tkazadi
+// va User.isActive = false qiladi. Bir martalik migratsiya uchun.
+// ══════════════════════════════════════════════
+export const cleanupInactiveStudents = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // INACTIVE bo'lgan, lekin hali ACTIVE GroupStudent yozuvi bor o'quvchilar
+    const inactiveWithActiveGroups = await prisma.student.findMany({
+      where: {
+        status: 'INACTIVE',
+        groupStudents: { some: { status: 'ACTIVE' } },
+      },
+      include: {
+        user: { select: { id: true, fullName: true, isActive: true } },
+        groupStudents: { where: { status: 'ACTIVE' }, select: { id: true } },
+      },
+    });
+
+    // User.isActive = true bo'lgan INACTIVE o'quvchilar (login bloklash unutilgan)
+    const inactiveWithActiveLogin = await prisma.student.findMany({
+      where: {
+        status: 'INACTIVE',
+        user: { isActive: true },
+        // yuqoridagi ro'yxatda bo'lmaganlar
+        groupStudents: { none: { status: 'ACTIVE' } },
+      },
+      include: { user: { select: { id: true, fullName: true } } },
+    });
+
+    let fixedGroups = 0;
+    let fixedLogins = 0;
+
+    // 1. INACTIVE + ACTIVE groupStudents → GroupStudent.LEFT + User.isActive=false
+    for (const student of inactiveWithActiveGroups) {
+      await prisma.$transaction([
+        prisma.groupStudent.updateMany({
+          where: { studentId: student.id, status: 'ACTIVE' },
+          data: { status: 'LEFT' },
+        }),
+        prisma.user.update({
+          where: { id: student.userId },
+          data: { isActive: false },
+        }),
+      ]);
+      fixedGroups++;
+    }
+
+    // 2. INACTIVE + User.isActive=true → User.isActive=false
+    for (const student of inactiveWithActiveLogin) {
+      await prisma.user.update({
+        where: { id: student.userId },
+        data: { isActive: false },
+      });
+      fixedLogins++;
+    }
+
+    const total = fixedGroups + fixedLogins;
+    sendSuccess(res, {
+      fixedGroups,
+      fixedLogins,
+      total,
+      details: inactiveWithActiveGroups.map(s => s.user.fullName),
+    }, total > 0
+      ? `${total} ta o'quvchi tozalandi: ${fixedGroups} ta guruhdan, ${fixedLogins} ta login bloklandi.`
+      : 'Tozalash shart emas — barcha ma\'lumotlar to\'g\'ri.'
+    );
+  } catch (err) {
+    console.error('cleanupInactiveStudents error:', err);
+    sendError(res, 'Tozalashda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /students/debtors — Qarzdorlar ro'yxati
 // ══════════════════════════════════════════════
 export const getDebtors = async (req: AuthRequest, res: Response): Promise<void> => {

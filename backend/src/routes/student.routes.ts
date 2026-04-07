@@ -8,6 +8,7 @@ import {
   deleteStudent,
   deactivateStudent,
   reactivateStudent,
+  cleanupInactiveStudents,
   addToGroup,
   removeFromGroup,
   getAttendanceStats,
@@ -34,6 +35,8 @@ router.delete('/:id', authorize('ADMIN'), deleteStudent);
 // Faollashtirish / Nofaol qilish
 router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);
 router.patch('/:id/reactivate', authorize('ADMIN'), reactivateStudent);
+// Eski INACTIVE o'quvchilarni tozalash (bir martalik migratsiya)
+router.post('/cleanup-inactive', authorize('ADMIN'), cleanupInactiveStudents);
 
 // Guruh boshqaruvi
 router.post('/:id/groups/:groupId', authorize('ADMIN'), addToGroup);

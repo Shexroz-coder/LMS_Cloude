@@ -105,7 +105,8 @@ export async function sendAttendanceNotification(
       },
     });
 
-    if (!student) return;
+    // INACTIVE o'quvchilarga xabar yuborilmaydi
+    if (!student || student.status === 'INACTIVE') return;
 
     const emoji = attendanceEmoji(status);
     const dateStr = formatDate(date);
@@ -155,7 +156,8 @@ export async function sendDebtNotification(
       },
     });
 
-    if (!student) return;
+    // INACTIVE o'quvchilarga qarz xabari yuborilmaydi
+    if (!student || student.status === 'INACTIVE') return;
 
     const text =
       `🔴 <b>Qarz xabari</b>\n\n` +

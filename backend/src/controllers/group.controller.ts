@@ -400,16 +400,50 @@ export const addStudentToGroup = async (req: AuthRequest, res: Response): Promis
 
 // ══════════════════════════════════════════════
 // DELETE /groups/:id/students/:studentId — O'quvchini chiqarish
+// Agar barcha guruhlardan chiqsa → avtomatik INACTIVE + login bloklash
 // ══════════════════════════════════════════════
 export const removeStudentFromGroup = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const groupId = parseInt(req.params.id);
     const studentId = parseInt(req.params.studentId);
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { id: true, userId: true, status: true, user: { select: { fullName: true } } },
+    });
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+
     await prisma.groupStudent.updateMany({
       where: { groupId, studentId },
-      data: { status: 'LEFT' }
+      data: { status: 'LEFT' },
     });
-    sendSuccess(res, null, 'O\'quvchi guruhdan chiqarildi.');
+
+    // Boshqa faol guruhlar bormi tekshirish
+    const remainingActive = await prisma.groupStudent.count({
+      where: { studentId, status: 'ACTIVE' },
+    });
+
+    let autoDeactivated = false;
+    if (remainingActive === 0 && student.status === 'ACTIVE') {
+      // Hech qanday faol guruh qolmadi — avtomatik nofaol qilish
+      await prisma.$transaction([
+        prisma.student.update({
+          where: { id: studentId },
+          data: { status: 'INACTIVE', leftAt: new Date() },
+        }),
+        prisma.user.update({
+          where: { id: student.userId },
+          data: { isActive: false },
+        }),
+      ]);
+      autoDeactivated = true;
+    }
+
+    const msg = autoDeactivated
+      ? `${student.user.fullName} guruhdan chiqarildi va nofaol holatga o'tkazildi (boshqa guruh yo'q).`
+      : `${student.user.fullName} guruhdan chiqarildi.`;
+
+    sendSuccess(res, { autoDeactivated }, msg);
   } catch (err) {
     console.error('removeStudentFromGroup error:', err);
     sendError(res, 'O\'quvchini chiqarishda xato.', 500);
