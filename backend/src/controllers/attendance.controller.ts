@@ -456,6 +456,7 @@ export const getStudentAttendance = async (req: AuthRequest, res: Response): Pro
 
 // ══════════════════════════════════════════════
 // GET /attendance/teacher-report — Ustozlar davomat nazorati (ADMIN)
+// Rejalashtirilgan BARCHA kunlarni ko'rsatadi — dars yaratilmagan kunlar ham
 // ══════════════════════════════════════════════
 export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -464,50 +465,56 @@ export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response
     let startDate: Date;
     let endDate: Date;
 
+    // Bugungi Toshkent sanasi (TZ=Asia/Tashkent)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayEnd = new Date(todayStr + 'T23:59:59.999Z');
+
     if (month) {
-      // month format: YYYY-MM — UTC based month range
       const [year, monthNum] = month.split('-').map(Number);
       startDate = new Date(Date.UTC(year, monthNum - 1, 1));
       endDate   = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
     } else if (date) {
-      // date format: YYYY-MM-DD — UTC based day range
       const ds = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date(date).toISOString().slice(0, 10);
       startDate = new Date(ds + 'T00:00:00.000Z');
       endDate   = new Date(ds + 'T23:59:59.999Z');
     } else {
-      // Default to today (Tashkent local date since TZ=Asia/Tashkent)
-      const n = new Date();
-      const ds = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-      startDate = new Date(ds + 'T00:00:00.000Z');
-      endDate   = new Date(ds + 'T23:59:59.999Z');
+      startDate = new Date(todayStr + 'T00:00:00.000Z');
+      endDate   = new Date(todayStr + 'T23:59:59.999Z');
     }
 
-    // Get all lessons for the date range with attendance records
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        date: { gte: startDate, lte: endDate },
-        status: { in: ['COMPLETED', 'SCHEDULED'] }
-      },
+    // Kelajak kunlarni ko'rsatmaylik — bugun bilan cheklaymiz
+    const rangeEnd = endDate < todayEnd ? endDate : todayEnd;
+
+    // Barcha faol guruhlarni jadval, ustoz va o'quvchi soni bilan olish
+    const groups = await prisma.group.findMany({
+      where: { status: 'ACTIVE' },
       include: {
-        group: {
-          include: {
-            teacher: { include: { user: { select: { id: true, fullName: true } } } },
-            course: { select: { name: true } },
-            groupStudents: { where: { status: 'ACTIVE' }, select: { id: true } }
-          }
-        },
-        attendance: { select: { id: true, status: true } },
-        _count: { select: { attendance: true } }
+        teacher: { include: { user: { select: { id: true, fullName: true } } } },
+        course: { select: { name: true } },
+        schedules: { select: { daysOfWeek: true } },
+        groupStudents: { where: { status: 'ACTIVE' }, select: { id: true } },
       },
-      orderBy: { date: 'desc' }
     });
 
-    // Group by teacher
+    // Diapazon ichidagi barcha darslarni olish
+    const lessons = await prisma.lesson.findMany({
+      where: { date: { gte: startDate, lte: endDate } },
+      include: { _count: { select: { attendance: true } } },
+    });
+
+    // Tez qidirish uchun map: "groupId_YYYY-MM-DD" → lesson
+    const lessonByKey = new Map<string, typeof lessons[0]>();
+    for (const lesson of lessons) {
+      const key = `${lesson.groupId}_${lesson.date.toISOString().slice(0, 10)}`;
+      lessonByKey.set(key, lesson);
+    }
+
     interface TeacherReport {
       teacherId: number;
       teacherName: string;
       lessons: Array<{
-        lessonId: number;
+        lessonId: number | null;
         date: Date;
         groupName: string;
         courseName: string;
@@ -519,36 +526,49 @@ export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response
 
     const reportMap = new Map<number, TeacherReport>();
 
-    for (const lesson of lessons) {
-      const teacherId = lesson.group.teacher.id;
-      const teacherName = lesson.group.teacher.user.fullName;
+    for (const group of groups) {
+      // Bu guruh uchun rejalashtirilgan hafta kunlari (0=Yakshanba...6=Shanba)
+      const scheduledDayNums = new Set(group.schedules.flatMap(s => s.daysOfWeek));
+      if (scheduledDayNums.size === 0) continue;
 
+      const teacherId   = group.teacher.id;
+      const teacherName = group.teacher.user.fullName;
       if (!reportMap.has(teacherId)) {
-        reportMap.set(teacherId, {
-          teacherId,
-          teacherName,
-          lessons: []
-        });
+        reportMap.set(teacherId, { teacherId, teacherName, lessons: [] });
       }
-
       const report = reportMap.get(teacherId)!;
-      report.lessons.push({
-        lessonId: lesson.id,
-        date: lesson.date,
-        groupName: lesson.group.name,
-        courseName: lesson.group.course.name,
-        totalStudents: lesson.group.groupStudents.length,
-        markedCount: lesson._count.attendance,
-        isMarked: lesson._count.attendance > 0
-      });
+
+      // Diapazon ichidagi har bir kunni tekshirish
+      const current = new Date(startDate);
+      while (current <= rangeEnd) {
+        const dow = current.getUTCDay(); // UTC getters — DB UTC midnight bilan mos
+        if (scheduledDayNums.has(dow)) {
+          const dateKey = current.toISOString().slice(0, 10);
+          const lesson  = lessonByKey.get(`${group.id}_${dateKey}`);
+          report.lessons.push({
+            lessonId:      lesson?.id ?? null,
+            date:          new Date(current),
+            groupName:     group.name,
+            courseName:    group.course.name,
+            totalStudents: group.groupStudents.length,
+            markedCount:   lesson?._count.attendance ?? 0,
+            isMarked:      (lesson?._count.attendance ?? 0) > 0,
+          });
+        }
+        current.setUTCDate(current.getUTCDate() + 1);
+      }
     }
 
-    // Convert map to array
     const teachers = Array.from(reportMap.values());
 
-    // Calculate summary
-    const totalLessons = lessons.length;
-    const markedLessons = lessons.filter(l => l._count.attendance > 0).length;
+    // Har bir ustoz darslarini sanasi bo'yicha kamayib tartibla
+    for (const t of teachers) {
+      t.lessons.sort((a, b) => b.date.getTime() - a.date.getTime());
+    }
+
+    const allScheduled    = teachers.flatMap(t => t.lessons);
+    const totalLessons    = allScheduled.length;
+    const markedLessons   = allScheduled.filter(l => l.isMarked).length;
     const unmarkedLessons = totalLessons - markedLessons;
 
     sendSuccess(res, {
@@ -558,10 +578,10 @@ export const getTeacherAttendanceReport = async (req: AuthRequest, res: Response
         unmarkedLessons,
         dateRange: {
           from: startDate.toISOString().split('T')[0],
-          to: endDate.toISOString().split('T')[0]
-        }
+          to:   endDate.toISOString().split('T')[0],
+        },
       },
-      teachers: teachers.sort((a, b) => a.teacherName.localeCompare(b.teacherName))
+      teachers: teachers.sort((a, b) => a.teacherName.localeCompare(b.teacherName)),
     });
   } catch (err) {
     console.error('getTeacherAttendanceReport error:', err);

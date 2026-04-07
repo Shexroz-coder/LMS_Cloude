@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Calendar, CheckCircle2, XCircle, BarChart3 } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, AlertCircle, BarChart3 } from 'lucide-react';
 import api from '../api/axios';
 import { clsx } from 'clsx';
 
 interface Lesson {
-  lessonId: number;
+  lessonId: number | null; // null = dars hatto ochilmagan
   date: Date;
   groupName: string;
   courseName: string;
@@ -122,7 +122,7 @@ const TeacherAttendanceReport = () => {
       </div>
 
       {/* Summary Stats */}
-      {report.summary.totalLessons > 0 && (
+      {!isLoading && report.summary.totalLessons > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="card dark:bg-gray-800 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Jami darslar</p>
@@ -205,6 +205,10 @@ const TeacherAttendanceReport = () => {
                           {lesson.isMarked ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-medium">
                               <CheckCircle2 className="w-3.5 h-3.5" /> Belgilandi
+                            </span>
+                          ) : lesson.lessonId !== null ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                              <AlertCircle className="w-3.5 h-3.5" /> Yarim belgilandi
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 text-xs font-medium">
