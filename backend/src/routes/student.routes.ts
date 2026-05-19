@@ -10,6 +10,7 @@ import {
   reactivateStudent,
   cleanupInactiveStudents,
   acceptLead,
+  rejectLead,
   addToGroup,
   removeFromGroup,
   getAttendanceStats,
@@ -38,6 +39,8 @@ router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);
 router.patch('/:id/reactivate', authorize('ADMIN'), reactivateStudent);
 // Yangi arizani qabul qilish (LEAD → DEMO)
 router.patch('/:id/accept-lead', authorize('ADMIN'), acceptLead);
+// Yangi arizani rad etish (LEAD → INACTIVE)
+router.patch('/:id/reject-lead', authorize('ADMIN'), rejectLead);
 // Eski INACTIVE o'quvchilarni tozalash (bir martalik migratsiya)
 router.post('/cleanup-inactive', authorize('ADMIN'), cleanupInactiveStudents);
 

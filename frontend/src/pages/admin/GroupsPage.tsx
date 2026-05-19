@@ -223,7 +223,7 @@ const GroupCard = ({ group: g, onView, onEdit, onDelete }: {
         <div className="flex items-center gap-2">
           <span>👤</span> <span className="truncate">{g.teacher?.user?.fullName}</span>
         </div>
-        {g.room && <div className="flex items-center gap-2"><span>🚪</span> {g.room} xona</div>}
+        {g.room && <div className="flex items-center gap-2"><span>🚪</span> {g.room}-xona</div>}
       </div>
 
       {/* Capacity bar */}
@@ -488,8 +488,18 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                   <input type="number" value={form.maxStudents} onChange={e => set('maxStudents', e.target.value)} min="1" max="50" className="input" />
                 </div>
                 <div>
-                  <label className="label">Asosiy xona</label>
-                  <input type="text" value={form.room} onChange={e => set('room', e.target.value)} placeholder="101" className="input" />
+                  <label className="label">Asosiy xona (raqam)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={form.room.replace(/\D/g, '')}
+                      onChange={e => set('room', e.target.value ? String(parseInt(e.target.value)) : '')}
+                      placeholder="101"
+                      min="1"
+                      className="input pr-14"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">-xona</span>
+                  </div>
                 </div>
                 <div>
                   <label className="label">Boshlanish sanasi</label>
@@ -614,10 +624,18 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
                 {/* Room */}
                 <div>
-                  <label className="label">Xona</label>
-                  <input type="text" value={scheduleForm.room}
-                    onChange={e => setScheduleForm(f => ({ ...f, room: e.target.value }))}
-                    placeholder="101, 202, Katta zal..." className="input" />
+                  <label className="label">Xona (raqam)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={scheduleForm.room.replace(/\D/g, '')}
+                      onChange={e => setScheduleForm(f => ({ ...f, room: e.target.value ? String(parseInt(e.target.value)) : '' }))}
+                      placeholder="101"
+                      min="1"
+                      className="input pr-14"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">-xona</span>
+                  </div>
                   <p className="text-xs text-gray-400 mt-1">Xona ko'rsatilsa, bir vaqtdagi boshqa darslar tekshiriladi</p>
                 </div>
 

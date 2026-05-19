@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search, Plus, Filter, Download, Users, AlertCircle,
   ChevronLeft, ChevronRight, Eye, Edit2, Trash2, X,
@@ -12,6 +13,7 @@ import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import api from '../../api/axios';
 import { clsx } from 'clsx';
+import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -46,13 +48,15 @@ const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').to
 const StudentsPage = () => {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterDebt, setFilterDebt] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState(() => searchParams.get('status') || '');
   const [showFilter, setShowFilter] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
@@ -268,7 +272,7 @@ const StudentsPage = () => {
                 <th className="hidden lg:table-cell">Qarz</th>
                 <th className="hidden sm:table-cell">Coin</th>
                 <th>Holat</th>
-                <th className="w-28 text-center">Amallar</th>
+                <th className="text-center" style={{ minWidth: '200px' }}>Amallar</th>
               </tr>
             </thead>
             <tbody>
@@ -298,12 +302,16 @@ const StudentsPage = () => {
                     <tr key={s.id} className={`hover:bg-gray-50/70 transition-colors ${s.status === 'INACTIVE' ? 'opacity-60 bg-gray-50/50' : ''}`}>
                       <td className="text-gray-400 text-xs">{(page - 1) * 15 + i + 1}</td>
                       <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        <div
+                          className="flex items-center gap-3 cursor-pointer group"
+                          onClick={() => navigate(`/admin/students/${s.id}`)}
+                          title="Profilni ko'rish"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 group-hover:scale-105 transition-transform">
                             {getInitials(s.user.fullName)}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800 text-sm leading-tight">{s.user.fullName}</div>
+                            <div className="font-medium text-gray-800 text-sm leading-tight group-hover:text-primary-600 transition-colors">{s.user.fullName}</div>
                             <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                               <Phone className="w-3 h-3" />{s.user.phone}
                             </div>
@@ -610,6 +618,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
     const errs: Partial<FormState> = {};
     if (!form.fullName.trim()) errs.fullName = 'Ism kiritilishi shart';
     if (!form.phone.trim()) errs.phone = 'Telefon kiritilishi shart';
+    else if (!validatePhone(form.phone)) errs.phone = "Format: +998XXXXXXXXX (9 raqam)";
     if (!isEdit && !form.password) errs.password = 'Parol kiritilishi shart';
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
@@ -664,9 +673,11 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
             </div>
             <div>
               <label className="label">Telefon *</label>
-              <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)}
-                placeholder="+998901234567"
-                className={clsx('input', errors.phone && 'border-red-300')} />
+              <PhoneInput
+                value={form.phone}
+                onChange={v => set('phone', v)}
+                className={errors.phone ? 'border-red-300' : ''}
+              />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
             {!isEdit && (
@@ -690,8 +701,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
             </div>
             <div>
               <label className="label">Ota-ona telefoni</label>
-              <input type="tel" value={form.parentPhone} onChange={e => set('parentPhone', e.target.value)}
-                placeholder="+998901234568" className="input" />
+              <PhoneInput value={form.parentPhone} onChange={v => set('parentPhone', v)} />
             </div>
             <div>
               <label className="label">Tug'ilgan sana</label>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, BarChart, Bar
 } from 'recharts';
 import api from '../../api/axios';
@@ -100,6 +101,25 @@ const AdminDashboard = () => {
       onSuccess: () => {
         toast.success('Ariza qabul qilindi!');
         queryClient.invalidateQueries('admin-new-leads');
+      },
+      onError: () => {
+        toast.error('Xato yuz berdi, qayta urinib ko\'ring');
+      },
+    }
+  );
+
+  // ── Reject lead mutation ──────────────────────
+  const [rejectTarget, setRejectTarget] = useState<Lead | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const rejectLeadMutation = useMutation(
+    ({ studentId, reason }: { studentId: number; reason: string }) =>
+      api.patch(`/students/${studentId}/reject-lead`, { reason }),
+    {
+      onSuccess: () => {
+        toast.success('Ariza rad etildi.');
+        queryClient.invalidateQueries('admin-new-leads');
+        setRejectTarget(null);
+        setRejectReason('');
       },
       onError: () => {
         toast.error('Xato yuz berdi, qayta urinib ko\'ring');
@@ -208,15 +228,24 @@ const AdminDashboard = () => {
                       <UserPlus className="w-3.5 h-3.5 text-indigo-200 flex-shrink-0" />
                       <span className="text-white text-sm font-medium truncate">{lead.fullName}</span>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); acceptLeadMutation.mutate(lead.studentId); }}
-                      disabled={acceptLeadMutation.isLoading}
-                      title="Arizani qabul qilish"
-                      className="flex-shrink-0 flex items-center gap-1 bg-white/20 hover:bg-emerald-500 text-white text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="w-3 h-3" />
-                      Qabul
-                    </button>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); acceptLeadMutation.mutate(lead.studentId); }}
+                        disabled={acceptLeadMutation.isLoading}
+                        title="Arizani qabul qilish"
+                        className="flex items-center gap-1 bg-white/20 hover:bg-emerald-500 text-white text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        Qabul
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setRejectTarget(lead); setRejectReason(''); }}
+                        title="Arizani rad etish"
+                        className="flex items-center gap-1 bg-white/10 hover:bg-red-500 text-white text-xs px-2 py-1 rounded-lg transition-colors"
+                      >
+                        ✕ Rad
+                      </button>
+                    </div>
                   </div>
                   <div className="text-indigo-200 text-xs space-y-0.5 cursor-pointer" onClick={() => navigate('/admin/students?status=LEAD')}>
                     <div>📞 {lead.phone}</div>
@@ -380,8 +409,13 @@ const AdminDashboard = () => {
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <YAxis tickFormatter={(v) => `${(v / 1_000_000).toFixed(0)}M`} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <Tooltip formatter={(v: number) => formatMoney(v)} />
-                <Area type="monotone" dataKey="income" name="Tushum" stroke="#2563EB" fill="url(#colorIncome)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expenses" name="Xarajat" stroke="#EF4444" fill="url(#colorExpenses)" strokeWidth={2} />
+                <Legend
+                  formatter={(value) => value === 'income' ? 'Jami tushum' : value === 'expenses' ? 'Xarajatlar' : value}
+                  iconType="circle" iconSize={8}
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                />
+                <Area type="monotone" dataKey="income" name="Jami tushum" stroke="#2563EB" fill="url(#colorIncome)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expenses" name="Xarajatlar" stroke="#EF4444" fill="url(#colorExpenses)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           )}
@@ -446,6 +480,7 @@ const AdminDashboard = () => {
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} />
                 <Tooltip />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
                 <Bar dataKey="present" name="Keldi" fill="#22C55E" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="absent" name="Kelmadi" fill="#EF4444" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -498,6 +533,40 @@ const AdminDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* ── Arizani rad etish modali ───────────── */}
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Arizani rad etish</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              <strong>{rejectTarget.fullName}</strong> arizasini rad etmoqchisiz. Ixtiyoriy sabab kiriting.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Masalan: Hozircha joylar yo'q, iltimos keyinroq aloqa qiling..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setRejectTarget(null); setRejectReason(''); }}
+                className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Bekor qilish
+              </button>
+              <button
+                onClick={() => rejectLeadMutation.mutate({ studentId: rejectTarget.studentId, reason: rejectReason })}
+                disabled={rejectLeadMutation.isLoading}
+                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm disabled:opacity-60"
+              >
+                {rejectLeadMutation.isLoading ? 'Jarayonda...' : 'Rad etish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

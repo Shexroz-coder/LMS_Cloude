@@ -58,6 +58,10 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       sendError(res, "Guruh, sana va davomat ro'yxati kiritilishi shart.", 400);
       return;
     }
+    if (!topic || !String(topic).trim()) {
+      sendError(res, "Dars mavzusini kiriting.", 400);
+      return;
+    }
 
     // ═══ BAYRAM/DAM OLISH KUNI TEKSHIRUVI ═══
     // date ni 'YYYY-MM-DD' string sifatida ishlatamiz — UTC midnight

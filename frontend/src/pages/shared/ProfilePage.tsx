@@ -159,6 +159,23 @@ const ProfilePage = () => {
         </div>
       )}
 
+      {/* Email ogohlantirish banneri */}
+      {profile && !profile.email && !editMode && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 flex items-start gap-3">
+          <span className="text-amber-500 text-xl flex-shrink-0">⚠️</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Email manzil kiritilmagan</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Xavfsizligingiz uchun email manzilingizni kiriting (parol tiklash uchun kerak)</p>
+          </div>
+          <button
+            onClick={() => setEditMode(true)}
+            className="flex-shrink-0 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-800/40 hover:bg-amber-200 dark:hover:bg-amber-700/40 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Kiriting →
+          </button>
+        </div>
+      )}
+
       {/* Profile info */}
       <div className="card dark:bg-gray-800 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">

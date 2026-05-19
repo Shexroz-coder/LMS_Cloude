@@ -82,6 +82,7 @@ function PayModal({
 }) {
   const [amount, setAmount] = useState(String(teacher.calculatedSalary));
   const [note, setNote] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -164,6 +165,32 @@ function PayModal({
             />
           </div>
 
+          {/* Confirmation step */}
+          {showConfirm && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-sm font-semibold text-amber-800 mb-1">⚠️ Tasdiqlash</p>
+              <p className="text-sm text-amber-700 mb-3">
+                <strong>{teacher.teacherName}</strong>ga <strong>{fmt(parseFloat(amount || '0'))}</strong> ish haqi to'lamoqchisiz.
+                Oy: <strong>{month}</strong>. Tasdiqlaysizmi?
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowConfirm(false)} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  Bekor qilish
+                </button>
+                <button
+                  onClick={() => {
+                    const num = parseFloat(amount);
+                    onPay({ teacherId: teacher.teacherId, month, amount: num, note });
+                  }}
+                  disabled={loading}
+                  className="flex-1 py-2 bg-gradient-to-r from-red-600 to-black text-white font-bold rounded-lg text-sm disabled:opacity-50"
+                >
+                  {loading ? 'Saqlanmoqda...' : "Ha, to'lash"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-1">
             <button
               onClick={onClose}
@@ -175,12 +202,12 @@ function PayModal({
               onClick={() => {
                 const num = parseFloat(amount);
                 if (!num || num <= 0) { toast.error('Summa kiriting'); return; }
-                onPay({ teacherId: teacher.teacherId, month, amount: num, note });
+                setShowConfirm(true);
               }}
-              disabled={loading}
+              disabled={loading || showConfirm}
               className="flex-1 py-2.5 bg-gradient-to-r from-red-600 to-black text-white font-bold rounded-xl text-sm transition disabled:opacity-50"
             >
-              {loading ? 'Saqlanmoqda...' : "✅ To'lash"}
+              {loading ? 'Saqlanmoqda...' : "💳 To'lash"}
             </button>
           </div>
         </div>

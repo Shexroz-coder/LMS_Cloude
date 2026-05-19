@@ -791,6 +791,39 @@ export const acceptLead = async (req: AuthRequest, res: Response): Promise<void>
 };
 
 // ══════════════════════════════════════════════
+// PATCH /students/:id/reject-lead — Arizani rad etish (LEAD → INACTIVE)
+// Admin arizani rad etganda ixtiyoriy sabab bilan o'chiriladi
+// ══════════════════════════════════════════════
+export const rejectLead = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) { sendError(res, 'Noto\'g\'ri ID.', 400); return; }
+
+    const { reason } = req.body as { reason?: string };
+
+    const student = await prisma.student.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true },
+    });
+    if (!student) { sendError(res, 'O\'quvchi topilmadi.', 404); return; }
+    if (student.status !== 'LEAD') { sendError(res, 'Faqat LEAD holattagi ariza rad etiladi.', 400); return; }
+
+    await prisma.$transaction([
+      prisma.student.update({
+        where: { id },
+        data: { status: 'INACTIVE', leftAt: new Date(), leftReason: reason || 'Ariza rad etildi' },
+      }),
+      prisma.user.update({ where: { id: student.userId }, data: { isActive: false } }),
+    ]);
+
+    sendSuccess(res, null, 'Ariza rad etildi.');
+  } catch (err) {
+    console.error('rejectLead error:', err);
+    sendError(res, 'Arizani rad etishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /students/debtors — Qarzdorlar ro'yxati
 // ══════════════════════════════════════════════
 export const getDebtors = async (req: AuthRequest, res: Response): Promise<void> => {

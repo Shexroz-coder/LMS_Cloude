@@ -163,13 +163,18 @@ const AnnouncementsPage = () => {
         </div>
         <div className="card dark:bg-gray-800 text-center">
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {announcements.filter(a => a.targetRoles?.length === 0).length}
+            {announcements.filter(a =>
+              // Bo'sh targetRoles (hammaga) YOKI 3+ auditoriya tanlangan
+              !a.targetRoles?.length || a.targetRoles.length >= 3
+            ).length}
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Hammaga</p>
         </div>
         <div className="card dark:bg-gray-800 text-center">
           <div className="text-2xl font-bold text-violet-600 dark:text-violet-400">
-            {announcements.filter(a => (a.targetRoles?.length || 0) > 0).length}
+            {announcements.filter(a =>
+              a.targetRoles?.length > 0 && a.targetRoles.length < 3
+            ).length}
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Maqsadli</p>
         </div>

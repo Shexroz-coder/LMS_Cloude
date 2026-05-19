@@ -140,8 +140,12 @@ const TeachersPage = () => {
                     }
                   </span>
                 </div>
-                {teacher.user.email && (
+                {teacher.user.email ? (
                   <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{teacher.user.email}</p>
+                ) : (
+                  <p className="text-xs text-amber-500 flex items-center gap-1 mt-0.5" title="Email kiritilmagan">
+                    ⚠️ Email kiritilmagan
+                  </p>
                 )}
               </div>
 

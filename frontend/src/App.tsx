@@ -10,6 +10,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentsPage from './pages/admin/StudentsPage';
+import StudentDetailPage from './pages/admin/StudentDetailPage';
 import TeachersPage from './pages/admin/TeachersPage';
 import GroupsPage from './pages/admin/GroupsPage';
 import SchedulePage from './pages/admin/SchedulePage';
@@ -97,6 +98,7 @@ const App = () => {
       }>
         <Route index element={<AdminDashboard />} />
         <Route path="students" element={<StudentsPage />} />
+        <Route path="students/:id" element={<StudentDetailPage />} />
         <Route path="teachers" element={<TeachersPage />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="courses" element={<CoursesPage />} />

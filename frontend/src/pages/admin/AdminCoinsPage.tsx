@@ -278,6 +278,7 @@ const CoinModal = ({ type, onClose, onSuccess }: {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDrop, setShowDrop] = useState(false);
+  const [confirmDeduct, setConfirmDeduct] = useState(false);
 
   const { data: results } = useQuery(
     ['coin-student-search', studentSearch],
@@ -413,13 +414,37 @@ const CoinModal = ({ type, onClose, onSuccess }: {
           </div>
         </div>
 
+        {/* Confirmation dialog for deduct */}
+        {confirmDeduct && !isAward && selected && (
+          <div className="mx-5 mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm font-semibold text-red-700 mb-1">⚠️ Tasdiqlash</p>
+            <p className="text-sm text-red-600 mb-3">
+              <strong>{selected.fullName}</strong>ga <strong>{amount} coin</strong> jarima qo'ymoqchisiz. Tasdiqlaysizmi?
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeduct(false)} className="flex-1 py-2 px-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
+                Bekor qilish
+              </button>
+              <button onClick={submit} disabled={loading}
+                className="flex-1 py-2 px-3 rounded-lg text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50">
+                {loading ? 'Jarayonda...' : 'Ha, jarima'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2 px-5 pb-5">
           <button onClick={onClose} className="flex-1 py-2.5 px-4 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">Bekor</button>
-          <button onClick={submit} disabled={loading || !selected}
+          <button
+            onClick={() => {
+              if (!isAward) { setConfirmDeduct(true); return; }
+              void submit();
+            }}
+            disabled={loading || !selected || confirmDeduct}
             className={clsx('flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50',
               isAward ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
                       : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600')}>
-            {loading ? '⏳ ...' : isAward ? `${amount} 🪙 berish` : `${amount} 🪙 olish`}
+            {loading ? '⏳ ...' : isAward ? `${amount} 🪙 berish` : `${amount} 🪙 jarima`}
           </button>
         </div>
       </div>

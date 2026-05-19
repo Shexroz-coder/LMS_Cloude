@@ -46,6 +46,7 @@ const AttendancePage = () => {
   });
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [topic, setTopic] = useState('');
+  const [topicError, setTopicError] = useState('');
   const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>({});
   const [scores, setScores] = useState<Record<number, string>>({});
 
@@ -82,11 +83,20 @@ const AttendancePage = () => {
     }
   }, [groupDetail?.id]);
 
+  const handleMarkAttendance = () => {
+    if (!topic.trim()) {
+      setTopicError('Dars mavzusini kiriting');
+      return;
+    }
+    setTopicError('');
+    markMutation.mutate();
+  };
+
   const markMutation = useMutation(
     () => api.post('/attendance/lesson', {
       groupId: selectedGroupId,
       date,
-      topic: topic || undefined,
+      topic: topic.trim(),
       attendanceList: Object.entries(attendance).map(([studentId, status]) => ({
         studentId: parseInt(studentId),
         status,
@@ -169,9 +179,15 @@ const AttendancePage = () => {
 
           {/* Topic */}
           <div>
-            <label className="label">Dars mavzusi</label>
-            <input type="text" value={topic} onChange={e => setTopic(e.target.value)}
-              placeholder="Bugungi mavzu..." className="input" />
+            <label className="label">Dars mavzusi *</label>
+            <input
+              type="text"
+              value={topic}
+              onChange={e => { setTopic(e.target.value); if (e.target.value.trim()) setTopicError(''); }}
+              placeholder="Bugungi mavzu..."
+              className={clsx('input', topicError && 'border-red-400 focus:ring-red-300')}
+            />
+            {topicError && <p className="text-xs text-red-500 mt-1">{topicError}</p>}
           </div>
         </div>
 
@@ -313,7 +329,7 @@ const AttendancePage = () => {
           {/* Save button */}
           <div className="sticky bottom-4 pt-2">
             <button
-              onClick={() => markMutation.mutate()}
+              onClick={handleMarkAttendance}
               disabled={markMutation.isLoading || !selectedGroupId || totalCount === 0}
               className={clsx(
                 'w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white shadow-lg transition-all',
