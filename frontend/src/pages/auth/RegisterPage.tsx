@@ -7,6 +7,24 @@ import { useAuthStore } from '../../store/auth.store';
 import { User } from '../../types';
 import { clsx } from 'clsx';
 
+// Meta Pixel type declaration
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void;
+  }
+}
+
+/** Meta Pixel Lead hodisasini xavfsiz yuborish */
+const trackLead = () => {
+  try {
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'Lead');
+    }
+  } catch {
+    // Pixel yuklanmagan yoki bloklangan — e'tibor berilmaydi
+  }
+};
+
 const DAY_OPTIONS = [
   { value: 1, label: 'Du' },
   { value: 2, label: 'Se' },
@@ -79,6 +97,10 @@ const RegisterPage = () => {
       };
 
       setAuth(user, accessToken, refreshToken);
+
+      // ── Meta Pixel: ro'yxatdan o'tish muvaffaqiyatli → Lead hodisasi ──
+      trackLead();
+
       toast.success('Muvaffaqiyatli ro\'yxatdan o\'tdingiz! 🎉');
       navigate('/student');
     } catch (err: unknown) {
