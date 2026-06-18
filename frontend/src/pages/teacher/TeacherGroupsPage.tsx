@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
 import { Link } from 'react-router-dom';
@@ -13,13 +14,86 @@ interface Group {
   schedules?: { id: number; daysOfWeek: number[]; startTime: string; endTime: string }[];
 }
 
+interface StudentInGroup {
+  id: number;
+  student: {
+    id: number;
+    user: { id: number; fullName: string; phone: string };
+    parent?: { id: number; fullName: string; phone: string } | null;
+  };
+}
+
 const DAYS = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
 
+// O'quvchilar ro'yxati (kengaytirilgan holatda ko'rsatiladi)
+const StudentsList = ({ groupId }: { groupId: number }) => {
+  const { data: group, isLoading } = useQuery(
+    ['teacher-group-students', groupId],
+    () => api.get(`/groups/${groupId}`).then(r => r.data?.data),
+    { staleTime: 30_000 }
+  );
+
+  const students: StudentInGroup[] = group?.groupStudents || [];
+
+  if (isLoading) {
+    return (
+      <div className="py-4 text-center">
+        <div className="animate-spin w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto" />
+      </div>
+    );
+  }
+
+  if (students.length === 0) {
+    return <p className="text-sm text-gray-400 dark:text-gray-500 py-3 text-center">O'quvchilar yo'q</p>;
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      {students.map((gs, i) => (
+        <div key={gs.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5">
+          <div className="flex items-start gap-2">
+            <span className="text-xs text-gray-400 dark:text-gray-500 w-5 pt-0.5 shrink-0">{i + 1}.</span>
+            <div className="flex-1 min-w-0">
+              {/* O'quvchi */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                  {gs.student.user.fullName}
+                </span>
+                <a
+                  href={`tel:${gs.student.user.phone}`}
+                  className="text-xs text-emerald-600 dark:text-emerald-400 font-mono hover:underline"
+                >
+                  📱 {gs.student.user.phone}
+                </a>
+              </div>
+              {/* Ota-ona */}
+              {gs.student.parent && (
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    👨‍👩‍👧 {gs.student.parent.fullName}
+                  </span>
+                  <a
+                    href={`tel:${gs.student.parent.phone}`}
+                    className="text-xs text-indigo-600 dark:text-indigo-400 font-mono hover:underline"
+                  >
+                    {gs.student.parent.phone}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const TeacherGroupsPage = () => {
+  const [expandedGroupId, setExpandedGroupId] = useState<number | null>(null);
+
   const { data: groups = [], isLoading } = useQuery<Group[]>(
     ['teacher-groups'],
     async () => {
-      // Teacher o'zining profilini oladi, so'ng unga tegishli guruhlarni
       const r = await api.get('/groups?limit=50');
       const raw = r.data?.data;
       return Array.isArray(raw) ? raw : raw?.groups || [];
@@ -98,7 +172,18 @@ const TeacherGroupsPage = () => {
               >
                 📋 Davomat
               </Link>
+              <button
+                onClick={() => setExpandedGroupId(expandedGroupId === group.id ? null : group.id)}
+                className="flex-1 text-center text-xs font-medium bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 py-2 rounded-xl transition"
+              >
+                {expandedGroupId === group.id ? '🔼 Yopish' : '👤 O\'quvchilar'}
+              </button>
             </div>
+
+            {/* Expandable students list */}
+            {expandedGroupId === group.id && (
+              <StudentsList groupId={group.id} />
+            )}
           </div>
         ))}
       </div>

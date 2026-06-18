@@ -5,6 +5,7 @@ import bot, { BotContext } from '../bot';
 import { handleStart, handlePhone, handleOtp, handleParentChildName, handleParentChildPhone, handleContact } from './start.handler';
 import { routeCallback } from './menu.handler';
 import { handleLateAttReason, handleTeacherCoinAmount } from './teacher.handler';
+import { handleNewPassword } from './account.handler';
 import { handleBroadcastSend } from './admin.handler';
 
 export function registerHandlers() {
@@ -54,6 +55,12 @@ export function registerHandlers() {
     // Coin miqdori kiriting
     if (step === 'waiting_coin_amount') {
       await handleTeacherCoinAmount(ctx);
+      return;
+    }
+
+    // Yangi parol kiriting
+    if (step === 'waiting_new_password') {
+      await handleNewPassword(ctx);
       return;
     }
 

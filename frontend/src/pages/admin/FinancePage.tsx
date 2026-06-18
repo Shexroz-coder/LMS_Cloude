@@ -380,6 +380,8 @@ export default function FinancePage() {
                         {t.totalStudents} o'quvchi ·{' '}
                         {t.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                           ? `${t.salaryValue}% × ${new Intl.NumberFormat('uz-UZ').format(Math.round(t.totalRevenue))} so'm`
+                          : t.salaryType === 'FIXED_PER_STUDENT'
+                          ? `${t.salaryValue.toLocaleString()} so'm/o'quvchi`
                           : `${t.salaryValue.toLocaleString()} so'm/soat`}
                       </p>
                     </div>

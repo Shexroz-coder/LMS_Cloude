@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { User } from '../../types';
 import LanguageSwitcher from '../../components/ui/LanguageSwitcher';
 import ThemeToggle from '../../components/ui/ThemeToggle';
+import PhoneInput from '../../components/ui/PhoneInput';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -83,12 +84,10 @@ const LoginPage = () => {
             {/* Phone */}
             <div>
               <label className="label">{t('auth.phone')}</label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t('auth.phonePlaceholder')}
-                className="input"
+                onChange={setPhone}
+                placeholder="+998 XX XXX XX XX"
                 autoFocus
                 required
               />

@@ -95,6 +95,7 @@ export const getGroupById = async (req: AuthRequest, res: Response): Promise<voi
               include: {
                 user: { select: { id: true, fullName: true, phone: true, avatarUrl: true } },
                 balance: true,
+                parent: { select: { id: true, fullName: true, phone: true } },
               }
             }
           },

@@ -221,6 +221,8 @@ const TeacherDashboard = () => {
               <p className="text-sm font-bold text-violet-800 dark:text-violet-300 mt-1">
                 {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                   ? `${salaryData.salaryValue}% to'lovdan`
+                  : salaryData.salaryType === 'FIXED_PER_STUDENT'
+                  ? `${formatMoney(salaryData.salaryValue)} / o'quvchi`
                   : `${formatMoney(salaryData.salaryValue)} soatbay`}
               </p>
             </div>
@@ -293,7 +295,7 @@ const TeacherDashboard = () => {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-800 text-sm truncate">{d.fullName}</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-100 text-sm truncate">{d.fullName}</p>
                     <p className="text-[11px] text-gray-400 truncate">{d.groupName} · {d.courseName}</p>
                   </div>
                 </div>
@@ -313,7 +315,7 @@ const TeacherDashboard = () => {
 
       {/* ── Tezkor amallar ───────────────────────────── */}
       <div className="card">
-        <h3 className="font-semibold text-gray-800 mb-4">Tezkor amallar</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Tezkor amallar</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Jadval & Davomat', icon: '📋', href: '/teacher/schedule', color: 'bg-blue-50 hover:bg-blue-100 text-blue-700' },

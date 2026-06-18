@@ -103,6 +103,7 @@ const StudentsPage = () => {
       onSuccess: (_data: unknown) => {
         void toast.success("O'quvchi o'chirildi");
         qc.invalidateQueries('students');
+        qc.invalidateQueries('admin-new-leads');
         setDeleteConfirm(null);
       },
       onError: (_err: unknown) => { void toast.error("Xato yuz berdi"); }
@@ -117,6 +118,7 @@ const StudentsPage = () => {
       onSuccess: () => {
         void toast.success("O'quvchi nofaol holatga o'tkazildi");
         qc.invalidateQueries('students');
+        qc.invalidateQueries('admin-new-leads');
         setDeactivateConfirm(null);
         setDeactivateReason('');
       },
@@ -131,6 +133,7 @@ const StudentsPage = () => {
       onSuccess: () => {
         void toast.success("O'quvchi qayta faollashtirildi! Endi guruhga qo'shishingiz mumkin.");
         qc.invalidateQueries('students');
+        qc.invalidateQueries('admin-new-leads');
         setReactivateConfirm(null);
       },
       onError: () => { void toast.error("Xato yuz berdi"); }
@@ -163,12 +166,12 @@ const StudentsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users className="w-6 h-6 text-primary-600" />
             {t('nav.students')}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Jami <span className="font-semibold text-gray-700">{pagination.total}</span> ta o'quvchi
+            Jami <span className="font-semibold text-gray-700 dark:text-gray-300">{pagination.total}</span> ta o'quvchi
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -220,7 +223,7 @@ const StudentsPage = () => {
                 onChange={e => { setFilterDebt(e.target.checked); setPage(1); }}
                 className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700 flex items-center gap-1">
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5 text-red-400" /> Faqat qarzdorlar
               </span>
             </label>
@@ -311,7 +314,7 @@ const StudentsPage = () => {
                             {getInitials(s.user.fullName)}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800 text-sm leading-tight group-hover:text-primary-600 transition-colors">{s.user.fullName}</div>
+                            <div className="font-medium text-gray-800 dark:text-gray-100 text-sm leading-tight group-hover:text-primary-600 transition-colors">{s.user.fullName}</div>
                             <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                               <Phone className="w-3 h-3" />{s.user.phone}
                             </div>
@@ -352,7 +355,7 @@ const StudentsPage = () => {
                         ) : s.status === 'ACTIVE' ? (
                           <span className="badge badge-green text-xs">Faol</span>
                         ) : s.status === 'INACTIVE' ? (
-                          <span className="badge bg-gray-100 text-gray-700 text-xs">Ketgan</span>
+                          <span className="badge bg-gray-100 text-gray-700 dark:text-gray-300 text-xs">Ketgan</span>
                         ) : debt > 0 ? (
                           <span className="badge badge-red text-xs">Qarzdor</span>
                         ) : (
@@ -443,7 +446,7 @@ const StudentsPage = () => {
         <StudentFormModal
           student={editStudent}
           onClose={() => { setShowAddModal(false); setEditStudent(null); }}
-          onSuccess={() => { setShowAddModal(false); setEditStudent(null); qc.invalidateQueries('students'); }}
+          onSuccess={() => { setShowAddModal(false); setEditStudent(null); qc.invalidateQueries('students'); qc.invalidateQueries('admin-new-leads'); }}
         />
       )}
       {viewStudent && (

@@ -9,7 +9,7 @@ export function studentMainMenu(): InlineKeyboard {
     .text('✅ Davomat', 'attendance').row()
     .text('💰 To\'lovlar', 'payments').text('🪙 Tangalar', 'coins').row()
     .text('🏆 Reyting', 'leaderboard').text('🔔 Bildirishnomalar', 'notifications').row()
-    .text('👤 Profil', 'profile').row()
+    .text('👤 Profil', 'profile').text('🔑 Parolni o\'zgartirish', 'change_password').row()
     .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
 }
 
@@ -49,6 +49,7 @@ export function teacherMainMenu(): InlineKeyboard {
     .text('🪙 Coin berish', 'teacher_give_coin').row()
     .text('💰 Maoshim', 'teacher_salary').text('👤 Profil', 'profile').row()
     .text('🔔 Bildirishnomalar', 'notifications').row()
+    .text('🔑 Parolni o\'zgartirish', 'change_password').row()
     .text('🔄 Akkaunt almashtirish', 'switch_account').text('🚪 Chiqish', 'logout').row();
 }
 

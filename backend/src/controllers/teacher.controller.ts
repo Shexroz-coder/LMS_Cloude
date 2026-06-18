@@ -4,6 +4,7 @@ import { PrismaClient, Role } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { hashPassword } from '../utils/password.utils';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
+import { normalizePhone, phoneVariants } from '../utils/phone.utils';
 
 
 const teacherInclude = {
@@ -94,7 +95,9 @@ export const createTeacher = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    const normalizedPhone = normalizePhone(phone);
+
+    const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
     if (existing) {
       sendError(res, 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.', 409);
       return;
@@ -104,7 +107,7 @@ export const createTeacher = async (req: AuthRequest, res: Response): Promise<vo
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          fullName, phone, email, passwordHash,
+          fullName, phone: normalizedPhone, email, passwordHash,
           role: Role.TEACHER,
           language: language as 'uz' | 'ru',
         }
@@ -113,7 +116,7 @@ export const createTeacher = async (req: AuthRequest, res: Response): Promise<vo
       return tx.teacher.create({
         data: {
           userId: user.id,
-          salaryType: salaryType as 'PERCENTAGE_FROM_PAYMENT' | 'PER_LESSON_HOUR',
+          salaryType: salaryType as 'PERCENTAGE_FROM_PAYMENT' | 'PER_LESSON_HOUR' | 'FIXED_PER_STUDENT',
           salaryValue: parseFloat(salaryValue),
           specialization,
           bio,
@@ -143,8 +146,10 @@ export const updateTeacher = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    if (phone && phone !== teacher.user.phone) {
-      const existing = await prisma.user.findUnique({ where: { phone } });
+    const normalizedPhone = phone ? normalizePhone(phone) : undefined;
+
+    if (normalizedPhone && normalizedPhone !== teacher.user.phone) {
+      const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
       if (existing) {
         sendError(res, 'Bu telefon raqam boshqa foydalanuvchida bor.', 409);
         return;
@@ -156,7 +161,7 @@ export const updateTeacher = async (req: AuthRequest, res: Response): Promise<vo
         where: { id: teacher.userId },
         data: {
           ...(fullName && { fullName }),
-          ...(phone && { phone }),
+          ...(normalizedPhone && { phone: normalizedPhone }),
           ...(email !== undefined && { email }),
           ...(isActive !== undefined && { isActive }),
           ...(language && { language: language as 'uz' | 'ru' }),
@@ -166,7 +171,7 @@ export const updateTeacher = async (req: AuthRequest, res: Response): Promise<vo
       return tx.teacher.update({
         where: { id },
         data: {
-          ...(salaryType && { salaryType: salaryType as 'PERCENTAGE_FROM_PAYMENT' | 'PER_LESSON_HOUR' }),
+          ...(salaryType && { salaryType: salaryType as 'PERCENTAGE_FROM_PAYMENT' | 'PER_LESSON_HOUR' | 'FIXED_PER_STUDENT' }),
           ...(salaryValue !== undefined && { salaryValue: parseFloat(salaryValue) }),
           ...(specialization !== undefined && { specialization }),
           ...(bio !== undefined && { bio }),

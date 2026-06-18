@@ -118,7 +118,11 @@ const ProfilePage = () => {
               <Briefcase size={16} className="text-blue-500 mx-auto mb-1" />
               <div className="text-xs text-blue-600 dark:text-blue-400 mb-0.5">Ish haqi turi</div>
               <div className="text-sm font-bold text-blue-800 dark:text-blue-300">
-                {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? 'Foiz' : 'Soatlik'}
+                {salaryData.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+                  ? 'Foiz'
+                  : salaryData.salaryType === 'FIXED_PER_STUDENT'
+                  ? "O'quvchidan"
+                  : 'Soatlik'}
               </div>
             </div>
             <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl p-3 text-center">

@@ -154,7 +154,7 @@ const NotificationsPage = () => {
                   <div className="flex-1 min-w-0">
                     <p className={clsx(
                       "text-sm font-semibold",
-                      !n.isRead ? "text-gray-900" : "text-gray-700"
+                      !n.isRead ? "text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"
                     )}>
                       {n.title}
                     </p>

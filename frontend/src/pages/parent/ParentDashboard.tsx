@@ -118,7 +118,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
       {/* Today's lessons */}
       {todaySchedules.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
             <Calendar size={15} className="text-indigo-500" /> Bugungi darslar
           </h3>
           <div className="space-y-2">
@@ -129,7 +129,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
                   <p className="text-xs opacity-70">{sc.endTime}</p>
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-800 text-sm">{sc.groupName}</p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{sc.groupName}</p>
                   <p className="text-xs text-gray-500">{sc.courseName}</p>
                 </div>
                 {sc.room && (
@@ -146,7 +146,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
       <div className="grid grid-cols-1 gap-4">
         {/* Attendance */}
         <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
             <BookOpen size={15} className="text-emerald-500" /> Davomat
           </h3>
           {attendanceRecords.length === 0 ? (
@@ -164,7 +164,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
                 return (
                   <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                     <div>
-                      <p className="text-sm text-gray-700">{a.lesson?.topic || 'Dars'}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{a.lesson?.topic || 'Dars'}</p>
                       <p className="text-xs text-gray-400">
                         {a.lesson?.date ? new Date(a.lesson.date).toLocaleDateString('uz-UZ') : ''}
                       </p>
@@ -183,7 +183,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
       {/* Payment quick view */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
             <Wallet size={15} className="text-indigo-500" /> To'lov holati
           </h3>
           <Link
@@ -242,7 +242,7 @@ function ChildPanel({ studentId }: { studentId: number }) {
       {/* Weekly schedule */}
       {allSchedules.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
             <Calendar size={15} className="text-indigo-500" /> Haftalik jadval
           </h3>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -403,7 +403,7 @@ const ParentDashboard = () => {
             <CreditCard size={18} className="text-indigo-600" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-sm text-gray-800">To'lovlar</p>
+            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">To'lovlar</p>
             <p className="text-xs text-gray-400">To'lov tarixi</p>
           </div>
           <ChevronRight size={16} className="text-gray-300" />
@@ -413,7 +413,7 @@ const ParentDashboard = () => {
             <TrendingDown size={18} className="text-amber-600" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-gray-800">Davomat</p>
+            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">Davomat</p>
             <p className="text-xs text-gray-400">Dars qatnashuvi</p>
           </div>
         </div>

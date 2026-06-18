@@ -13,7 +13,7 @@ import { handleCoins } from './coins';
 import { handleProfile } from './profile';
 import { handleLeaderboard } from './leaderboard';
 import { handleNotifications } from './notifications';
-import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin } from './account.handler';
+import { handleLogout, handleLogoutConfirm, handleSwitchAccount, handleQuickLogin, handleNewLogin, handleChangePassword } from './account.handler';
 import { handleParentRegister } from './start.handler';
 import { handleTeacherTodayLessons, handleTeacherWeekSchedule, handleTeacherGroups, handleTeacherAttendance, handleTeacherSalary, handleTeacherSalaryArchive, handleAttGroupSelect, handleAttDay, handleAttLateDay, handleAttMark, handleAttAllPresent, handleAttComplete, handleTeacherGiveCoin, handleTeacherCoinGroupSelect, handleTeacherCoinStudentSelect } from './teacher.handler';
 import { handleAdminDashboard, handleAdminStudents, handleAdminTeachers, handleAdminGroups, handleAdminCourses, handleAdminPayments, handleAdminPaymentsArchive, handleAdminPayMonth, handleAdminExpenses, handleAdminSalaries, handleAdminSalariesArchive, handleAdminDebtors, handleAdminReports, handleAdminMonthReport, handleAdminBroadcast, handleBroadcastTarget, handleBroadcastDeleteAll, handleBroadcastResend, handleBroadcastHistory, handleAdminAttendanceMonitor } from './admin.handler';
@@ -249,6 +249,7 @@ export async function routeCallback(ctx: BotContext) {
     if (data === 'logout') { await handleLogout(ctx); return; }
     if (data === 'logout_confirm') { await handleLogoutConfirm(ctx); return; }
     if (data === 'switch_account') { await handleSwitchAccount(ctx); return; }
+    if (data === 'change_password') { await handleChangePassword(ctx); return; }
     if (data === 'new_login') { await handleNewLogin(ctx); return; }
     if (data.startsWith('quick_login_')) {
       const phone = data.replace('quick_login_', '');

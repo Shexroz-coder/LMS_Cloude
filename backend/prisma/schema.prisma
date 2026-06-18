@@ -77,6 +77,7 @@ enum PaymentStatus {
 enum SalaryType {
   PERCENTAGE_FROM_PAYMENT
   PER_LESSON_HOUR
+  FIXED_PER_STUDENT
 }
 
 enum DiscountType {

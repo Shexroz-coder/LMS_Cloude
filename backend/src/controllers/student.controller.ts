@@ -4,6 +4,7 @@ import { Role } from '@prisma/client';
 import { AuthRequest } from '../types';
 import { hashPassword } from '../utils/password.utils';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
+import { normalizePhone, phoneVariants } from '../utils/phone.utils';
 
 
 // ── Studentni include bilan olish ──────────────────
@@ -242,8 +243,12 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // Telefon raqamlarni standart formatga keltirish: +998XXXXXXXXX
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedParentPhone = parentPhone ? normalizePhone(parentPhone) : undefined;
+
     // Telefon unikal tekshirish
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
     if (existing) {
       sendError(res, 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.', 409);
       return;
@@ -251,14 +256,14 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
 
     // Ota-ona topish yoki yaratish
     let parentId: number | undefined;
-    if (parentPhone) {
-      let parentUser = await prisma.user.findUnique({ where: { phone: parentPhone } });
+    if (normalizedParentPhone) {
+      let parentUser = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedParentPhone) } } });
       if (!parentUser) {
         const parentHash = await hashPassword('12345678');
         parentUser = await prisma.user.create({
           data: {
             fullName: parentName || fullName + ' (Ota-ona)',
-            phone: parentPhone,
+            phone: normalizedParentPhone,
             passwordHash: parentHash,
             role: Role.PARENT,
             language: language as 'uz' | 'ru',
@@ -281,7 +286,7 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
       const user = await tx.user.create({
         data: {
           fullName,
-          phone,
+          phone: normalizedPhone,
           passwordHash,
           role: Role.STUDENT,
           language: language as 'uz' | 'ru',
@@ -352,9 +357,13 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // Telefon raqamni standart formatga keltirish
+    const normalizedPhone = phone ? normalizePhone(phone) : undefined;
+    const normalizedParentPhone = parentPhone ? normalizePhone(parentPhone) : undefined;
+
     // Telefon o'zgarsa unikal tekshirish
-    if (phone && phone !== student.user.phone) {
-      const existing = await prisma.user.findUnique({ where: { phone } });
+    if (normalizedPhone && normalizedPhone !== student.user.phone) {
+      const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
       if (existing) {
         sendError(res, 'Bu telefon raqam boshqa foydalanuvchida bor.', 409);
         return;
@@ -363,14 +372,14 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
 
     // Ota-ona yangilash
     let parentId = student.parentId;
-    if (parentPhone) {
-      let parentUser = await prisma.user.findUnique({ where: { phone: parentPhone } });
+    if (normalizedParentPhone) {
+      let parentUser = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedParentPhone) } } });
       if (!parentUser) {
         const parentHash = await hashPassword('12345678');
         parentUser = await prisma.user.create({
           data: {
             fullName: parentName || (fullName || student.user.fullName) + ' (Ota-ona)',
-            phone: parentPhone,
+            phone: normalizedParentPhone,
             passwordHash: parentHash,
             role: Role.PARENT,
             language: (language as 'uz' | 'ru') || 'uz',
@@ -391,7 +400,7 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
         where: { id: student.userId },
         data: {
           ...(fullName && { fullName }),
-          ...(phone && { phone }),
+          ...(normalizedPhone && { phone: normalizedPhone }),
           ...(isActive !== undefined && { isActive }),
           ...(language && { language: language as 'uz' | 'ru' }),
         }

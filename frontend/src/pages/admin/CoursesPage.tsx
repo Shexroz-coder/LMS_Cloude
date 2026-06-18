@@ -224,7 +224,7 @@ function CourseModal({
                 form.isActive ? "left-6" : "left-1"
               )} />
             </button>
-            <span className="text-sm text-gray-700">Kurs faol</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Kurs faol</span>
           </div>
 
           <div className="flex gap-3 pt-2">

@@ -158,7 +158,7 @@ const PaymentsPage = () => {
               {currentMonth && (
                 <button
                   onClick={() => { setCurrentMonth(''); setPage(1); }}
-                  className="px-2 py-2 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg border border-gray-200 whitespace-nowrap"
+                  className="px-2 py-2 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 rounded-lg border border-gray-200 whitespace-nowrap"
                   title="Filtrni tozalash — barcha to'lovlar"
                 >
                   ✕ Barchasi

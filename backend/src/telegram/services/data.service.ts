@@ -3,6 +3,7 @@
  * Student va Parent ma'lumotlarini olish
  */
 import prisma from '../../lib/prisma';
+import { phoneVariants } from '../../utils/phone.utils';
 
 // ─── Foydalanuvchini telegramChatId bo'yicha topish ──────
 export async function getUserByChatId(chatId: string) {
@@ -31,37 +32,20 @@ export async function getUserByChatId(chatId: string) {
 }
 
 // ─── Telefon raqam bo'yicha foydalanuvchi topish ──────────
-// Bir nechta formatda izlaydi: +998..., 998..., boshqa variantlar
+// phoneVariants orqali barcha mumkin bo'lgan formatlarni tekshiradi
 export async function getUserByPhone(phone: string) {
-  const select = {
-    id: true,
-    fullName: true,
-    phone: true,
-    role: true,
-    isActive: true,
-    telegramChatId: true,
-  };
-
-  // 1. Avval to'g'ridan-to'g'ri izlash
-  let user = await prisma.user.findUnique({ where: { phone }, select });
-  if (user) return user;
-
-  // 2. + bilan/siz izlash
-  if (phone.startsWith('+')) {
-    user = await prisma.user.findUnique({ where: { phone: phone.slice(1) }, select });
-  } else {
-    user = await prisma.user.findUnique({ where: { phone: '+' + phone }, select });
-  }
-  if (user) return user;
-
-  // 3. 9 xonali raqamdan to'liq formatlarni sinash
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 9) {
-    user = await prisma.user.findUnique({ where: { phone: '+998' + digits }, select });
-    if (!user) user = await prisma.user.findUnique({ where: { phone: '998' + digits }, select });
-  }
-
-  return user;
+  const variants = phoneVariants(phone);
+  return prisma.user.findFirst({
+    where: { phone: { in: variants } },
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      telegramChatId: true,
+    },
+  });
 }
 
 // ─── Telegram chat ID ni foydalanuvchiga bog'lash ─────────
@@ -458,6 +442,15 @@ export async function getBotStats() {
   ]);
 
   return { totalLinked, students, parents, totalStudents, totalParents };
+}
+
+// ─── Parolni Telegram orqali o'zgartirish ────────────────
+export async function changePasswordViaTelegram(chatId: string, newPasswordHash: string) {
+  return prisma.user.update({
+    where: { telegramChatId: chatId },
+    data: { passwordHash: newPasswordHash },
+    select: { id: true, fullName: true, role: true },
+  });
 }
 
 // ─── Akkauntdan chiqish (logout) ──────────────────────────

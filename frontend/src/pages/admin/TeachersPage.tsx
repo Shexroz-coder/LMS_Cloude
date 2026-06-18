@@ -136,6 +136,8 @@ const TeachersPage = () => {
                   <span className="font-semibold text-emerald-600">
                     {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                       ? `${teacher.salaryValue}% (tushum)`
+                      : teacher.salaryType === 'FIXED_PER_STUDENT'
+                      ? `${formatMoney(teacher.salaryValue)} / o'quvchi`
                       : formatMoney(teacher.salaryValue)
                     }
                   </span>
@@ -260,20 +262,21 @@ const TeacherFormModal = ({ teacher, onClose, onSuccess }: {
           )}
           <div>
             <label className="label">Ish haqi turi</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
                 { value: 'PERCENTAGE_FROM_PAYMENT', label: 'Foiz (%)', desc: 'Tushum foizidan' },
                 { value: 'PER_LESSON_HOUR', label: 'Soatbay', desc: 'Har soat uchun' },
+                { value: 'FIXED_PER_STUDENT', label: "O'quvchidan", desc: "Har o'quvchi uchun belgilangan summa" },
               ].map(opt => (
                 <label key={opt.value} className={clsx(
                   'flex items-start gap-2 p-3 rounded-xl border-2 cursor-pointer transition-colors',
-                  form.salaryType === opt.value ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                  form.salaryType === opt.value ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 )}>
                   <input type="radio" name="salaryType" value={opt.value} checked={form.salaryType === opt.value}
                     onChange={() => set('salaryType', opt.value)} className="mt-0.5" />
                   <div>
-                    <div className="text-sm font-medium text-gray-800">{opt.label}</div>
-                    <div className="text-xs text-gray-500">{opt.desc}</div>
+                    <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{opt.label}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</div>
                   </div>
                 </label>
               ))}
@@ -281,10 +284,19 @@ const TeacherFormModal = ({ teacher, onClose, onSuccess }: {
           </div>
           <div>
             <label className="label">
-              {form.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? 'Foiz miqdori (%)' : "Oylik ish haqi (so'm)"}
+              {form.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+                ? 'Foiz miqdori (%)'
+                : form.salaryType === 'FIXED_PER_STUDENT'
+                ? "Har o'quvchi uchun summa (so'm)"
+                : "Oylik ish haqi (so'm)"}
             </label>
             <input type="number" value={form.salaryValue} onChange={e => set('salaryValue', e.target.value)}
-              placeholder={form.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? '20' : '3000000'} className="input" />
+              placeholder={form.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? '20' : form.salaryType === 'FIXED_PER_STUDENT' ? '50000' : '3000000'} className="input" />
+            {form.salaryType === 'FIXED_PER_STUDENT' && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Har bir guruhdagi faol o'quvchilar soniga ko'paytirilib, oylik avtomatik hisoblanadi.
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Izoh</label>

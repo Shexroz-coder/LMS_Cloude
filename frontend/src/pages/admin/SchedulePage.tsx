@@ -143,7 +143,7 @@ const SchedulePage = () => {
       ) : totalSchedules === 0 ? (
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">📅</div>
-          <h2 className="text-lg font-semibold text-gray-700">Jadval topilmadi</h2>
+          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Jadval topilmadi</h2>
           <p className="text-gray-400 text-sm mt-1">Guruhlarga jadval belgilanmagan</p>
         </div>
       ) : view === 'week' ? (
@@ -153,7 +153,7 @@ const SchedulePage = () => {
             <div key={dayNum} className="card">
               <div className="flex items-center gap-2 mb-3">
                 <div className={clsx("w-2 h-2 rounded-full", dayNum === today ? "bg-indigo-500" : "bg-gray-300")} />
-                <h3 className={clsx("font-semibold text-sm", dayNum === today ? "text-indigo-700" : "text-gray-700")}>
+                <h3 className={clsx("font-semibold text-sm", dayNum === today ? "text-indigo-700" : "text-gray-700 dark:text-gray-300")}>
                   {DAYS[dayNum]}
                   {dayNum === today && (
                     <span className="text-xs ml-2 bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">Bugun</span>
@@ -190,7 +190,7 @@ const SchedulePage = () => {
             <div key={group.id} className="card">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-gray-800">{group.name}</h3>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-100">{group.name}</h3>
                   <p className="text-sm text-gray-500">{group.course?.name}</p>
                   {group.teacher && <p className="text-xs text-gray-400 mt-0.5">👤 {group.teacher.user?.fullName}</p>}
                 </div>

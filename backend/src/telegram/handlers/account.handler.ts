@@ -1,10 +1,11 @@
 /**
- * 🔄 Akkaunt boshqaruvi — Chiqish, almashtirish, tezkor kirish
+ * 🔄 Akkaunt boshqaruvi — Chiqish, almashtirish, tezkor kirish, parol o'zgartirish
  */
 import { BotContext, LinkedAccount } from '../bot';
-import { getUserByChatId, unlinkTelegramAccount, getUserByPhone, linkTelegramAccount } from '../services/data.service';
+import { getUserByChatId, unlinkTelegramAccount, getUserByPhone, linkTelegramAccount, changePasswordViaTelegram } from '../services/data.service';
 import { backToMenu, logoutConfirm, savedAccountsList, studentMainMenu, parentMainMenu, adminMenu, teacherMainMenu } from '../utils/keyboards';
 import { escapeHtml, brandHeader, brandFooter } from '../utils/format';
+import { hashPassword } from '../../utils/password.utils';
 
 // ── Chiqish so'rovi (tasdiqlash) ─────────────────
 export async function handleLogout(ctx: BotContext) {
@@ -186,6 +187,79 @@ export async function handleQuickLogin(ctx: BotContext, phone: string) {
   } catch (err) {
     console.error('❌ handleQuickLogin xatosi:', err);
     await ctx.editMessageText('❌ Xatolik yuz berdi.', { reply_markup: backToMenu() }).catch(() => {});
+  }
+}
+
+// ── Parolni o'zgartirish (boshlash) ──────────────
+export async function handleChangePassword(ctx: BotContext) {
+  try {
+    const chatId = String(ctx.chat?.id);
+    const user = await getUserByChatId(chatId);
+
+    if (!user) {
+      await ctx.editMessageText('❌ Siz tizimga kirilmagansiz.', { reply_markup: backToMenu() });
+      return;
+    }
+
+    ctx.session.step = 'waiting_new_password';
+
+    let text = brandHeader('🔑', 'PAROLNI O\'ZGARTIRISH');
+    text += `<b>${escapeHtml(user.fullName)}</b>, platformaga kirish uchun\n`;
+    text += `yangi parolingizni yozing:\n\n`;
+    text += `<i>• Kamida 6 ta belgi\n`;
+    text += `• Faqat lotin harflari va raqamlar\n`;
+    text += `• Misol: MyPass123</i>`;
+    text += brandFooter();
+
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: backToMenu() });
+  } catch (err) {
+    console.error('❌ handleChangePassword xatosi:', err);
+    await ctx.editMessageText('❌ Xatolik yuz berdi.', { reply_markup: backToMenu() }).catch(() => {});
+  }
+}
+
+// ── Yangi parolni qabul qilish (message:text stepdan chaqiriladi) ──
+export async function handleNewPassword(ctx: BotContext) {
+  try {
+    const chatId = String(ctx.chat?.id);
+    const text = ctx.message?.text?.trim();
+
+    if (!text || text.length < 6) {
+      await ctx.reply(
+        '❌ Parol kamida 6 ta belgidan iborat bo\'lishi kerak.\n\nQayta kiriting:',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+
+    if (text.length > 64) {
+      await ctx.reply('❌ Parol 64 ta belgidan oshmasin.\n\nQayta kiriting:');
+      return;
+    }
+
+    const passwordHash = await hashPassword(text);
+    await changePasswordViaTelegram(chatId, passwordHash);
+
+    ctx.session.step = 'idle';
+
+    const user = await getUserByChatId(chatId);
+    const role = user?.role || 'STUDENT';
+    let keyboard;
+    if (role === 'TEACHER') keyboard = teacherMainMenu();
+    else if (role === 'PARENT') keyboard = parentMainMenu();
+    else if (role === 'ADMIN') keyboard = adminMenu();
+    else keyboard = studentMainMenu();
+
+    let msg = brandHeader('✅', 'PAROL O\'ZGARTIRILDI');
+    msg += `🎉 Yangi parolingiz muvaffaqiyatli saqlandi!\n\n`;
+    msg += `Endi platforma (roboticedu.uz) ga kirish uchun\n`;
+    msg += `telefon raqamingiz va yangi parolingizdan foydalaning.`;
+
+    await ctx.reply(msg, { parse_mode: 'HTML', reply_markup: keyboard });
+  } catch (err) {
+    console.error('❌ handleNewPassword xatosi:', err);
+    await ctx.reply('❌ Xatolik yuz berdi. Qayta urinib ko\'ring.').catch(() => {});
+    ctx.session.step = 'idle';
   }
 }
 

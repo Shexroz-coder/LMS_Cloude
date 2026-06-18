@@ -8,6 +8,7 @@ interface PhoneInputProps {
   className?: string;
   required?: boolean;
   disabled?: boolean;
+  autoFocus?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export const PhoneInput = ({
   className,
   required,
   disabled,
+  autoFocus,
 }: PhoneInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -74,6 +76,7 @@ export const PhoneInput = ({
       className={clsx('input', className)}
       required={required}
       disabled={disabled}
+      autoFocus={autoFocus}
       inputMode="numeric"
     />
   );

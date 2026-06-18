@@ -11,6 +11,7 @@ import { sendSuccess, sendError } from '../utils/response.utils';
 import { AuthRequest } from '../types';
 import bot from '../telegram/bot';
 import { escapeHtml } from '../telegram/utils/format';
+import { normalizePhone, phoneVariants } from '../utils/phone.utils';
 
 const DAY_NAMES_UZ = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
 const TIME_LABELS: Record<string, string> = {
@@ -32,9 +33,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Foydalanuvchini topish
-    const user = await prisma.user.findUnique({
-      where: { phone },
+    // Foydalanuvchini topish — turli formatlarda saqlangan raqamlarni ham hisobga olish
+    const user = await prisma.user.findFirst({
+      where: { phone: { in: phoneVariants(phone) } },
       include: {
         student: {
           select: { id: true, coinBalance: true }
@@ -55,6 +56,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (!isValid) {
       sendError(res, 'Telefon raqam yoki parol noto\'g\'ri.', 401);
       return;
+    }
+
+    // Eski formatdagi raqamni asta-sekin standartlashtirish (+998XXXXXXXXX)
+    const normalized = normalizePhone(user.phone);
+    if (normalized !== user.phone) {
+      const conflict = await prisma.user.findUnique({ where: { phone: normalized } });
+      if (!conflict) {
+        await prisma.user.update({ where: { id: user.id }, data: { phone: normalized } });
+        user.phone = normalized;
+      }
     }
 
     // Tokenlar yaratish
@@ -312,8 +323,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Telefon raqamni standart formatga keltirish: +998XXXXXXXXX
+    const normalizedPhone = normalizePhone(phone);
+
     // Telefon unikalligi
-    const existing = await prisma.user.findUnique({ where: { phone } });
+    const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
     if (existing) {
       sendError(res, 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.', 409);
       return;
@@ -326,7 +340,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       const user = await tx.user.create({
         data: {
           fullName,
-          phone,
+          phone: normalizedPhone,
           passwordHash,
           role: 'STUDENT',
           isActive: true,

@@ -152,6 +152,7 @@ async function processPhoneLogin(ctx: BotContext, rawPhone: string) {
 
   const chatId = String(ctx.chat?.id);
   const username = ctx.from?.username;
+  const isFirstLink = !user.telegramChatId; // Birinchi marta ulanyaptimi?
   await linkTelegramAccount(user.phone, chatId, username);
 
   ctx.session.step = 'idle';
@@ -173,6 +174,17 @@ async function processPhoneLogin(ctx: BotContext, rawPhone: string) {
   }
 
   await ctx.reply(menuText, { parse_mode: 'HTML', reply_markup: keyboard });
+
+  // Birinchi marta ulanganda platforma paroli haqida eslatma
+  if (isFirstLink && (user.role === 'TEACHER' || user.role === 'STUDENT')) {
+    await ctx.reply(
+      `ℹ️ <b>Platforma (roboticedu.uz) parolingiz haqida:</b>\n\n` +
+      `Agar ilgari platforma orqali kirgan bo'lsangiz, o'sha parolni ishlating.\n\n` +
+      `Agar parolingizni bilmasangiz — quyidagi menyu orqali\n` +
+      `<b>"🔑 Parolni o'zgartirish"</b> tugmasini bosib yangi parol o'rnating.`,
+      { parse_mode: 'HTML' }
+    );
+  }
 }
 
 // ── Telegram Contact orqali telefon yuborish ─────

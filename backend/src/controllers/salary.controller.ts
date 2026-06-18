@@ -109,6 +109,9 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
     if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
       // Ustoz faqat haqiqiy kelgan to'lovlardan foiz oladi
       groupSalary = Math.round(actualRevenue * salaryValue / 100);
+    } else if (salaryType === 'FIXED_PER_STUDENT') {
+      // FIXED_PER_STUDENT — har bir faol o'quvchi uchun belgilangan summa * o'quvchilar soni
+      groupSalary = Math.round(students.length * salaryValue);
     } else {
       // PER_LESSON_HOUR — lessonsPerMonth * salaryValue
       groupSalary = Math.round(lessonsPerMonth * salaryValue);
@@ -139,8 +142,10 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
   let calculatedSalary = 0;
   let totalHours = 0;
 
-  if (salaryType === 'PERCENTAGE_FROM_PAYMENT') {
-    // Har bir guruhning alohida salary ini qo'shamiz (guruh bo'yicha haqiqiy to'lov * %)
+  if (salaryType === 'PERCENTAGE_FROM_PAYMENT' || salaryType === 'FIXED_PER_STUDENT') {
+    // Har bir guruhning alohida salary ini qo'shamiz
+    // - PERCENTAGE_FROM_PAYMENT: guruh bo'yicha haqiqiy to'lov * %
+    // - FIXED_PER_STUDENT: guruhdagi faol o'quvchilar soni * belgilangan summa
     calculatedSalary = groups.reduce((s, g) => s + g.salary, 0);
   } else {
     // PER_LESSON_HOUR — count actual taught lessons this month

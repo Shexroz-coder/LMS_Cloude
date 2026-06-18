@@ -103,6 +103,8 @@ function PayModal({
               <p className="text-xs text-gray-500">
                 {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                   ? `${teacher.salaryValue}% — to'lovlardan`
+                  : teacher.salaryType === 'FIXED_PER_STUDENT'
+                  ? `${fmt(teacher.salaryValue)}/o'quvchi`
                   : `${fmt(teacher.salaryValue)}/soat`}
               </p>
             </div>
@@ -251,11 +253,17 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
           <div className="text-sm">
             {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? (
               <span className="text-red-600 font-semibold">{teacher.salaryValue}%</span>
+            ) : teacher.salaryType === 'FIXED_PER_STUDENT' ? (
+              <span className="text-gray-700 dark:text-gray-300 font-semibold">{fmt(teacher.salaryValue)}/o'quvchi</span>
             ) : (
               <span className="text-gray-700 dark:text-gray-300 font-semibold">{fmt(teacher.salaryValue)}/soat</span>
             )}
             <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
-              {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT' ? "to'lovlardan" : 'soatbay'}
+              {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
+                ? "to'lovlardan"
+                : teacher.salaryType === 'FIXED_PER_STUDENT'
+                ? "har biridan"
+                : 'soatbay'}
             </span>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -265,7 +273,7 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
 
         {/* Revenue */}
         <td className="px-5 py-4 text-right">
-          <p className="text-sm font-semibold text-gray-700">{fmt(teacher.totalRevenue)}</p>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{fmt(teacher.totalRevenue)}</p>
           <p className="text-xs text-gray-400 mt-0.5">kutilayotgan</p>
         </td>
 
@@ -372,6 +380,8 @@ function TeacherRow({ teacher, onPay }: { teacher: TeacherCalc; onPay: (t: Teach
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {teacher.salaryType === 'PERCENTAGE_FROM_PAYMENT'
                       ? `${teacher.salaryValue}% foiz`
+                      : teacher.salaryType === 'FIXED_PER_STUDENT'
+                      ? `${teacher.totalStudents} o'quvchi × ${fmt(teacher.salaryValue)}`
                       : `${teacher.totalHours.toFixed(1)} soat × ${fmt(teacher.salaryValue)}`}
                   </p>
                   <p className="font-bold text-red-700 dark:text-red-400 text-lg">{fmt(teacher.calculatedSalary)}</p>
