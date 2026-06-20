@@ -359,3 +359,48 @@ export const autoAwardAttendanceCoins = async (req: AuthRequest, res: Response):
     sendError(res, 'Avtomatik coin berishda xato.', 500);
   }
 };
+
+// ══════════════════════════════════════════════
+// POST /coins/award-bulk — Bir vaqtda bir nechta o'quvchiga coin berish
+// ══════════════════════════════════════════════
+export const awardBulkCoins = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // awards: [{studentId, amount, reason?}]
+    const { awards } = req.body as { awards: Array<{ studentId: number; amount: number; reason?: string }> };
+
+    if (!Array.isArray(awards) || awards.length === 0) {
+      sendError(res, 'Coin ro\'yxati bo\'sh.', 400);
+      return;
+    }
+
+    const valid = awards.filter(a => a.studentId && a.amount > 0);
+    if (valid.length === 0) {
+      sendSuccess(res, { awarded: 0 }, '0 ta coin berildi.');
+      return;
+    }
+
+    // Tranzaksiya: barcha coinlarni bir vaqtda berish
+    await prisma.$transaction(
+      valid.flatMap(a => [
+        prisma.coinTransaction.create({
+          data: {
+            studentId: a.studentId,
+            amount: a.amount,
+            type: 'REWARD',
+            reason: a.reason || 'Davomat uchun',
+            givenBy: req.user!.id,
+          }
+        }),
+        prisma.student.update({
+          where: { id: a.studentId },
+          data: { coinBalance: { increment: a.amount } }
+        })
+      ])
+    );
+
+    sendSuccess(res, { awarded: valid.length }, `${valid.length} ta o'quvchiga coin berildi.`);
+  } catch (err) {
+    console.error('awardBulkCoins error:', err);
+    sendError(res, 'Coin berishda xato.', 500);
+  }
+};

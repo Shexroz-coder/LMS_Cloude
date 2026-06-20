@@ -58,16 +58,16 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       sendError(res, "Guruh, sana va davomat ro'yxati kiritilishi shart.", 400);
       return;
     }
-    if (!topic || !String(topic).trim()) {
-      sendError(res, "Dars mavzusini kiriting.", 400);
-      return;
-    }
-
     // ═══ BAYRAM/DAM OLISH KUNI TEKSHIRUVI ═══
     // date ni 'YYYY-MM-DD' string sifatida ishlatamiz — UTC midnight
     const dateStr = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
       ? date
       : new Date(date).toISOString().slice(0, 10);
+
+    // Topic ixtiyoriy — bo'sh bo'lsa avtomatik generatsiya
+    const finalTopic = (topic && String(topic).trim())
+      ? String(topic).trim()
+      : `${dateStr} darsi`;
     const lessonDateObj = new Date(dateStr + 'T00:00:00.000Z');
     const holidayCheck = await isHolidayDate(lessonDateObj);
     if (holidayCheck.isHoliday && !forcedLesson) {
@@ -128,7 +128,7 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
           date: lessonDate,
           startTime,
           endTime,
-          topic: topic || undefined,
+          topic: finalTopic,
           isForcedHoliday: isForcedHolidayLesson,
         }
       });
@@ -297,6 +297,82 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
   } catch (err) {
     console.error('markAttendance error:', err);
     sendError(res, 'Davomatni belgilashda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /attendance/calendar/:groupId — Kalendar uchun guruh + darslar
+// ══════════════════════════════════════════════
+export const getAttendanceCalendar = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    const { month } = req.query as { month?: string };
+
+    const now = new Date();
+    const [gy, gm] = month
+      ? month.split('-').map(Number)
+      : [now.getFullYear(), now.getMonth() + 1];
+    const startDate = new Date(Date.UTC(gy, gm - 1, 1));
+    const endDate   = new Date(Date.UTC(gy, gm, 0, 23, 59, 59, 999));
+
+    // Guruh + jadvallar + faol o'quvchilar
+    const group = await prisma.group.findUnique({
+      where: { id: groupId },
+      select: {
+        id: true,
+        name: true,
+        course: { select: { name: true, monthlyPrice: true } },
+        schedules: { select: { daysOfWeek: true, startTime: true, endTime: true } },
+        groupStudents: {
+          where: { status: 'ACTIVE' },
+          orderBy: { joinedAt: 'asc' },
+          select: {
+            student: {
+              select: {
+                id: true,
+                coinBalance: true,
+                user: { select: { id: true, fullName: true, avatarUrl: true } },
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!group) { sendError(res, 'Guruh topilmadi.', 404); return; }
+
+    // O'sha oy uchun darslar
+    const lessons = await prisma.lesson.findMany({
+      where: { groupId, date: { gte: startDate, lte: endDate } },
+      include: {
+        attendance: {
+          select: { studentId: true, status: true }
+        }
+      },
+      orderBy: { date: 'asc' }
+    });
+
+    // Darslarni sodda formatga keltirish
+    const totalStudents = group.groupStudents.length;
+    const lessonSummary = lessons.map(l => {
+      const present = l.attendance.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length;
+      const absent  = l.attendance.filter(a => a.status === 'ABSENT').length;
+      const excused = l.attendance.filter(a => a.status === 'EXCUSED').length;
+      return {
+        id:             l.id,
+        date:           l.date.toISOString().split('T')[0],
+        presentCount:   present,
+        absentCount:    absent,
+        excusedCount:   excused,
+        totalStudents,
+        attendance:     l.attendance, // [{studentId, status}]
+      };
+    });
+
+    sendSuccess(res, { group, lessons: lessonSummary });
+  } catch (err) {
+    console.error('getAttendanceCalendar error:', err);
+    sendError(res, 'Kalendar ma\'lumotini olishda xato.', 500);
   }
 };
 

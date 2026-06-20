@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  markAttendance, getGroupAttendance,
+  markAttendance, getGroupAttendance, getAttendanceCalendar,
   getTodayAttendance, getAttendanceStats, getStudentAttendance, getTeacherAttendanceReport
 } from '../controllers/attendance.controller';
 import {
@@ -15,6 +15,7 @@ router.post('/lesson', authorize('ADMIN', 'TEACHER'), markAttendance);
 router.get('/today', authorize('ADMIN', 'TEACHER'), getTodayAttendance);
 router.get('/stats', authorize('ADMIN', 'TEACHER'), getAttendanceStats);
 router.get('/teacher-report', authorize('ADMIN'), getTeacherAttendanceReport);
+router.get('/calendar/:groupId', authorize('ADMIN', 'TEACHER'), getAttendanceCalendar);
 router.get('/group/:groupId', authorize('ADMIN', 'TEACHER'), getGroupAttendance);
 router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getStudentAttendance);
 

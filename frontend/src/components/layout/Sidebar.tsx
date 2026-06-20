@@ -89,6 +89,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
       {
         key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
+          { to: '/admin/attendance', icon: ClipboardCheck, label: 'Davomat' },
           { to: '/admin/announcements', icon: Megaphone, label: t('nav.announcements') },
           { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
           { to: '/admin/attendance-export', icon: ClipboardCheck, label: 'Davomat export' },
