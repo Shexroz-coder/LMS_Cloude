@@ -31,8 +31,10 @@ export const PhoneInput = ({
   const formatDisplay = (raw: string): string => {
     // Faqat raqamlarni olish
     const digits = raw.replace(/\D/g, '');
-    // 998 prefiksi bilan boshlashini tekshirish
-    const local = digits.startsWith('998') ? digits.slice(3) : digits;
+    // 998 prefiksi faqat 12 xonali raqam bo'lsagina country code sifatida ko'riladi
+    // (masalan: 998901234567 = 998 + 9 ta mahalliy raqam)
+    // 9 xonali raqamlar (masalan 998401234 - 99 operatori) shu holda qoladi
+    const local = (digits.startsWith('998') && digits.length >= 12) ? digits.slice(3) : digits;
     // Maksimal 9 raqam
     const trimmed = local.slice(0, 9);
     // Formatlash: XX XXX XX XX
@@ -47,7 +49,8 @@ export const PhoneInput = ({
   const toStorageFormat = (raw: string): string => {
     const digits = raw.replace(/\D/g, '');
     if (!digits) return '';
-    if (digits.startsWith('998')) return `+${digits}`;
+    // Faqat 12 xonali bo'lsa (998 + 9 raqam) country code sifatida qayta yoziladi
+    if (digits.startsWith('998') && digits.length === 12) return `+${digits}`;
     if (digits.length === 9) return `+998${digits}`;
     return `+998${digits.slice(-9)}`;
   };
@@ -56,7 +59,8 @@ export const PhoneInput = ({
     const raw = e.target.value;
     // Kiruvchi matndan raqamlarni olish
     const digits = raw.replace(/\D/g, '');
-    const local = digits.startsWith('998') ? digits.slice(3) : digits;
+    // 9 xonali 998XX... raqamlar mahalliy raqam — 998 country code emas
+    const local = (digits.startsWith('998') && digits.length >= 12) ? digits.slice(3) : digits;
     const trimmed = local.slice(0, 9);
 
     if (trimmed.length === 0) {

@@ -17,9 +17,13 @@ export const normalizePhone = (phone: string): string => {
   const digits = phone.replace(/\D/g, '');
 
   let local = digits;
-  if (digits.startsWith('998') && digits.length > 9) {
+  // Faqat aniq 12 raqamli bo'lsa 998 country code sifatida olib tashlanadi
+  // (998 + 9 ta mahalliy raqam = 12).
+  // 9 ta raqamli "998XXXXXX" mahalliy raqam (99-operatori) noto'g'ri kesib
+  // tashlanmasligi uchun bu shart zarur.
+  if (digits.startsWith('998') && digits.length === 12) {
     local = digits.slice(3);
-  } else if (digits.startsWith('0') && digits.length > 9) {
+  } else if (digits.startsWith('0') && digits.length === 10) {
     local = digits.slice(1);
   }
   // Oxirgi 9 ta raqamni olish (mahalliy raqam doim 9 xonali)
@@ -37,9 +41,9 @@ export const phoneVariants = (phone: string): string[] => {
   const digits = phone.replace(/\D/g, '');
 
   let local = digits;
-  if (digits.startsWith('998') && digits.length > 9) {
+  if (digits.startsWith('998') && digits.length === 12) {
     local = digits.slice(3);
-  } else if (digits.startsWith('0') && digits.length > 9) {
+  } else if (digits.startsWith('0') && digits.length === 10) {
     local = digits.slice(1);
   }
   local = local.slice(-9);
