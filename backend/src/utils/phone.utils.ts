@@ -1,58 +1,56 @@
 /**
  * Telefon raqamlar bilan ishlash uchun yordamchi funksiyalar.
  *
- * Standart saqlash formati: +998XXXXXXXXX (9 ta raqam, +998 prefiksi bilan)
+ * normalizePhone: kiritilgan qiymatni bo'shliqlardan tozalaydi, xolos.
+ * Hech qanday prefiks qo'shilmaydi yoki olib tashlanmaydi.
  */
 
-/**
- * Har qanday formatdagi telefon raqamni standart +998XXXXXXXXX formatga keltiradi.
- * Masalan:
- *   "901234567"        → "+998901234567"
- *   "0901234567"       → "+998901234567"
- *   "998901234567"     → "+998901234567"
- *   "+998 90 123 45 67"→ "+998901234567"
- */
 export const normalizePhone = (phone: string): string => {
   if (!phone) return phone;
-  const digits = phone.replace(/\D/g, '');
-
-  let local = digits;
-  // Faqat aniq 12 raqamli bo'lsa 998 country code sifatida olib tashlanadi
-  // (998 + 9 ta mahalliy raqam = 12).
-  // 9 ta raqamli "998XXXXXX" mahalliy raqam (99-operatori) noto'g'ri kesib
-  // tashlanmasligi uchun bu shart zarur.
-  if (digits.startsWith('998') && digits.length === 12) {
-    local = digits.slice(3);
-  } else if (digits.startsWith('0') && digits.length === 10) {
-    local = digits.slice(1);
-  }
-  // Oxirgi 9 ta raqamni olish (mahalliy raqam doim 9 xonali)
-  local = local.slice(-9);
-
-  return `+998${local}`;
+  // Faqat bo'shliqlar va tire (-) olib tashlanadi, boshqa o'zgarish yo'q
+  return phone.trim().replace(/[\s\-]/g, '');
 };
 
 /**
- * Login/qidiruv vaqtida eski (normalizatsiyadan oldin saqlangan) yozuvlarni
- * ham topish uchun mumkin bo'lgan barcha format variantlarini qaytaradi.
+ * Login/qidiruv vaqtida mumkin bo'lgan format variantlarini qaytaradi.
+ * Kiritilgan raqamni turli ko'rinishlarda qidirish uchun.
  */
 export const phoneVariants = (phone: string): string[] => {
   if (!phone) return [phone];
-  const digits = phone.replace(/\D/g, '');
 
-  let local = digits;
-  if (digits.startsWith('998') && digits.length === 12) {
-    local = digits.slice(3);
-  } else if (digits.startsWith('0') && digits.length === 10) {
-    local = digits.slice(1);
+  const clean = phone.trim().replace(/[\s\-]/g, '');
+  const digits = clean.replace(/\D/g, '');
+
+  const variants = new Set<string>([clean]);
+
+  // +998XXXXXXXXX → boshqa formatlar
+  if (digits.length === 12 && digits.startsWith('998')) {
+    const local = digits.slice(3); // 9 ta raqam
+    variants.add(`+998${local}`);
+    variants.add(`998${local}`);
+    variants.add(`0${local}`);
+    variants.add(local);
   }
-  local = local.slice(-9);
+  // 9 ta raqamli mahalliy raqam
+  else if (digits.length === 9) {
+    variants.add(digits);
+    variants.add(`+998${digits}`);
+    variants.add(`998${digits}`);
+    variants.add(`0${digits}`);
+  }
+  // 0XXXXXXXXX (10 raqam)
+  else if (digits.length === 10 && digits.startsWith('0')) {
+    const local = digits.slice(1);
+    variants.add(digits);
+    variants.add(local);
+    variants.add(`+998${local}`);
+    variants.add(`998${local}`);
+  }
+  // Boshqa har qanday format — kiritilganidek qidirish
+  else {
+    variants.add(digits);
+    if (clean !== digits) variants.add(clean);
+  }
 
-  return Array.from(new Set([
-    `+998${local}`,
-    `998${local}`,
-    `0${local}`,
-    local,
-    phone, // original kiritilgan qiymat ham (ehtiyot uchun)
-  ]));
+  return Array.from(variants);
 };
