@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Users, UserCheck, BookOpen, Calendar, ClipboardCheck,
-  CreditCard, BarChart3, Wallet, Coins, Bell,
+  CreditCard, BarChart3, Wallet, Coins, Bell, AlertCircle,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
   ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff
 } from 'lucide-react';
@@ -81,6 +81,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
       {
         key: 'finance', label: 'Moliya', icon: DollarSign, items: [
           { to: '/admin/payments', icon: CreditCard, label: t('nav.payments') },
+          { to: '/admin/debtors', icon: AlertCircle, label: 'Eslatmalar' },
           { to: '/admin/finance', icon: BarChart3, label: t('nav.finance') },
           { to: '/admin/salaries', icon: Wallet, label: t('nav.salaries') },
           { to: '/admin/coins', icon: Coins, label: t('nav.coins') },
@@ -102,18 +103,13 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
   if (role === 'TEACHER') {
     return [
-      { to: '/teacher', icon: LayoutDashboard, label: t('nav.dashboard') },
-
-      {
-        key: 'teaching', label: 'Darslar', icon: BookOpen, items: [
-          { to: '/teacher/schedule', icon: Calendar, label: t('nav.schedule') },
-          { to: '/teacher/groups', icon: BookOpen, label: t('nav.groups') },
-          { to: '/teacher/attendance', icon: ClipboardCheck, label: t('nav.attendance') },
-          { to: '/teacher/coins', icon: Coins, label: t('nav.coins') },
-        ]
-      },
-
-      systemGroup,
+      { to: '/teacher',            icon: LayoutDashboard, label: 'Bosh sahifa'     },
+      { to: '/teacher/attendance', icon: ClipboardCheck,  label: 'Davomat'         },
+      { to: '/teacher/groups',     icon: Users,           label: "O'quvchilar"     },
+      { to: '/teacher/schedule',   icon: Calendar,        label: 'Jadval'          },
+      { to: '/teacher/coins',      icon: Coins,           label: 'Coinlar'         },
+      { to: '/teacher/notifications', icon: Bell,         label: 'Bildirishnomalar'},
+      { to: '/teacher/profile',    icon: User,            label: 'Profil'          },
     ];
   }
 

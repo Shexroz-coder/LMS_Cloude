@@ -787,6 +787,209 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
 };
 
 // ══════════════════════════════════════════════
+// GET /payments/debtors-review — Admin uchun qarzdorlar ro'yxati
+// (to'lov eslatmasi yuborishdan OLDIN ko'rib chiqish uchun)
+// ══════════════════════════════════════════════
+export const getDebtorsReview = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const today = new Date();
+
+    const activeStudents = await prisma.groupStudent.findMany({
+      where: { status: 'ACTIVE', student: { status: 'ACTIVE' } },
+      include: {
+        student: {
+          include: {
+            user:    { select: { id: true, fullName: true, phone: true, telegramChatId: true } },
+            balance: true,
+            parent:  { select: { id: true, fullName: true, phone: true, telegramChatId: true } },
+          }
+        },
+        group: { include: { course: true } },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // Bir o'quvchi bir necha guruhda bo'lishi mumkin — birinchisini olamiz
+    const seen = new Set<number>();
+    const result = activeStudents
+      .filter(gs => {
+        if (seen.has(gs.student.id)) return false;
+        seen.add(gs.student.id);
+        return true;
+      })
+      .map(gs => {
+        const student   = gs.student;
+        const course    = gs.group.course;
+        const joinedAt  = new Date(gs.joinedAt);
+        const dueDay    = joinedAt.getDate(); // har oyning shu sanasida
+
+        // Belgilangan oylik summa (chegirmasiz asosiy narx — chegirma qo'shilsa ayiriladi)
+        const base = Number(course.monthlyPrice);
+        let discountAmount = 0;
+        if (student.discountType && student.discountValue) {
+          discountAmount = student.discountType === 'PERCENTAGE'
+            ? Math.round(base * Number(student.discountValue) / 100)
+            : Math.min(Number(student.discountValue), base);
+        }
+        const monthlyAmount = Math.max(0, base - discountAmount);
+
+        // Keyingi to'lov sanasi
+        let nextDue = new Date(today.getFullYear(), today.getMonth(), dueDay);
+        if (nextDue <= today) {
+          nextDue = new Date(today.getFullYear(), today.getMonth() + 1, dueDay);
+        }
+        const daysUntilDue  = Math.ceil((nextDue.getTime() - today.getTime()) / 86_400_000);
+        const currentDebt   = Number(student.balance?.debt    || 0);
+        const currentBalance= Number(student.balance?.balance  || 0);
+
+        return {
+          studentId:      student.id,
+          fullName:       student.user.fullName,
+          phone:          student.user.phone,
+          hasTelegram:    !!student.user.telegramChatId,
+          parentName:     student.parent?.fullName  ?? null,
+          parentPhone:    student.parent?.phone     ?? null,
+          parentTelegram: !!student.parent?.telegramChatId,
+          groupId:        gs.group.id,
+          groupName:      gs.group.name,
+          courseName:     course.name,
+          joinedAt:       gs.joinedAt,
+          dueDay,
+          nextDueDate:    nextDue,
+          daysUntilDue,
+          monthlyAmount:  Math.round(monthlyAmount),
+          currentDebt,
+          currentBalance,
+          // overdue = qarz bor va to'lov sanasi o'tib ketgan
+          isOverdue:      currentDebt > 0 && daysUntilDue < 0,
+          isDueSoon:      daysUntilDue >= 0 && daysUntilDue <= 3,
+        };
+      });
+
+    // Saralash: qarzdorlar → yaqin sanali → qolganlar
+    result.sort((a, b) => {
+      if (a.currentDebt > 0 && b.currentDebt === 0) return -1;
+      if (a.currentDebt === 0 && b.currentDebt > 0) return  1;
+      return a.daysUntilDue - b.daysUntilDue;
+    });
+
+    sendSuccess(res, result);
+  } catch (err) {
+    console.error('getDebtorsReview error:', err);
+    sendError(res, "Qarzdorlar ro'yxatini olishda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// POST /payments/notify-debtors — Tanlangan o'quvchilarga
+//   to'lov eslatmasi yuborish (admin tasdiqlaydi)
+// ══════════════════════════════════════════════
+export const notifyDebtors = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { studentIds } = req.body as { studentIds: number[] };
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      sendError(res, "O'quvchilar ro'yxati bo'sh.", 400);
+      return;
+    }
+
+    const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
+    let notified = 0;
+
+    const botModule = await import('../telegram/bot');
+    const tgBot = botModule.default;
+
+    for (const studentId of studentIds) {
+      const student = await prisma.student.findUnique({
+        where: { id: studentId },
+        include: {
+          user:    { select: { id: true, fullName: true, telegramChatId: true } },
+          balance: true,
+          parent:  { select: { id: true, fullName: true, telegramChatId: true } },
+          groupStudents: {
+            where: { status: 'ACTIVE' },
+            include: { group: { include: { course: true } } },
+            take: 1,
+          }
+        }
+      });
+
+      if (!student) continue;
+      const gs = student.groupStudents[0];
+      if (!gs) continue;
+
+      const base = Number(gs.group.course.monthlyPrice);
+      let disc = 0;
+      if (student.discountType && student.discountValue) {
+        disc = student.discountType === 'PERCENTAGE'
+          ? Math.round(base * Number(student.discountValue) / 100)
+          : Math.min(Number(student.discountValue), base);
+      }
+      const monthlyAmount = Math.max(0, base - disc);
+      const debt = Number(student.balance?.debt || 0);
+
+      const joinedAt = new Date(student.groupStudents[0].joinedAt);
+      const dueDay   = joinedAt.getDate();
+      const now      = new Date();
+      let nextDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
+      if (nextDue <= now) nextDue = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
+      const dueDateStr = nextDue.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
+
+      // DB notification (o'quvchi uchun)
+      try {
+        await prisma.notification.create({
+          data: {
+            userId:    student.user.id,
+            title:     "💳 To'lov eslatmasi",
+            body:      `${gs.group.name} uchun oylik to'lov: ${fmt(monthlyAmount)} so'm. Muddat: ${dueDateStr}.`,
+            type:      'PAYMENT',
+            actionUrl: '/student/payments',
+          }
+        });
+      } catch { /* silent */ }
+
+      // Telegram — o'quvchi
+      if (student.user.telegramChatId) {
+        try {
+          const msg =
+            `💳 <b>To'lov eslatmasi</b>\n\n` +
+            `📚 Guruh: <b>${gs.group.name}</b>\n` +
+            `💰 Oylik to'lov: <b>${fmt(monthlyAmount)} so'm</b>\n` +
+            (debt > 0 ? `❗ Joriy qarz: <b>${fmt(debt)} so'm</b>\n` : '') +
+            `📅 Muddat: <b>${dueDateStr}</b>\n\n` +
+            `Iltimos, to'lovni o'z vaqtida amalga oshiring. 🙏`;
+          await tgBot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
+          notified++;
+        } catch (e) { console.error('Student TG notify error:', e); }
+      }
+
+      // Telegram — ota-ona
+      if (student.parent?.telegramChatId) {
+        try {
+          const msg =
+            `💳 <b>To'lov eslatmasi</b>\n\n` +
+            `👤 O'quvchi: <b>${student.user.fullName}</b>\n` +
+            `📚 Guruh: <b>${gs.group.name}</b>\n` +
+            `💰 Oylik to'lov: <b>${fmt(monthlyAmount)} so'm</b>\n` +
+            (debt > 0 ? `❗ Joriy qarz: <b>${fmt(debt)} so'm</b>\n` : '') +
+            `📅 Muddat: <b>${dueDateStr}</b>\n\n` +
+            `Iltimos, to'lovni o'z vaqtida amalga oshiring. 🙏`;
+          await tgBot.api.sendMessage(student.parent.telegramChatId, msg, { parse_mode: 'HTML' });
+          notified++;
+        } catch (e) { console.error('Parent TG notify error:', e); }
+      }
+    }
+
+    sendSuccess(res, { notified, total: studentIds.length },
+      `${studentIds.length} ta o'quvchi uchun eslatma yuborildi (${notified} ta Telegram).`
+    );
+  } catch (err) {
+    console.error('notifyDebtors error:', err);
+    sendError(res, 'Eslatma yuborishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /payments/calculate/:studentId — To'lov summasi hisoblash
 // ══════════════════════════════════════════════
 export const calculateStudentPayment = async (req: AuthRequest, res: Response): Promise<void> => {

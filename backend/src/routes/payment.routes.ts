@@ -8,6 +8,7 @@ import {
   updatePayment, deletePayment, getArchivedPayments,
   setPaymentPromise, clearPaymentPromise,
   getStudentCalendar,
+  getDebtorsReview, notifyDebtors,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
 
@@ -17,6 +18,8 @@ const router = Router();
 router.get('/summary', authorize('ADMIN'), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
+router.get('/debtors-review', authorize('ADMIN'), getDebtorsReview);
+router.post('/notify-debtors', authorize('ADMIN'), notifyDebtors);
 router.get('/archive', authorize('ADMIN'), getArchivedPayments);
 router.post('/generate-fees', authorize('ADMIN'), generateMonthlyFees);
 router.post('/online/initiate', authorize('ADMIN', 'PARENT', 'STUDENT'), initiateOnlinePayment);
