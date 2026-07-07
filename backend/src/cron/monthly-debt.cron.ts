@@ -180,29 +180,7 @@ export async function calculateMonthlyDebts() {
         create: { studentId: student.id, balance: 0, debt: monthlyFee, lastUpdated: new Date() },
       });
 
-      // Telegram xabar — qarz haqida (dam olish kunlari + pro-rata bilan)
-      if (newDebt > 0 && student.user.telegramChatId) {
-        try {
-          let msg = `📋 <b>Oylik hisob — ${monthName}</b>\n\n`;
-          msg += `📚 Kurslar: ${courseNames.join(', ')}\n`;
-          msg += `💰 Oylik to'lov: <b>${formatMoney(monthlyFee)}</b>\n`;
-          if (discount > 0) msg += `🏷 Chegirma: -${formatMoney(discount)}\n`;
-          if (totalHolidayCredit > 0) msg += `🏖 Dam olish kunlari tushimi: -${formatMoney(totalHolidayCredit)}\n`;
-          // Pro-rata qo'shilganlarni ko'rsatish
-          for (const gs of student.groupStudents) {
-            const jd = new Date(gs.joinedAt);
-            if (jd.getFullYear() === currentYear && jd.getMonth() === currentMonth && jd.getDate() > 1) {
-              msg += `📐 ${gs.group.course.name}: ${jd.getDate()}-${monthName}dan boshlab (pro-rata)\n`;
-            }
-          }
-          msg += `\n🔴 Sizning qarzingiz: <b>${formatMoney(newDebt)}</b>\n\n`;
-          msg += `⚠️ Iltimos, to'lovni o'z vaqtida amalga oshiring.`;
-
-          await bot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
-        } catch (e) {
-          console.error(`  ⚠️ Telegram xabar yuborishda xato (${student.user.fullName}):`, e);
-        }
-      }
+      // Telegram — O'CHIRILDI. Faqat admin "Eslatmalar" sahifasidan qo'lda yuboradi.
 
       // Notification yaratish
       await prisma.notification.create({
@@ -349,45 +327,10 @@ export async function sendPaymentReminders() {
       const monthlyFee = totalAdjusted;
       if (monthlyFee <= 0) continue;
 
-      // Telegram xabar
-      if (student.user.telegramChatId) {
-        try {
-          let msg = `🔔 <b>To'lov eslatmasi</b>\n\n`;
-          msg += `Hurmatli <b>${escapeHtml(student.user.fullName)}</b>,\n\n`;
-          msg += `Siz <b>${nextMonthName}</b> oyi uchun <b>${formatMoney(monthlyFee)}</b> to'lovni amalga oshirishingiz kerak.\n\n`;
-          msg += `📚 Kurslar: ${courseNames.join(', ')}\n`;
-          if (discount > 0) msg += `🏷 Chegirma: -${formatMoney(discount)}\n`;
-          if (totalHolidayCredit > 0) msg += `🏖 Dam olish kunlari tushimi: -${formatMoney(totalHolidayCredit)}\n`;
-          msg += `💰 To'lov summasi: <b>${formatMoney(monthlyFee)}</b>\n\n`;
-          msg += `⏰ Iltimos, oy boshigacha to'lovni amalga oshiring.`;
+      // Telegram — O'CHIRILDI. Admin "Eslatmalar" sahifasidan qo'lda yuboradi.
+      // sent++ bu yerda bo'lmaydi — admin manual yuborishni tracking qiladi.
 
-          await bot.api.sendMessage(student.user.telegramChatId, msg, { parse_mode: 'HTML' });
-          sent++;
-        } catch (e) {
-          console.error(`  ⚠️ Eslatma yuborib bo'lmadi (${student.user.fullName}):`, e);
-        }
-      }
-
-      // Ota-onaga ham xabar — allaqachon yuklangan (N+1 yo'q)
-      const parentUser = student.parent?.telegramChatId ? student.parent : null;
-
-      if (parentUser?.telegramChatId) {
-        try {
-          let msg = `🔔 <b>To'lov eslatmasi</b>\n\n`;
-          msg += `Hurmatli ota-ona,\n\n`;
-          msg += `<b>${escapeHtml(student.user.fullName)}</b> uchun <b>${nextMonthName}</b> oyi to'lovi:\n`;
-          msg += `💰 <b>${formatMoney(monthlyFee)}</b>\n`;
-          if (totalHolidayCredit > 0) msg += `🏖 Dam olish tushimi: -${formatMoney(totalHolidayCredit)}\n`;
-          msg += `\n📚 ${courseNames.join(', ')}\n`;
-          msg += `⏰ Iltimos, oy boshigacha to'lovni amalga oshiring.`;
-
-          await bot.api.sendMessage(parentUser.telegramChatId, msg, { parse_mode: 'HTML' });
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      // Notification
+      // Tizim ichki notification
       await prisma.notification.create({
         data: {
           userId: student.user.id,
@@ -398,45 +341,25 @@ export async function sendPaymentReminders() {
       });
     }
 
-    // Admin xabari yuborish
-    if (sent > 0) {
-      const adminChatId = process.env.TELEGRAM_ADMIN_ID;
-      if (adminChatId) {
-        try {
-          const msg = `🔔 <b>To'lov Eslatmasi Xulosa</b>\n\n` +
-            `📅 <b>${nextMonthName} ${nextMonth.getFullYear()}</b> oyi uchun\n` +
-            `👥 Eslatma yuborilgan: <b>${sent}</b> o'quvchi\n\n` +
-            `✅ Jarayon muvaffaqiyatli yakunlandi`;
-
-          await bot.api.sendMessage(adminChatId, msg, { parse_mode: 'HTML' });
-        } catch (e) {
-          console.error('❌ Admin Telegram xabari yuborishda xato:', e);
-        }
-      }
-
-      // Admin uchun LMS notification
-      try {
-        const admin = await prisma.user.findFirst({
-          where: { role: 'ADMIN' },
-          select: { id: true }
+    // Admin uchun LMS notification — hisoblash tugaganligi haqida
+    try {
+      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } });
+      if (admin) {
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: `${nextMonthName} to'lov hisoblandi`,
+            body: `Barcha o'quvchilarning ${nextMonthName} oyi to'lovlari hisoblandi. Eslatmalarni "Eslatmalar" sahifasidan yuboring.`,
+            type: 'SYSTEM'
+          }
         });
-        if (admin) {
-          await prisma.notification.create({
-            data: {
-              userId: admin.id,
-              title: `${nextMonthName} to'lov eslatmasi yuborildi`,
-              body: `${sent} ta o'quvchiga ${nextMonthName} oyi uchun to'lov eslatmasi yuborildi`,
-              type: 'SYSTEM'
-            }
-          });
-        }
-      } catch (e) {
-        console.error('❌ Admin notification xatosi:', e);
       }
+    } catch (e) {
+      console.error('❌ Admin notification xatosi:', e);
     }
 
-    console.log(`✅ [CRON] ${sent} ta o'quvchiga to'lov eslatmasi yuborildi`);
-    return { sent };
+    console.log(`✅ [CRON] To'lov eslatma hisoblash tugadi (Telegram yuborilmadi — admin qo'lda yuboradi)`);
+    return { sent: 0 };
   } catch (error) {
     console.error('❌ [CRON] Eslatma xatosi:', error);
     throw error;

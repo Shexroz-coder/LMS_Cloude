@@ -537,6 +537,85 @@ export const clearPaymentPromise = async (req: AuthRequest, res: Response): Prom
 };
 
 // ══════════════════════════════════════════════
+// PATCH /payments/student/:studentId/adjust-debt
+// Admin tomonidan qarz/balansni qo'lda tuzatish
+// ══════════════════════════════════════════════
+export const adjustStudentDebt = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { debt, balance, note } = req.body as {
+      debt?:    number;
+      balance?: number;
+      note?:    string;
+    };
+
+    if (debt === undefined && balance === undefined) {
+      sendError(res, 'debt yoki balance qiymati kiritilishi kerak.', 400);
+      return;
+    }
+    if (debt    !== undefined && (isNaN(debt)    || debt    < 0)) {
+      sendError(res, 'Qarz miqdori 0 yoki undan katta bo\'lishi kerak.', 400);
+      return;
+    }
+    if (balance !== undefined && (isNaN(balance) || balance < 0)) {
+      sendError(res, 'Balans miqdori 0 yoki undan katta bo\'lishi kerak.', 400);
+      return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user:    { select: { id: true, fullName: true } },
+        balance: true,
+      }
+    });
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+
+    const oldDebt    = Number(student.balance?.debt    || 0);
+    const oldBalance = Number(student.balance?.balance || 0);
+    const newDebt    = debt    !== undefined ? Math.round(debt)    : oldDebt;
+    const newBalance = balance !== undefined ? Math.round(balance) : oldBalance;
+
+    await prisma.studentBalance.upsert({
+      where:  { studentId },
+      update: { debt: newDebt, balance: newBalance, lastUpdated: new Date() },
+      create: { studentId, debt: newDebt, balance: newBalance },
+    });
+
+    // Tizim ichki log — audit uchun
+    const fmtMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
+    const changes: string[] = [];
+    if (debt    !== undefined) changes.push(`Qarz: ${fmtMoney(oldDebt)} → ${fmtMoney(newDebt)}`);
+    if (balance !== undefined) changes.push(`Balans: ${fmtMoney(oldBalance)} → ${fmtMoney(newBalance)}`);
+
+    try {
+      const adminId = req.user?.id;
+      if (adminId) {
+        await prisma.notification.create({
+          data: {
+            userId:    adminId,
+            title:     `Qarz tuzatildi — ${student.user.fullName}`,
+            body:      `${changes.join(', ')}${note ? `. Izoh: ${note}` : ''}`,
+            type:      'SYSTEM',
+          }
+        });
+      }
+    } catch { /* silent */ }
+
+    sendSuccess(res, {
+      studentId,
+      fullName:    student.user.fullName,
+      oldDebt,   newDebt,
+      oldBalance, newBalance,
+      note: note || null,
+    }, `${student.user.fullName} qarz/balansi yangilandi.`);
+  } catch (err) {
+    console.error('adjustStudentDebt error:', err);
+    sendError(res, 'Qarzni tuzatishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
 // GET /payments/upcoming-dues — Yaqinlashgan to'lovlar (admin)
 // ══════════════════════════════════════════════
 export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<void> => {

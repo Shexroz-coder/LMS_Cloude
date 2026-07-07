@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { uz } from 'date-fns/locale';
 import {
   Send, AlertCircle, CheckSquare, Square, Search,
-  RefreshCw, Bell, BellOff, Users, X,
+  RefreshCw, Bell, BellOff, Users, X, Edit3, Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -47,6 +47,15 @@ export default function AdminDebtorsPage() {
   const [selected, setSelected]     = useState<Set<number>>(new Set());
   const [filter, setFilter]         = useState<'all' | 'debt' | 'soon'>('all');
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Qarz tuzatish modali
+  const [adjustModal, setAdjustModal] = useState<{
+    studentId: number; fullName: string;
+    currentDebt: number; currentBalance: number;
+  } | null>(null);
+  const [adjDebt,    setAdjDebt]    = useState('');
+  const [adjBalance, setAdjBalance] = useState('');
+  const [adjNote,    setAdjNote]    = useState('');
 
   // ── Ma'lumotlar ──────────────────────────────────────────────────────────
   const { data, isLoading, refetch } = useQuery<DebtorEntry[]>(
@@ -92,6 +101,38 @@ export default function AdminDebtorsPage() {
   };
 
   // ── Eslatma yuborish ──────────────────────────────────────────────────────
+  // Qarz tuzatish mutation
+  const adjustMutation = useMutation(
+    async ({ studentId, debt, balance, note }: {
+      studentId: number; debt?: number; balance?: number; note?: string;
+    }) => {
+      const body: Record<string, unknown> = {};
+      if (debt    !== undefined) body.debt    = debt;
+      if (balance !== undefined) body.balance = balance;
+      if (note)                  body.note    = note;
+      return api.patch(`/payments/student/${studentId}/adjust-debt`, body);
+    },
+    {
+      onSuccess: (_, vars) => {
+        toast.success(`${adjustModal?.fullName} qarz/balansi yangilandi`);
+        setAdjustModal(null);
+        setAdjDebt(''); setAdjBalance(''); setAdjNote('');
+        refetch();
+      },
+      onError: (err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        toast.error(msg || 'Tuzatishda xato yuz berdi');
+      },
+    }
+  );
+
+  const openAdjust = (s: DebtorEntry) => {
+    setAdjustModal({ studentId: s.studentId, fullName: s.fullName, currentDebt: s.currentDebt, currentBalance: s.currentBalance });
+    setAdjDebt(String(s.currentDebt));
+    setAdjBalance(String(s.currentBalance));
+    setAdjNote('');
+  };
+
   const notifyMutation = useMutation(
     async (ids: number[]) => {
       const r = await api.post('/payments/notify-debtors', { studentIds: ids });
@@ -290,20 +331,28 @@ export default function AdminDebtorsPage() {
                     <p className="text-xs text-gray-400">har oy · {s.dueDay}-sana</p>
                   </div>
 
-                  {/* Qarz */}
-                  <div className="hidden sm:block">
-                    {s.currentDebt > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-sm font-bold text-red-600 dark:text-red-400">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        {fmt(s.currentDebt)} so'm
-                      </span>
-                    ) : s.currentBalance > 0 ? (
-                      <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                        +{fmt(s.currentBalance)} so'm
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-300 dark:text-gray-600">—</span>
-                    )}
+                  {/* Qarz + Tuzatish */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <div>
+                      {s.currentDebt > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-sm font-bold text-red-600 dark:text-red-400">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          {fmt(s.currentDebt)} so'm
+                        </span>
+                      ) : s.currentBalance > 0 ? (
+                        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                          +{fmt(s.currentBalance)} so'm
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-300 dark:text-gray-600">—</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); openAdjust(s); }}
+                      title="Qarzni tuzatish"
+                      className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
+                      <Edit3 className="w-3 h-3" />
+                    </button>
                   </div>
 
                   {/* Keyingi to'lov sanasi */}
@@ -341,6 +390,98 @@ export default function AdminDebtorsPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Qarz tuzatish modali ──────────────────────────────────────── */}
+      {adjustModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 max-w-sm w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                Qarz / Balans tuzatish
+              </h3>
+              <button onClick={() => setAdjustModal(null)}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-4">
+              {adjustModal.fullName}
+            </p>
+
+            <div className="space-y-3">
+              {/* Qarz */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                  Qarz (so'm)
+                  <span className="ml-2 text-gray-300 dark:text-gray-600 font-normal">
+                    Hozir: {fmt(adjustModal.currentDebt)} so'm
+                  </span>
+                </label>
+                <input
+                  type="number" min="0" step="1000"
+                  value={adjDebt}
+                  onChange={e => setAdjDebt(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-700"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Balans */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                  Balans / Ortiqcha to'lov (so'm)
+                  <span className="ml-2 text-gray-300 dark:text-gray-600 font-normal">
+                    Hozir: {fmt(adjustModal.currentBalance)} so'm
+                  </span>
+                </label>
+                <input
+                  type="number" min="0" step="1000"
+                  value={adjBalance}
+                  onChange={e => setAdjBalance(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-300 dark:focus:ring-emerald-700"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Izoh */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                  Izoh (ixtiyoriy)
+                </label>
+                <input
+                  type="text"
+                  value={adjNote}
+                  onChange={e => setAdjNote(e.target.value)}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+                  placeholder="Masalan: Bir hafta kelmadi, chegirma..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setAdjustModal(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                Bekor
+              </button>
+              <button
+                onClick={() => adjustMutation.mutate({
+                  studentId: adjustModal.studentId,
+                  debt:    adjDebt    !== '' ? parseFloat(adjDebt)    : undefined,
+                  balance: adjBalance !== '' ? parseFloat(adjBalance) : undefined,
+                  note:    adjNote || undefined,
+                })}
+                disabled={adjustMutation.isLoading}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition flex items-center justify-center gap-2">
+                {adjustMutation.isLoading
+                  ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  : <Check className="w-4 h-4" />}
+                Saqlash
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -261,26 +261,20 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
         })
     );
 
-    // Qarzdor o'quvchilarga eslatma yuborish (async — javob kutilmaydi)
+    // Qarzdor o'quvchilarga DB notification (faqat tizim ichki xabari)
+    // Telegram xabarlari avtomatik yuborilmaydi — admin "Eslatmalar" sahifasidan qo'lda yuboradi
     if (debtStudents.length > 0) {
       setImmediate(() => {
         for (const ds of debtStudents) {
           sendDebtNotification(ds.studentId, ds.debt, ds.studentUserId, ds.parentId)
             .catch(err => console.error('Debt notification error:', err));
-          // Telegram ga ham yuborish
-          sendDebtTelegram(ds.studentId, ds.debt, group.course.name)
-            .catch(err => console.error('Telegram debt notification error:', err));
+          // sendDebtTelegram — O'CHIRILDI (admin qo'lda yuboradi)
         }
       });
     }
 
-    // Telegram — davomat xabarlarini yuborish
-    setImmediate(() => {
-      for (const att of attendanceList as Array<{ status: string; studentId: number }>) {
-        sendAttendanceTelegram(att.studentId, att.status, group.course.name, lesson.date)
-          .catch(err => console.error('Telegram attendance notification error:', err));
-      }
-    });
+    // Davomat Telegram xabarlari — O'CHIRILDI (ortiqcha spam bo'lmasligi uchun)
+    // sendAttendanceTelegram — admin nazoratida yuboriladi
 
     sendSuccess(res, {
       lessonId: lesson.id,

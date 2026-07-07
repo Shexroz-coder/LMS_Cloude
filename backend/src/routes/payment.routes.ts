@@ -9,6 +9,7 @@ import {
   setPaymentPromise, clearPaymentPromise,
   getStudentCalendar,
   getDebtorsReview, notifyDebtors,
+  adjustStudentDebt,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
 
@@ -31,6 +32,7 @@ router.get('/student/:studentId/calculate', authorize('ADMIN', 'TEACHER', 'PAREN
 router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), getStudentPayments);
 router.patch('/student/:studentId/due-day', authorize('ADMIN'), setPaymentDueDay);
 router.patch('/student/:studentId/promise', authorize('ADMIN'), setPaymentPromise);
+router.patch('/student/:studentId/adjust-debt', authorize('ADMIN'), adjustStudentDebt);
 router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 
 // ── General ──────────────────────────────────────────────
