@@ -1,20 +1,24 @@
 process.env.TZ = 'Asia/Tashkent';
 
 /**
- * Oylik qarzdorlik hisoblash + To'lov eslatma cron
+ * Oylik qarzdorlik hisoblash — SODDALASHTIRILGAN
  *
- * 1. Har oy 1-sanasi 00:01 — qarz hisoblash
- * 2. Har oy 25-sanasi 10:00 — keyingi oy to'lov eslatmasi
+ * Qoidalar:
+ * 1. Qarz = monthlyPrice - discount (FAQAT shuncha, bayram yoki pro-rata yo'q)
+ * 2. To'lov sanasi = o'quvchi guruhga qo'shilgan kun (joinedAt.getDate())
+ *    Masalan: 15-iyunda kelgan → har oyning 15-sida to'laydi
+ * 3. Telegram xabarlari TO'LIQ O'CHIRILDI
+ *    Admin "Eslatmalar" sahifasidan o'zi xoxlaganda yuboradi
+ * 4. Cron har kuni 00:01 da ishlaydi va "bugun to'lov kuni kelganlar"ni tekshiradi
  */
+
 import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
-import { escapeHtml } from '../telegram/utils/format';
-import { countStandardLessonsInMonth, countLessonsInMonth, countLessonsInMonthFromDate, countStandardLessonsFromDate } from '../utils/schedule.utils';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'
+  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
 ];
 
 function formatMoney(amount: number): string {
@@ -22,19 +26,25 @@ function formatMoney(amount: number): string {
 }
 
 // ══════════════════════════════════════════════════════
-//  1. OYLIK QARZ HISOBLASH (Har oy 1-kuni)
+//  KUNLIK QARZ TEKSHIRUVI
+//  Har kuni 00:01 da ishlaydi
+//  Bugun to'lov kuni kelgan o'quvchilar uchun qarz qo'shiladi
 // ══════════════════════════════════════════════════════
 export async function calculateMonthlyDebts() {
   const now = new Date();
-  console.log(`\n📊 [CRON] Oylik qarzdorlik hisoblash — ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`);
+  const today = now.getDate();           // Bugungi sana (1-31)
+  const currentMonth = now.getMonth();   // Joriy oy (0-11)
+  const currentYear = now.getFullYear();
+  const monthName = MONTH_NAMES[currentMonth];
+  const monthStart = new Date(currentYear, currentMonth, 1);
+
+  console.log(`\n📊 [CRON] Kunlik qarz tekshiruvi — ${today}-${monthName} ${currentYear}`);
 
   try {
     const activeStudents = await prisma.student.findMany({
       where: { status: 'ACTIVE' },
       include: {
-        user: { select: { fullName: true, id: true, telegramChatId: true } },
-        // Ota-onani birga yuklash — N+1 muammosidan qochish
-        parent: { select: { telegramChatId: true, fullName: true } },
+        user: { select: { fullName: true, id: true } },
         balance: true,
         groupStudents: {
           where: { status: 'ACTIVE' },
@@ -42,7 +52,6 @@ export async function calculateMonthlyDebts() {
             group: {
               include: {
                 course: { select: { monthlyPrice: true, name: true } },
-                schedules: { select: { daysOfWeek: true } },
               },
             },
           },
@@ -52,114 +61,91 @@ export async function calculateMonthlyDebts() {
 
     let processed = 0;
     let totalDebtAdded = 0;
-    const monthName = MONTH_NAMES[now.getMonth()];
-
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
 
     for (const student of activeStudents) {
-      let totalMonthly = 0;
-      let totalAdjusted = 0;
-      let totalHolidayCredit = 0;
-      const courseNames: string[] = [];
+      if (!student.groupStudents.length) continue;
 
-      // Avval umumiy oylik narxni hisoblash (chegirma uchun)
+      // ── To'lov kunini aniqlash ──
+      // Eng erta qo'shilgan guruh asosida (birinchi to'lov kuni)
+      const sortedGroups = [...student.groupStudents].sort(
+        (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
+      );
+      const paymentDayRaw = new Date(sortedGroups[0].joinedAt).getDate();
+
+      // Oyning oxiridagi kunlarni moslashtirish
+      // (masalan, 31-yanvarda kelgan → Fevralda 28/29-da to'laydi)
+      const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const effectivePaymentDay = Math.min(paymentDayRaw, daysInCurrentMonth);
+
+      // Bugun to'lov kuni emas → o'tkazib yuborish
+      if (today !== effectivePaymentDay) continue;
+
+      // ── Shu oy allaqachon hisoblangan bo'lsa → o'tkazib yuborish ──
+      const existingFee = await prisma.monthlyFee.findFirst({
+        where: {
+          studentId: student.id,
+          month: { gte: monthStart, lt: new Date(currentYear, currentMonth + 1, 1) },
+        },
+      });
+      if (existingFee) {
+        console.log(`  ⏭️  ${student.user.fullName} — shu oy allaqachon hisoblangan`);
+        continue;
+      }
+
+      // ── Oylik summa hisoblash: FAQAT monthlyPrice - discount ──
+      let totalMonthly = 0;
+      const courseNames: string[] = [];
       for (const gs of student.groupStudents) {
         totalMonthly += Number(gs.group.course.monthlyPrice);
         courseNames.push(gs.group.course.name);
       }
-
       if (totalMonthly === 0) continue;
 
-      // Chegirma
+      // Chegirma hisoblash
       let discount = 0;
       if (student.discountType && student.discountValue) {
         const discountVal = Number(student.discountValue);
         if (student.discountType === 'PERCENTAGE') {
           discount = Math.round(totalMonthly * discountVal / 100);
         } else if (student.discountType === 'FIXED_AMOUNT') {
-          discount = discountVal;
+          discount = Math.min(discountVal, totalMonthly);
         }
       }
 
-      // MonthlyFee yozish — har bir guruh uchun dam olish kunlarini va pro-rata hisobga olgan holda
+      const monthlyFee = totalMonthly - discount; // ← Kelishilgan summa
+      if (monthlyFee <= 0) continue;
+
+      // ── MonthlyFee yozuvlarini yaratish (guruhlar bo'yicha) ──
       let discountDistributed = 0;
       for (let idx = 0; idx < student.groupStudents.length; idx++) {
         const gs = student.groupStudents[idx];
         const baseAmount = Number(gs.group.course.monthlyPrice);
-        const discountPart = idx === student.groupStudents.length - 1
-          ? discount - discountDistributed
-          : Math.round(discount / student.groupStudents.length);
+        const discountPart =
+          idx === student.groupStudents.length - 1
+            ? discount - discountDistributed
+            : Math.round(discount / student.groupStudents.length);
         discountDistributed += discountPart;
         const finalAmount = baseAmount - discountPart;
 
-        // Dam olish kunlarini hisobga olgan dars soni
-        const uniqueDays = [...new Set(gs.group.schedules.flatMap(s => s.daysOfWeek))];
-        const standardLessons = await countStandardLessonsInMonth(currentYear, currentMonth, uniqueDays);
-        const actualLessons = await countLessonsInMonth(currentYear, currentMonth, uniqueDays);
-        const holidayLessons = standardLessons - actualLessons;
-
-        // 1 dars narxi = chegirmali oylik / standart darslar
-        const pricePerLesson = standardLessons > 0 ? finalAmount / standardLessons : 0;
-        const holidayCredit = Math.round(holidayLessons * pricePerLesson);
-        let adjustedAmount = Math.round(finalAmount - holidayCredit);
-
-        // ── Pro-rata: o'quvchi shu oyda qo'shilgan bo'lsa, faqat qo'shilgan kundan hisoblash ──
-        const joinedAt = new Date(gs.joinedAt);
-        let isProRata = false;
-        let proRataLessons = 0;
-        if (joinedAt.getFullYear() === currentYear && joinedAt.getMonth() === currentMonth && joinedAt.getDate() > 1) {
-          isProRata = true;
-          // Qo'shilgan kundan boshlab darslar soni (bayramlar chiqariladi)
-          proRataLessons = await countLessonsInMonthFromDate(currentYear, currentMonth, uniqueDays, joinedAt);
-          adjustedAmount = Math.round(proRataLessons * pricePerLesson);
-        }
-
-        totalAdjusted += adjustedAmount;
-        totalHolidayCredit += holidayCredit;
-
-        await prisma.monthlyFee.upsert({
-          where: {
-            studentId_groupId_month: {
+        try {
+          // Faqat Prisma client bilgan maydonlar (regenerate kerak emas)
+          await (prisma.monthlyFee as any).create({
+            data: {
               studentId: student.id,
               groupId: gs.groupId,
-              month: new Date(currentYear, currentMonth, 1),
+              month: monthStart,
+              baseAmount,
+              discountAmount: discountPart,
+              finalAmount,
             },
-          },
-          update: {
-            baseAmount,
-            discountAmount: discountPart,
-            finalAmount,
-            standardLessons,
-            lessonsCount: isProRata ? proRataLessons : actualLessons,
-            holidayLessons,
-            adjustedAmount,
-            holidayCredit: isProRata ? 0 : holidayCredit,
-          },
-          create: {
-            studentId: student.id,
-            groupId: gs.groupId,
-            month: new Date(currentYear, currentMonth, 1),
-            baseAmount,
-            discountAmount: discountPart,
-            finalAmount,
-            standardLessons,
-            lessonsCount: isProRata ? proRataLessons : actualLessons,
-            holidayLessons,
-            adjustedAmount,
-            holidayCredit: isProRata ? 0 : holidayCredit,
-          },
-        });
-
-        if (isProRata) {
-          console.log(`  📐 Pro-rata: ${student.user.fullName} — ${gs.group.course.name}: ${proRataLessons}/${actualLessons} dars, ${formatMoney(adjustedAmount)}`);
+          });
+        } catch (e: any) {
+          // Unique constraint xatosi — allaqachon mavjud
+          if (e.code !== 'P2002') console.error('  ⚠️ MonthlyFee yaratishda xato:', e.message);
         }
       }
 
-      // Qarz — moslashtirilgan (dam olish kunlari hisobga olingan) summa
-      const monthlyFee = totalAdjusted;
-      if (monthlyFee <= 0) continue;
-
+      // ── Balansdan yechish yoki qarzga qo'shish ──
       const currentBalance = Math.round(Number(student.balance?.balance || 0));
       const currentDebt = Math.round(Number(student.balance?.debt || 0));
 
@@ -167,11 +153,13 @@ export async function calculateMonthlyDebts() {
       let newDebt = currentDebt;
 
       if (currentBalance >= monthlyFee) {
+        // Balans yetarli — to'liq yeching
         newBalance = currentBalance - monthlyFee;
       } else {
-        const remaining = monthlyFee - currentBalance;
+        // Balans yetmaydi — qoldiqni qarzga o'tkazing
+        const shortfall = monthlyFee - currentBalance;
         newBalance = 0;
-        newDebt = currentDebt + remaining;
+        newDebt = currentDebt + shortfall;
       }
 
       await prisma.studentBalance.upsert({
@@ -180,63 +168,67 @@ export async function calculateMonthlyDebts() {
         create: { studentId: student.id, balance: 0, debt: monthlyFee, lastUpdated: new Date() },
       });
 
-      // Telegram — O'CHIRILDI. Faqat admin "Eslatmalar" sahifasidan qo'lda yuboradi.
-
-      // Notification yaratish
+      // ── O'quvchiga tizim bildirishnomasi (Telegram YO'Q) ──
       await prisma.notification.create({
         data: {
           userId: student.user.id,
           title: `${monthName} oyi to'lov`,
-          body: newDebt > 0
-            ? `${monthName} oyi uchun ${formatMoney(monthlyFee)} to'lov hisoblandi${totalHolidayCredit > 0 ? ` (dam olish: -${formatMoney(totalHolidayCredit)})` : ''}. Qarzingiz: ${formatMoney(newDebt)}`
-            : `${monthName} oyi to'lovi balansdan avtomatik yechildi.`,
+          body: newBalance < currentBalance
+            ? `${monthName} oyi uchun ${formatMoney(monthlyFee)} balansdan yechildi.`
+            : `${monthName} oyi uchun ${formatMoney(monthlyFee)} to'lov hisoblandi. Qarzingiz: ${formatMoney(newDebt)}`,
           type: 'PAYMENT',
         },
       });
 
       processed++;
       totalDebtAdded += Math.max(0, newDebt - currentDebt);
+
+      console.log(
+        `  ✅ ${student.user.fullName}: ${formatMoney(monthlyFee)} ` +
+        `(balance: ${formatMoney(newBalance)}, debt: ${formatMoney(newDebt)})`
+      );
     }
 
-    // Admin xabari yuborish
+    // ── Admin xabarlari ──
     if (processed > 0) {
+      // Admin Telegram (faqat admin uchun xulosa — o'quvchilarga emas)
       const adminChatId = process.env.TELEGRAM_ADMIN_ID;
       if (adminChatId) {
         try {
-          const msg = `📊 <b>Oylik Qarz Hisoblash Xulosa</b>\n\n` +
-            `📅 <b>${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}</b>\n` +
-            `👥 Qayta ishlanganlar: <b>${processed}</b> o'quvchi\n` +
+          const msg =
+            `📊 <b>Oylik Qarz Hisoblash</b>\n\n` +
+            `📅 <b>${today}-${monthName} ${currentYear}</b>\n` +
+            `👥 Hisoblangan: <b>${processed}</b> ta o'quvchi\n` +
             `💰 Qo'shilgan qarz: <b>${formatMoney(totalDebtAdded)}</b>\n\n` +
-            `✅ Jarayon muvaffaqiyatli yakunlandi`;
-
+            `✅ Muvaffaqiyatli\n` +
+            `💡 Eslatmalarni "Eslatmalar" sahifasidan yuboring`;
           await bot.api.sendMessage(adminChatId, msg, { parse_mode: 'HTML' });
         } catch (e) {
-          console.error('❌ Admin Telegram xabari yuborishda xato:', e);
+          console.error('❌ Admin Telegram xatosi:', e);
         }
       }
 
-      // Admin uchun LMS notification
+      // Admin LMS notification
       try {
-        const admin = await prisma.user.findFirst({
-          where: { role: 'ADMIN' },
-          select: { id: true }
-        });
+        const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } });
         if (admin) {
           await prisma.notification.create({
             data: {
               userId: admin.id,
-              title: `${MONTH_NAMES[now.getMonth()]} oylik qarz hisoblash`,
-              body: `${processed} ta o'quvchining qarzlari hisoblandi. Jami qo'shilgan qarz: ${formatMoney(totalDebtAdded)}`,
-              type: 'SYSTEM'
-            }
+              title: `${today}-${monthName} qarz hisoblash`,
+              body: `${processed} ta o'quvchining oylik to'lovi hisoblandi. Jami: ${formatMoney(totalDebtAdded)}. "Eslatmalar" sahifasidan xabar yuboring.`,
+              type: 'SYSTEM',
+            },
           });
         }
       } catch (e) {
         console.error('❌ Admin notification xatosi:', e);
       }
+    } else {
+      console.log(`  ℹ️  Bugun to'lov kuni bo'lgan o'quvchilar yo'q (${today}-${monthName})`);
     }
 
-    console.log(`✅ [CRON] Oylik qarz hisoblash tugadi: ${processed} ta, +${totalDebtAdded} so'm`);
+    console.log(`✅ [CRON] Kunlik tekshiruv tugadi: ${processed} ta, +${formatMoney(totalDebtAdded)}`);
     return { processed, totalDebtAdded };
   } catch (error) {
     console.error('❌ [CRON] Xatolik:', error);
@@ -245,129 +237,8 @@ export async function calculateMonthlyDebts() {
 }
 
 // ══════════════════════════════════════════════════════
-//  2. TO'LOV ESLATMA (Har oy 25-kuni)
-// ══════════════════════════════════════════════════════
-export async function sendPaymentReminders() {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const nextMonthName = MONTH_NAMES[nextMonth.getMonth()];
-
-  console.log(`\n🔔 [CRON] To'lov eslatmasi — ${nextMonthName} ${nextMonth.getFullYear()} uchun`);
-
-  try {
-    const activeStudents = await prisma.student.findMany({
-      where: { status: 'ACTIVE' },
-      include: {
-        user: { select: { fullName: true, id: true, telegramChatId: true } },
-        // Ota-onani birga yuklash — N+1 muammosidan qochish
-        parent: { select: { telegramChatId: true, fullName: true } },
-        groupStudents: {
-          where: { status: 'ACTIVE' },
-          include: {
-            group: {
-              include: {
-                course: { select: { monthlyPrice: true, name: true } },
-                schedules: { select: { daysOfWeek: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    let sent = 0;
-
-    for (const student of activeStudents) {
-      let totalMonthly = 0;
-      let totalAdjusted = 0;
-      let totalHolidayCredit = 0;
-      const courseNames: string[] = [];
-
-      for (const gs of student.groupStudents) {
-        totalMonthly += Number(gs.group.course.monthlyPrice);
-        courseNames.push(gs.group.course.name);
-      }
-
-      if (totalMonthly === 0) continue;
-
-      // Chegirma
-      let discount = 0;
-      if (student.discountType && student.discountValue) {
-        const discountVal = Number(student.discountValue);
-        if (student.discountType === 'PERCENTAGE') {
-          discount = Math.round(totalMonthly * discountVal / 100);
-        } else if (student.discountType === 'FIXED_AMOUNT') {
-          discount = discountVal;
-        }
-      }
-
-      // Har bir guruh uchun keyingi oy dam olish kunlarini hisobga olish
-      let discountDistributed = 0;
-      for (let idx = 0; idx < student.groupStudents.length; idx++) {
-        const gs = student.groupStudents[idx];
-        const baseAmount = Number(gs.group.course.monthlyPrice);
-        const discountPart = idx === student.groupStudents.length - 1
-          ? discount - discountDistributed
-          : Math.round(discount / student.groupStudents.length);
-        discountDistributed += discountPart;
-        const finalAmount = baseAmount - discountPart;
-
-        const uniqueDays = [...new Set(gs.group.schedules.flatMap(s => s.daysOfWeek))];
-        const standardLessons = await countStandardLessonsInMonth(nextMonth.getFullYear(), nextMonth.getMonth(), uniqueDays);
-        const actualLessons = await countLessonsInMonth(nextMonth.getFullYear(), nextMonth.getMonth(), uniqueDays);
-        const holidayLessons = standardLessons - actualLessons;
-        const pricePerLesson = standardLessons > 0 ? finalAmount / standardLessons : 0;
-        const holidayCredit = Math.round(holidayLessons * pricePerLesson);
-        const adjustedAmount = Math.round(finalAmount - holidayCredit);
-
-        totalAdjusted += adjustedAmount;
-        totalHolidayCredit += holidayCredit;
-      }
-
-      const monthlyFee = totalAdjusted;
-      if (monthlyFee <= 0) continue;
-
-      // Telegram — O'CHIRILDI. Admin "Eslatmalar" sahifasidan qo'lda yuboradi.
-      // sent++ bu yerda bo'lmaydi — admin manual yuborishni tracking qiladi.
-
-      // Tizim ichki notification
-      await prisma.notification.create({
-        data: {
-          userId: student.user.id,
-          title: `${nextMonthName} to'lov eslatmasi`,
-          body: `${nextMonthName} oyi uchun ${formatMoney(monthlyFee)} to'lov kerak${totalHolidayCredit > 0 ? ` (dam olish: -${formatMoney(totalHolidayCredit)})` : ''}.`,
-          type: 'PAYMENT',
-        },
-      });
-    }
-
-    // Admin uchun LMS notification — hisoblash tugaganligi haqida
-    try {
-      const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } });
-      if (admin) {
-        await prisma.notification.create({
-          data: {
-            userId: admin.id,
-            title: `${nextMonthName} to'lov hisoblandi`,
-            body: `Barcha o'quvchilarning ${nextMonthName} oyi to'lovlari hisoblandi. Eslatmalarni "Eslatmalar" sahifasidan yuboring.`,
-            type: 'SYSTEM'
-          }
-        });
-      }
-    } catch (e) {
-      console.error('❌ Admin notification xatosi:', e);
-    }
-
-    console.log(`✅ [CRON] To'lov eslatma hisoblash tugadi (Telegram yuborilmadi — admin qo'lda yuboradi)`);
-    return { sent: 0 };
-  } catch (error) {
-    console.error('❌ [CRON] Eslatma xatosi:', error);
-    throw error;
-  }
-}
-
-// ══════════════════════════════════════════════════════
-//  3. VA'DA SANASI ESLATMA (Har kuni 09:00)
+//  VA'DA SANASI ESLATMA (Har kuni 09:00)
+//  Admin to'lov va'da sanasi belgilagan o'quvchilarga eslatma
 // ══════════════════════════════════════════════════════
 export async function sendPromiseDateReminders() {
   const now = new Date();
@@ -378,7 +249,6 @@ export async function sendPromiseDateReminders() {
   console.log(`\n🔔 [CRON] Va'da eslatmalari — ${today.toLocaleDateString('uz')}`);
 
   try {
-    // Bugun yoki o'tgan va'da sanasi bor o'quvchilarni topish
     const studentsWithPromise = await (prisma.studentBalance as any).findMany({
       where: {
         promiseDate: { not: null, lte: tomorrow },
@@ -387,8 +257,7 @@ export async function sendPromiseDateReminders() {
       include: {
         student: {
           include: {
-            user: { select: { id: true, fullName: true, telegramChatId: true } },
-            parent: { select: { telegramChatId: true } },
+            user: { select: { id: true, fullName: true } },
           },
         },
       },
@@ -400,82 +269,18 @@ export async function sendPromiseDateReminders() {
       promiseNote: string | null;
       student: {
         id: number;
-        user: { id: number; fullName: string; telegramChatId: string | null };
-        parent: { telegramChatId: string | null } | null;
+        user: { id: number; fullName: string };
       };
     }>;
 
-    let sent = 0;
+    let notified = 0;
 
     for (const sb of studentsWithPromise) {
       const promiseDate = new Date(sb.promiseDate!);
-      const isToday = promiseDate.getTime() === today.getTime();
       const isOverdue = promiseDate < today;
       const debt = Number(sb.debt);
       const promiseAmount = sb.promiseAmount ? Number(sb.promiseAmount) : debt;
       const promiseDateStr = promiseDate.toLocaleDateString('uz-UZ');
-
-      // O'quvchiga Telegram xabar
-      if (sb.student.user.telegramChatId) {
-        try {
-          let msg = '';
-          if (isToday) {
-            msg = `⏰ <b>To'lov va'dasi — Bugun!</b>\n\n`;
-            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
-            msg += `Bugun (${promiseDateStr}) to'lov va'dangiz kuni.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
-            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
-            if (sb.promiseNote) msg += `📌 Izoh: ${sb.promiseNote}\n`;
-            msg += `\n✅ Iltimos, bugun to'lovni amalga oshiring.`;
-          } else if (isOverdue) {
-            msg = `🚨 <b>To'lov va'dasi o'tib ketdi!</b>\n\n`;
-            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
-            msg += `${promiseDateStr} dagi to'lov va'dangiz muddati o'tdi.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
-            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
-            msg += `\n⚠️ Iltimos, imkon qadar tezroq to'lovni amalga oshiring!`;
-          } else {
-            // Ertaga
-            msg = `📅 <b>To'lov va'dasi — Ertaga!</b>\n\n`;
-            msg += `Hurmatli <b>${escapeHtml(sb.student.user.fullName)}</b>,\n\n`;
-            msg += `Ertaga (${promiseDateStr}) to'lov va'dangiz kuni.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
-            msg += `🔴 Joriy qarz: <b>${formatMoney(debt)}</b>\n`;
-            msg += `\n📝 Iltimos, to'lovga tayyor bo'ling.`;
-          }
-
-          await bot.api.sendMessage(sb.student.user.telegramChatId, msg, { parse_mode: 'HTML' });
-          sent++;
-        } catch (e) {
-          console.error(`  ⚠️ Va'da eslatmasi yuborib bo'lmadi (${sb.student.user.fullName}):`, e);
-        }
-      }
-
-      // Ota-onaga ham xabar — student.parent dan olamiz (allaqachon yuklangan)
-      const parentUser = sb.student.parent?.telegramChatId ? sb.student.parent : null;
-
-      if (parentUser?.telegramChatId) {
-        try {
-          let msg = '';
-          if (isToday) {
-            msg = `⏰ <b>Farzandingiz to'lov va'dasi — Bugun</b>\n\n`;
-            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b> bugun to'lov qilishi kerak.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
-          } else if (isOverdue) {
-            msg = `🚨 <b>Farzandingiz to'lov muddati o'tdi</b>\n\n`;
-            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b>ning ${promiseDateStr} dagi va'dasi o'tdi.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>\n`;
-            msg += `🔴 Qarz: <b>${formatMoney(debt)}</b>`;
-          } else {
-            msg = `📅 <b>Farzandingiz to'lovi — Ertaga</b>\n\n`;
-            msg += `<b>${escapeHtml(sb.student.user.fullName)}</b> ertaga to'lov qilishi kerak.\n`;
-            msg += `💰 Summa: <b>${formatMoney(promiseAmount)}</b>`;
-          }
-          await bot.api.sendMessage(parentUser.telegramChatId, msg, { parse_mode: 'HTML' });
-        } catch (e) {
-          // ignore
-        }
-      }
 
       // Va'da o'tgan bo'lsa — admin uchun notification
       if (isOverdue) {
@@ -487,11 +292,13 @@ export async function sendPromiseDateReminders() {
             type: 'PAYMENT',
           },
         });
+        notified++;
       }
+      // Telegram — O'CHIRILDI. Admin o'zi "Eslatmalar" sahifasidan yuboradi.
     }
 
-    console.log(`✅ [CRON] ${sent} ta va'da eslatmasi yuborildi`);
-    return { sent };
+    console.log(`✅ [CRON] ${notified} ta va'da eslatmasi tizimga yozildi (Telegram yo'q)`);
+    return { notified };
   } catch (error) {
     console.error('❌ [CRON] Va\'da eslatma xatosi:', error);
     throw error;
@@ -502,26 +309,19 @@ export async function sendPromiseDateReminders() {
 //  CRON JOBLARNI ISHGA TUSHIRISH
 // ══════════════════════════════════════════════════════
 export function startMonthlyDebtCron() {
-  // Har oy 1-sanasi 00:01 — qarz hisoblash
-  cron.schedule('1 0 1 * *', async () => {
-    console.log('🔄 [CRON] Oylik qarz hisoblash...');
+  // Har kuni 00:01 — to'lov kuni kelgan o'quvchilar uchun qarz hisoblash
+  cron.schedule('1 0 * * *', async () => {
+    console.log('🔄 [CRON] Kunlik qarz tekshiruvi...');
     try { await calculateMonthlyDebts(); } catch (err) { console.error('❌ [CRON]:', err); }
   }, { timezone: 'Asia/Tashkent' });
 
-  // Har oy 25-sanasi 10:00 — to'lov eslatmasi
-  cron.schedule('0 10 25 * *', async () => {
-    console.log('🔔 [CRON] To\'lov eslatmalari...');
-    try { await sendPaymentReminders(); } catch (err) { console.error('❌ [CRON]:', err); }
-  }, { timezone: 'Asia/Tashkent' });
-
-  // Har kuni 09:00 — va'da sanasi eslatmalari
+  // Har kuni 09:00 — va'da sanasi eslatmalari (faqat DB, Telegram yo'q)
   cron.schedule('0 9 * * *', async () => {
     console.log('📅 [CRON] Va\'da eslatmalari...');
     try { await sendPromiseDateReminders(); } catch (err) { console.error('❌ [CRON]:', err); }
   }, { timezone: 'Asia/Tashkent' });
 
   console.log('📅 [CRON] Cron joblar ro\'yxatdan o\'tdi:');
-  console.log('   1️⃣ Oylik qarz — har oy 1-kuni 00:01');
-  console.log('   2️⃣ To\'lov eslatma — har oy 25-kuni 10:00');
-  console.log('   3️⃣ Va\'da eslatma — har kuni 09:00');
+  console.log('   1️⃣  Kunlik qarz — har kuni 00:01 (to\'lov kuni kelgan o\'quvchilar)');
+  console.log('   2️⃣  Va\'da eslatma — har kuni 09:00 (faqat DB notification)');
 }

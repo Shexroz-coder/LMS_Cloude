@@ -2,47 +2,11 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
-import { getIO } from '../services/io.service';
-import { sendNotificationToUser } from '../socket';
-import { countLessonsInMonth, isHolidayDate } from '../utils/schedule.utils';
-import { sendDebtNotification as sendDebtTelegram, sendAttendanceNotification as sendAttendanceTelegram } from '../telegram/services/notify.service';
+import { isHolidayDate } from '../utils/schedule.utils';
 
-// ══════════════════════════════════════════════
-// HELPER: O'quvchiga va ota-onasiga qarzdorlik xabari yuborish
-// ══════════════════════════════════════════════
-async function sendDebtNotification(
-  studentId: number,
-  debtAmount: number,
-  studentUserId: number,
-  parentId: number | null,
-) {
-  const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
-  const title = "To'lov eslatmasi";
-  const body = `Sizning hisobingizda ${fmt(debtAmount)} so'm qarz mavjud. Iltimos balansni to'ldiring.`;
-
-  const io = getIO();
-  const userIds = [studentUserId];
-  if (parentId) userIds.push(parentId);
-
-  for (const userId of userIds) {
-    try {
-      const notification = await prisma.notification.create({
-        data: {
-          userId,
-          title,
-          body,
-          type: 'PAYMENT',
-          actionUrl: '/payments',
-        },
-      });
-      if (io) {
-        sendNotificationToUser(io, userId, notification);
-      }
-    } catch (err) {
-      console.error('sendDebtNotification error for userId:', userId, err);
-    }
-  }
-}
+// Telegram xabarlari va per-dars to'lov yechish O'CHIRILDI.
+// Qarzdorlik faqat oylik cron orqali hisoblanadi (har oy o'quvchi kelgan sana).
+// Admin "Eslatmalar" sahifasidan qo'lda yuboradi.
 
 
 // ══════════════════════════════════════════════
@@ -90,25 +54,14 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       }
     }
 
-    // Guruh va kurs ma'lumotlari (dars narxini hisoblash uchun)
+    // Guruh mavjudligini tekshirish
     const group = await prisma.group.findUnique({
       where: { id: parsedGroupId },
-      include: {
-        course: { select: { name: true, monthlyPrice: true } },
-        schedules: { select: { daysOfWeek: true } },
-      },
+      select: { id: true, name: true },
     });
-
     if (!group) { sendError(res, 'Guruh topilmadi.', 404); return; }
 
-    // 1 darslik narxni hisoblash
-    const monthlyPrice = Number(group.course.monthlyPrice);
-    const scheduledDays = [...new Set(group.schedules.flatMap(s => s.daysOfWeek))];
-    const lessonDate = lessonDateObj; // UTC midnight of the lesson date
-    const lessonsInMonth = await countLessonsInMonth(
-      lessonDate.getUTCFullYear(), lessonDate.getUTCMonth(), scheduledDays
-    );
-    const basePricePerLesson = lessonsInMonth > 0 ? monthlyPrice / lessonsInMonth : 0;
+    const lessonDate = lessonDateObj;
 
     // Dars mavjudmi? (kuniga 1 ta dars) — UTC based range
     const dayStart = new Date(dateStr + 'T00:00:00.000Z');
@@ -134,9 +87,7 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       });
     }
 
-    // Davomatni belgilash + avtomatik to'lov yechish
-    const debtStudents: { studentId: number; studentUserId: number; parentId: number | null; debt: number }[] = [];
-
+    // Davomatni belgilash
     const results = await Promise.all(
       (attendanceList as Array<{ studentId: number; status: string; score?: number; note?: string }>)
         .map(async (entry) => {
@@ -157,7 +108,8 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
           }
 
           // Yangi davomat yaratish
-          const att = await prisma.attendance.create({
+          // Pul yechish yo'q — qarzdorlik faqat oylik cron orqali hisoblanadi
+          return prisma.attendance.create({
             data: {
               lessonId: lesson!.id,
               studentId: entry.studentId,
@@ -165,116 +117,8 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
               note: entry.note,
             }
           });
-
-          // ═══ AVTOMATIK TO'LOV YECHISH ═══
-          // Faqat kelgan (PRESENT, LATE, EXCUSED) o'quvchilar uchun dars narxi yechiladi
-          // MUHIM: Bayram kunida majburiy darsda pul yechilMAYDI!
-          if (['PRESENT', 'LATE', 'EXCUSED'].includes(entry.status) && basePricePerLesson > 0 && !isForcedHolidayLesson) {
-            // O'quvchi ma'lumotlarini olish (chegirma hisoblash uchun)
-            const student = await prisma.student.findUnique({
-              where: { id: entry.studentId },
-              select: {
-                userId: true,
-                parentId: true,
-                discountType: true,
-                discountValue: true,
-                balance: true,
-                groupStudents: {
-                  where: { groupId: parsedGroupId, status: 'ACTIVE' },
-                  select: { joinedAt: true },
-                },
-              },
-            });
-
-            if (student) {
-              // O'quvchi guruhga qo'shilgan sanasidan keyin kelgan darslarni hisoblash
-              const gs = student.groupStudents[0];
-              if (gs) {
-                const joinedAt = new Date(gs.joinedAt);
-                // Agar dars sanasi o'quvchi qo'shilgan sanadan oldin bo'lsa — yechilmaydi
-                if (lessonDate >= joinedAt) {
-                  // Chegirmani hisobga olish
-                  let pricePerLesson = basePricePerLesson;
-                  if (student.discountType && student.discountValue) {
-                    if (student.discountType === 'PERCENTAGE') {
-                      const discount = basePricePerLesson * (Number(student.discountValue) / 100);
-                      pricePerLesson = basePricePerLesson - discount;
-                    } else {
-                      // FIXED_AMOUNT: oylik chegirmani darslar soniga bo'lish
-                      const discountPerLesson = lessonsInMonth > 0
-                        ? Math.min(Number(student.discountValue), monthlyPrice) / lessonsInMonth
-                        : 0;
-                      pricePerLesson = basePricePerLesson - discountPerLesson;
-                    }
-                    pricePerLesson = Math.max(0, pricePerLesson);
-                  }
-
-                  const deductAmount = Math.round(pricePerLesson * 100) / 100; // 2 xonagacha
-
-                  if (deductAmount > 0) {
-                    // Balansdan yechish
-                    const currentBalance = Number(student.balance?.balance || 0);
-                    const currentDebt = Number(student.balance?.debt || 0);
-
-                    let newBalance = currentBalance;
-                    let newDebt = currentDebt;
-
-                    if (currentBalance >= deductAmount) {
-                      // Balansdan to'liq yechish
-                      newBalance = currentBalance - deductAmount;
-                    } else {
-                      // Balans yetmaydi — qoldiqni qarz qilish
-                      const shortfall = deductAmount - currentBalance;
-                      newBalance = 0;
-                      newDebt = currentDebt + shortfall;
-                    }
-
-                    // Balansni yangilash
-                    if (student.balance) {
-                      await prisma.studentBalance.update({
-                        where: { studentId: entry.studentId },
-                        data: { balance: newBalance, debt: newDebt },
-                      });
-                    } else {
-                      // Balans hali yaratilmagan bo'lsa
-                      await prisma.studentBalance.create({
-                        data: { studentId: entry.studentId, balance: newBalance, debt: newDebt },
-                      });
-                    }
-
-                    // Agar qarz paydo bo'lsa — eslatma yuboramiz
-                    if (newDebt > 0) {
-                      debtStudents.push({
-                        studentId: entry.studentId,
-                        studentUserId: student.userId,
-                        parentId: student.parentId,
-                        debt: newDebt,
-                      });
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          return att;
         })
     );
-
-    // Qarzdor o'quvchilarga DB notification (faqat tizim ichki xabari)
-    // Telegram xabarlari avtomatik yuborilmaydi — admin "Eslatmalar" sahifasidan qo'lda yuboradi
-    if (debtStudents.length > 0) {
-      setImmediate(() => {
-        for (const ds of debtStudents) {
-          sendDebtNotification(ds.studentId, ds.debt, ds.studentUserId, ds.parentId)
-            .catch(err => console.error('Debt notification error:', err));
-          // sendDebtTelegram — O'CHIRILDI (admin qo'lda yuboradi)
-        }
-      });
-    }
-
-    // Davomat Telegram xabarlari — O'CHIRILDI (ortiqcha spam bo'lmasligi uchun)
-    // sendAttendanceTelegram — admin nazoratida yuboriladi
 
     sendSuccess(res, {
       lessonId: lesson.id,
@@ -282,12 +126,7 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
       totalMarked: results.length,
       presentCount: (attendanceList as Array<{ status: string }>).filter(a => a.status === 'PRESENT' || a.status === 'LATE').length,
       isForcedHoliday: isForcedHolidayLesson,
-      deductedCount: debtStudents.length > 0
-        ? `${debtStudents.length} ta o'quvchida qarz paydo bo'ldi`
-        : isForcedHolidayLesson
-        ? 'Dam olish kuni — pul yechilmadi'
-        : undefined,
-    }, isForcedHolidayLesson ? 'Majburiy dars belgilandi (pul yechilmadi)!' : 'Davomat belgilandi!', 201);
+    }, isForcedHolidayLesson ? 'Majburiy dars belgilandi!' : 'Davomat belgilandi!', 201);
   } catch (err) {
     console.error('markAttendance error:', err);
     sendError(res, 'Davomatni belgilashda xato.', 500);
