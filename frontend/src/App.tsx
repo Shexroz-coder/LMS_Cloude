@@ -25,6 +25,7 @@ import AdminCoinsPage from './pages/admin/AdminCoinsPage';
 import HolidaysPage from './pages/admin/HolidaysPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminDebtorsPage from './pages/admin/AdminDebtorsPage';
+import AdminBillingPage from './pages/admin/AdminBillingPage';
 
 // Pages — Teacher
 import TeacherLayout from './components/layout/TeacherLayout';
@@ -115,6 +116,7 @@ const App = () => {
         <Route path="attendance" element={<AdminAttendancePage />} />
         <Route path="attendance-export" element={<AttendanceExportPage />} />
         <Route path="debtors" element={<AdminDebtorsPage />} />
+        <Route path="billing" element={<AdminBillingPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

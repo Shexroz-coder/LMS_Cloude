@@ -10,12 +10,14 @@ import {
   getStudentCalendar,
   getDebtorsReview, notifyDebtors,
   adjustStudentDebt,
+  getBillingOverview, updateBillingConfig, waiveStudentDebt,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // ── Static routes (/:id dan oldin!) ─────────────────────
+router.get('/billing', authorize('ADMIN'), getBillingOverview);
 router.get('/summary', authorize('ADMIN'), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
@@ -33,6 +35,8 @@ router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDE
 router.patch('/student/:studentId/due-day', authorize('ADMIN'), setPaymentDueDay);
 router.patch('/student/:studentId/promise', authorize('ADMIN'), setPaymentPromise);
 router.patch('/student/:studentId/adjust-debt', authorize('ADMIN'), adjustStudentDebt);
+router.patch('/student/:studentId/billing-config', authorize('ADMIN'), updateBillingConfig);
+router.post('/student/:studentId/waive-debt', authorize('ADMIN'), waiveStudentDebt);
 router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 
 // ── General ──────────────────────────────────────────────

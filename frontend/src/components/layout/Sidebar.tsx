@@ -80,11 +80,12 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
       {
         key: 'finance', label: 'Moliya', icon: DollarSign, items: [
-          { to: '/admin/payments', icon: CreditCard, label: t('nav.payments') },
-          { to: '/admin/debtors', icon: AlertCircle, label: 'Eslatmalar' },
-          { to: '/admin/finance', icon: BarChart3, label: t('nav.finance') },
-          { to: '/admin/salaries', icon: Wallet, label: t('nav.salaries') },
-          { to: '/admin/coins', icon: Coins, label: t('nav.coins') },
+          { to: '/admin/billing',  icon: CreditCard,   label: "To'lov & Qarz" },
+          { to: '/admin/payments', icon: DollarSign,   label: t('nav.payments') },
+          { to: '/admin/debtors',  icon: AlertCircle,  label: 'Eslatmalar' },
+          { to: '/admin/finance',  icon: BarChart3,    label: t('nav.finance') },
+          { to: '/admin/salaries', icon: Wallet,       label: t('nav.salaries') },
+          { to: '/admin/coins',    icon: Coins,        label: t('nav.coins') },
         ]
       },
 

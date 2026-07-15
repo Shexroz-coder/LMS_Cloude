@@ -1610,6 +1610,298 @@ export const deletePayment = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+// ══════════════════════════════════════════════════════════════════
+// GET /payments/billing — Barcha o'quvchilar uchun sodda billing
+//
+// Har o'quvchi uchun:
+//  - oylik to'lov summasi (kurs narxi - chegirma)
+//  - to'lov kuni (paymentDueDay || joinedAt.getDate())
+//  - oxirgi to'lov sanasi va summasi
+//  - keyingi to'lov sanasi
+//  - joriy qarz/balans
+//  - so'nggi 4 oy: to'langan/qarz holati
+// ══════════════════════════════════════════════════════════════════
+const BILLING_MONTH_NAMES = [
+  'Yanvar','Fevral','Mart','Aprel','May','Iyun',
+  'Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr',
+];
+
+export const getBillingOverview = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const now = new Date();
+
+    // So'nggi 4 oy diapazoni (joriy oy ham shu yig'indida)
+    const monthRange = Array.from({ length: 4 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (3 - i), 1);
+      return {
+        key:       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        year:       d.getFullYear(),
+        month:      d.getMonth(),
+        start:      new Date(d.getFullYear(), d.getMonth(), 1),
+        end:        new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999),
+        label:      BILLING_MONTH_NAMES[d.getMonth()],
+        isCurrent:  d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(),
+      };
+    });
+
+    const oldestMonthStart = monthRange[0].start;
+
+    const activeStudents = await prisma.student.findMany({
+      where: { status: 'ACTIVE' },
+      include: {
+        user:    { select: { id: true, fullName: true, phone: true } },
+        balance: true,
+        groupStudents: {
+          where:   { status: 'ACTIVE' },
+          orderBy: { joinedAt: 'asc' },
+          include: {
+            group: {
+              select: {
+                id: true, name: true,
+                course: { select: { name: true, monthlyPrice: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { user: { fullName: 'asc' } },
+    });
+
+    const studentIds = activeStudents.map(s => s.id);
+
+    // To'lovlarni olish (so'nggi 4 oy va undan keyin)
+    const allPayments = await prisma.payment.findMany({
+      where: {
+        studentId: { in: studentIds },
+        isDeleted: false,
+        month:     { gte: oldestMonthStart },
+      },
+      select: { studentId: true, amount: true, month: true },
+    });
+
+    // O'quvchi bo'yicha grupplash: "studentId-YYYY-MM" → jami to'lov
+    const paymentByMonth = new Map<string, number>();
+    allPayments.forEach(p => {
+      const d   = new Date(p.month);
+      const key = `${p.studentId}-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      paymentByMonth.set(key, (paymentByMonth.get(key) || 0) + Number(p.amount));
+    });
+
+    // Oxirgi to'lov — har o'quvchi uchun
+    const lastPayments = await prisma.payment.findMany({
+      where:    { studentId: { in: studentIds }, isDeleted: false },
+      orderBy:  { paidAt: 'desc' },
+      distinct: ['studentId'],
+      select:   { studentId: true, amount: true, paidAt: true },
+    });
+    const lastPayMap = new Map(
+      lastPayments.map(p => [p.studentId, {
+        date:   p.paidAt.toISOString().split('T')[0],
+        amount: Math.round(Number(p.amount)),
+      }])
+    );
+
+    const result = activeStudents
+      .filter(s => s.groupStudents.length > 0)
+      .map(student => {
+        // Oylik narx va chegirma
+        let totalPrice = 0;
+        student.groupStudents.forEach(gs => { totalPrice += Number(gs.group.course.monthlyPrice); });
+
+        let discount = 0;
+        const disc = (student as any);
+        if (disc.discountType && disc.discountValue) {
+          if (disc.discountType === 'PERCENTAGE') {
+            discount = Math.round(totalPrice * Number(disc.discountValue) / 100);
+          } else {
+            discount = Math.min(Number(disc.discountValue), totalPrice);
+          }
+        }
+        const monthlyAmount = Math.max(0, totalPrice - discount);
+
+        // To'lov kuni: paymentDueDay ustunligi, keyin joinedAt
+        const paymentDay: number =
+          (student as any).paymentDueDay ?? new Date(student.groupStudents[0].joinedAt).getDate();
+
+        // Keyingi to'lov sanasi
+        const daysInCur = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const effDay = Math.min(paymentDay, daysInCur);
+        let nextDue  = new Date(now.getFullYear(), now.getMonth(), effDay);
+        if (nextDue <= now) {
+          const nm = now.getMonth() + 1;
+          const ny = nm > 11 ? now.getFullYear() + 1 : now.getFullYear();
+          const nm2 = nm % 12;
+          const din = new Date(ny, nm2 + 1, 0).getDate();
+          nextDue = new Date(ny, nm2, Math.min(paymentDay, din));
+        }
+        const daysUntilDue = Math.ceil((nextDue.getTime() - now.getTime()) / 86_400_000);
+
+        // Har oy uchun holat
+        const monthlyStatus = monthRange.map(m => {
+          const paid = paymentByMonth.get(`${student.id}-${m.key}`) || 0;
+          const daysInM = new Date(m.year, m.month + 1, 0).getDate();
+          const payDayInM = new Date(m.year, m.month, Math.min(paymentDay, daysInM));
+          const payDayPassed = payDayInM <= now;
+
+          let status: 'PAID' | 'PARTIAL' | 'DEBT' | 'UPCOMING';
+          if (monthlyAmount === 0)        status = 'PAID';
+          else if (!payDayPassed)         status = 'UPCOMING';
+          else if (paid >= monthlyAmount) status = 'PAID';
+          else if (paid > 0)              status = 'PARTIAL';
+          else                            status = 'DEBT';
+
+          return {
+            month: m.key,
+            label: m.label,
+            paid:  Math.round(paid),
+            due:   monthlyAmount,
+            status,
+          };
+        });
+
+        return {
+          studentId:     student.id,
+          fullName:      student.user.fullName,
+          phone:         student.user.phone,
+          groups:        student.groupStudents.map(gs => ({
+            id:         gs.groupId,
+            name:       gs.group.name,
+            courseName: gs.group.course.name,
+          })),
+          monthlyAmount,
+          totalPrice,
+          discount,
+          paymentDay,
+          joinedAt:      student.groupStudents[0].joinedAt.toISOString().split('T')[0],
+          lastPayment:   lastPayMap.get(student.id) ?? null,
+          nextDueDate:   nextDue.toISOString().split('T')[0],
+          daysUntilDue,
+          currentDebt:    Math.round(Number(student.balance?.debt    || 0)),
+          currentBalance: Math.round(Number(student.balance?.balance || 0)),
+          monthlyStatus,
+        };
+      });
+
+    sendSuccess(res, result);
+  } catch (err) {
+    console.error('getBillingOverview error:', err);
+    sendError(res, "Billing ma'lumotlarini olishda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// PATCH /payments/student/:studentId/billing-config
+// Admin: oylik summa va to'lov kunini o'zgartirish
+// ══════════════════════════════════════════════════════════════════
+export const updateBillingConfig = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId    = parseInt(req.params.studentId);
+    const { monthlyAmount, paymentDay } = req.body as {
+      monthlyAmount?: number;
+      paymentDay?:    number;
+    };
+
+    if (monthlyAmount === undefined && paymentDay === undefined) {
+      sendError(res, "monthlyAmount yoki paymentDay kiritilishi kerak.", 400); return;
+    }
+
+    const student = await prisma.student.findUnique({
+      where:   { id: studentId },
+      include: {
+        groupStudents: {
+          where:   { status: 'ACTIVE' },
+          include: { group: { include: { course: { select: { monthlyPrice: true } } } } },
+        },
+      },
+    });
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+
+    const updateData: Record<string, unknown> = {};
+
+    // Oylik summa o'zgarishi → chegirmani qayta hisoblash
+    if (monthlyAmount !== undefined) {
+      let totalPrice = 0;
+      student.groupStudents.forEach(gs => { totalPrice += Number(gs.group.course.monthlyPrice); });
+      const desired  = parseFloat(String(monthlyAmount));
+      const discount = Math.max(0, totalPrice - desired);
+      updateData.discountType  = discount > 0 ? 'FIXED_AMOUNT' : null;
+      updateData.discountValue = discount > 0 ? discount : null;
+    }
+
+    // To'lov kuni (1–28)
+    if (paymentDay !== undefined) {
+      const day = Math.max(1, Math.min(28, parseInt(String(paymentDay))));
+      updateData.paymentDueDay = day;
+    }
+
+    await prisma.student.update({
+      where: { id: studentId },
+      data:  updateData as any,
+    });
+
+    sendSuccess(res, null, "To'lov sozlamalari yangilandi.");
+  } catch (err) {
+    console.error('updateBillingConfig error:', err);
+    sendError(res, "Sozlamalarni yangilashda xato.", 500);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// POST /payments/student/:studentId/waive-debt — Qarz voz kechish
+// ══════════════════════════════════════════════════════════════════
+export const waiveStudentDebt = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const studentId = parseInt(req.params.studentId);
+    const { amount, reason } = req.body as { amount?: number; reason?: string };
+
+    const [student, balance] = await Promise.all([
+      prisma.student.findUnique({
+        where:  { id: studentId },
+        select: { user: { select: { id: true, fullName: true } } },
+      }),
+      prisma.studentBalance.findUnique({ where: { studentId } }),
+    ]);
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+
+    const currentDebt   = Math.round(Number(balance?.debt || 0));
+    const waivedAmount  = amount !== undefined
+      ? Math.min(Math.abs(parseFloat(String(amount))), currentDebt)
+      : currentDebt; // hammasi voz kechildi
+
+    if (waivedAmount <= 0) {
+      sendError(res, "Voz kechiladigan qarz 0 dan katta bo'lishi kerak.", 400); return;
+    }
+    const newDebt = Math.max(0, currentDebt - waivedAmount);
+
+    await prisma.studentBalance.upsert({
+      where:  { studentId },
+      update: { debt: newDebt, lastUpdated: new Date() },
+      create: { studentId, balance: 0, debt: 0, lastUpdated: new Date() },
+    });
+
+    // Audit log (admin notification)
+    try {
+      if (req.user?.id) {
+        const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(v) + " so'm";
+        await prisma.notification.create({
+          data: {
+            userId: req.user.id,
+            title:  `Qarz voz kechildi — ${student.user.fullName}`,
+            body:   `${fmt(waivedAmount)} qarz voz kechildi.${reason ? ' Sabab: ' + reason : ''} Qolgan qarz: ${fmt(newDebt)}.`,
+            type:   'SYSTEM',
+          },
+        });
+      }
+    } catch { /* silent */ }
+
+    sendSuccess(res, { previousDebt: currentDebt, waivedAmount, newDebt },
+      `${new Intl.NumberFormat('uz-UZ').format(waivedAmount)} so'm qarz voz kechildi.`);
+  } catch (err) {
+    console.error('waiveStudentDebt error:', err);
+    sendError(res, "Qarz voz kechishda xato.", 500);
+  }
+};
+
 // ══════════════════════════════════════════════
 // GET /payments/archive — Arxivlangan (o'chirilgan) to'lovlar
 // ══════════════════════════════════════════════

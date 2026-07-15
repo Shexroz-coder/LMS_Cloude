@@ -66,11 +66,13 @@ export async function calculateMonthlyDebts() {
       if (!student.groupStudents.length) continue;
 
       // ── To'lov kunini aniqlash ──
-      // Eng erta qo'shilgan guruh asosida (birinchi to'lov kuni)
+      // Ustuvor: student.paymentDueDay (admin belgilagan)
+      // Zaxira:  eng erta qo'shilgan guruhning joinedAt.getDate()
       const sortedGroups = [...student.groupStudents].sort(
         (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
       );
-      const paymentDayRaw = new Date(sortedGroups[0].joinedAt).getDate();
+      const paymentDayRaw: number =
+        (student as any).paymentDueDay ?? new Date(sortedGroups[0].joinedAt).getDate();
 
       // Oyning oxiridagi kunlarni moslashtirish
       // (masalan, 31-yanvarda kelgan → Fevralda 28/29-da to'laydi)
