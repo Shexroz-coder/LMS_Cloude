@@ -35,6 +35,13 @@ export const getGroups = async (req: AuthRequest, res: Response): Promise<void> 
     if (teacherId) where.teacherId = parseInt(teacherId);
     if (search) where.name = { contains: search, mode: 'insensitive' };
 
+    // Filial filtri (?branchId=N)
+    {
+      const bRaw = (req.query as Record<string, string>).branchId;
+      const bId = bRaw && bRaw !== 'all' ? parseInt(bRaw) : NaN;
+      if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
+    }
+
     // Ustoz faqat o'z guruhlarini ko'radi
     if (req.user?.role === 'TEACHER') {
       const teacher = await prisma.teacher.findUnique({ where: { userId: req.user.id } });
@@ -155,7 +162,8 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
           endDate: endDate ? new Date(endDate) : undefined,
           room,
           status: 'ACTIVE',
-        },
+          ...((req.body as any).branchId ? { branchId: parseInt(String((req.body as any).branchId)) } : {}),
+        } as any,
         include: groupInclude
       });
 
@@ -511,7 +519,8 @@ export const getGroupStats = async (req: AuthRequest, res: Response): Promise<vo
       prisma.groupStudent.count({ where: { groupId, status: 'ACTIVE' } }),
       prisma.lesson.count({ where: { groupId } }),
       prisma.attendance.aggregate({
-        where: { lesson: { groupId }, status: 'PRESENT' },
+        // Dashboard bilan bir xil formula: kech kelgan ham "kelgan" sanaladi
+        where: { lesson: { groupId }, status: { in: ['PRESENT', 'LATE'] } },
         _count: true
       }),
       prisma.payment.aggregate({

@@ -51,7 +51,7 @@ const AdminCoinsPage = () => {
   );
 
   const { data: groups = [] } = useQuery('groups-for-coins',
-    () => api.get('/groups', { params: { limit: 200 } }).then(r => r.data.data).catch(() => [])
+    () => api.get('/groups', { params: { limit: 200, status: 'ACTIVE' } }).then(r => r.data.data).catch(() => [])
   );
 
   const filtered = searchText.trim()

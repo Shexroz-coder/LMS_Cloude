@@ -1,18 +1,21 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissionStore } from '../../store/permission.store';
 import { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Users, UserCheck, BookOpen, Calendar, ClipboardCheck,
   CreditCard, BarChart3, Wallet, Coins, Bell, AlertCircle,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
-  ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff
+  ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff,
+  Building2, Archive, ShieldCheck,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import { Role } from '../../types';
 import clsx from 'clsx';
+import BranchSelector from './BranchSelector';
 
 // ── Types ──────────────────────────────────────────────
 interface NavItem {
@@ -20,6 +23,7 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   badge?: number;
+  perm?: string; // ruxsat kaliti — bo'lsa shu ruxsat kerak
 }
 
 interface NavGroup {
@@ -41,6 +45,7 @@ const ROLE_COLORS: Record<Role, string> = {
   TEACHER: 'from-gray-900 to-black',
   STUDENT: 'from-red-800 to-black',
   PARENT: 'from-gray-900 to-black',
+  FOUNDER: 'from-amber-900 to-black',
 };
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -48,6 +53,7 @@ const ROLE_LABELS: Record<Role, string> = {
   TEACHER: '👨‍🏫 Ustoz',
   STUDENT: '🎓 O\'quvchi',
   PARENT: '👨‍👩‍👧 Ota-ona',
+  FOUNDER: '💼 Ta\'sischi',
 };
 
 // ── Nav config per role ────────────────────────────────
@@ -64,7 +70,6 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
   if (role === 'ADMIN') {
     return [
-      // standalone
       { to: '/admin', icon: LayoutDashboard, label: t('nav.dashboard') },
 
       {
@@ -98,17 +103,36 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
         ]
       },
 
+      {
+        key: 'settings', label: 'Sozlamalar', icon: Settings2, items: [
+          { to: '/admin/branches', icon: Building2, label: 'Filiallar' },
+          { to: '/admin/archives', icon: Archive, label: 'Arxiv' },
+          { to: '/admin/permissions', icon: ShieldCheck, label: 'Ruxsatlar' },
+        ]
+      },
+
       systemGroup,
+    ];
+  }
+
+  if (role === 'FOUNDER') {
+    // Ta'sischi — faqat asosiy ko'rsatkichlar (o'qish rejimi)
+    return [
+      { to: '/founder', icon: LayoutDashboard, label: 'Asosiy ko\'rsatkichlar' },
+      { to: '/founder/finance', icon: BarChart3, label: 'Moliya' },
+      { to: '/founder/payments', icon: CreditCard, label: "To'lovlar" },
+      { to: '/founder/archives', icon: Archive, label: 'Arxiv' },
+      { to: '/founder/profile', icon: User, label: 'Profil' },
     ];
   }
 
   if (role === 'TEACHER') {
     return [
       { to: '/teacher',            icon: LayoutDashboard, label: 'Bosh sahifa'     },
-      { to: '/teacher/attendance', icon: ClipboardCheck,  label: 'Davomat'         },
-      { to: '/teacher/groups',     icon: Users,           label: "O'quvchilar"     },
-      { to: '/teacher/schedule',   icon: Calendar,        label: 'Jadval'          },
-      { to: '/teacher/coins',      icon: Coins,           label: 'Coinlar'         },
+      { to: '/teacher/attendance', icon: ClipboardCheck,  label: 'Davomat', perm: 'attendance.mark' },
+      { to: '/teacher/groups',     icon: Users,           label: "O'quvchilar", perm: 'students.view' },
+      { to: '/teacher/schedule',   icon: Calendar,        label: 'Jadval', perm: 'schedule.view' },
+      { to: '/teacher/coins',      icon: Coins,           label: 'Coinlar', perm: 'coins.award' },
       { to: '/teacher/notifications', icon: Bell,         label: 'Bildirishnomalar'},
       { to: '/teacher/profile',    icon: User,            label: 'Profil'          },
     ];
@@ -137,25 +161,22 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
 
 // ── Collapsible group ──────────────────────────────────
 const NavGroupSection = ({
-  group,
-  collapsed,
-  defaultOpen = false,
+  group, collapsed, defaultOpen = false, onNavigate,
 }: {
   group: NavGroup;
   collapsed: boolean;
   defaultOpen?: boolean;
+  onNavigate?: () => void;
 }) => {
   const location = useLocation();
   const isAnyActive = group.items.some(item => location.pathname.startsWith(item.to));
   const [open, setOpen] = useState(defaultOpen || isAnyActive);
 
-  // Auto-open when navigating to a child route
   useEffect(() => {
     if (isAnyActive) setOpen(true);
   }, [isAnyActive]);
 
   if (collapsed) {
-    // In collapsed mode, show icons without grouping label
     return (
       <div className="space-y-0.5">
         {group.items.map(item => (
@@ -163,6 +184,7 @@ const NavGroupSection = ({
             key={item.to}
             to={item.to}
             title={item.label}
+            onClick={onNavigate}
             className={({ isActive }) =>
               clsx(
                 'flex items-center justify-center w-full p-2.5 rounded-lg transition-all duration-200',
@@ -179,42 +201,29 @@ const NavGroupSection = ({
 
   return (
     <div>
-      {/* Group header */}
       <button
         onClick={() => setOpen(o => !o)}
         className={clsx(
           'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200',
-          isAnyActive
-            ? 'text-white/90 bg-white/10'
-            : 'text-white/45 hover:text-white/70 hover:bg-white/5'
+          isAnyActive ? 'text-white/90 bg-white/10' : 'text-white/45 hover:text-white/70 hover:bg-white/5'
         )}
       >
         <group.icon size={14} className="flex-shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
-        <ChevronDown
-          size={13}
-          className={clsx('transition-transform duration-200', open ? 'rotate-180' : '')}
-        />
+        <ChevronDown size={13} className={clsx('transition-transform duration-200', open ? 'rotate-180' : '')} />
       </button>
 
-      {/* Group items */}
-      <div
-        className={clsx(
-          'overflow-hidden transition-all duration-200',
-          open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        )}
-      >
+      <div className={clsx('overflow-hidden transition-all duration-200', open ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0')}>
         <ul className="mt-0.5 ml-2 pl-2.5 border-l border-white/10 space-y-0.5">
           {group.items.map(item => (
             <li key={item.to}>
               <NavLink
                 to={item.to}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                    isActive
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/65 hover:bg-white/10 hover:text-white'
+                    isActive ? 'bg-white/20 text-white' : 'text-white/65 hover:bg-white/10 hover:text-white'
                   )
                 }
               >
@@ -235,137 +244,183 @@ const NavGroupSection = ({
 };
 
 // ── Main Sidebar ───────────────────────────────────────
-const Sidebar = () => {
+interface SidebarProps {
+  /** Mobil rejimda drawer ochiqmi */
+  mobileOpen?: boolean;
+  /** Drawer'ni yopish (mobil navigatsiyadan keyin) */
+  onClose?: () => void;
+}
+
+const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { can, permissions, loaded } = usePermissionStore();
   const [collapsed, setCollapsed] = useState(false);
 
   if (!user) return null;
 
-  const navConfig = getNavConfig(user.role, t);
+  // Ruxsat bo'yicha filtrlash
+  const filterByPerm = (items: NavItem[]) =>
+    items.filter(it => !it.perm || can(it.perm));
+
+  const rawConfig = getNavConfig(user.role, t);
+  const navConfig: NavConfig = rawConfig
+    .map(item => {
+      if (isGroup(item)) {
+        const items = filterByPerm(item.items);
+        return items.length ? { ...item, items } : null;
+      }
+      return (!item.perm || can(item.perm)) ? item : null;
+    })
+    .filter(Boolean) as NavConfig;
+
   const gradient = ROLE_COLORS[user.role];
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout', {}); } catch { /* silent */ }
     logout();
+    usePermissionStore.getState().reset();
     navigate('/login');
     toast.success(t('auth.logout'));
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _permTrigger = loaded ? Object.keys(permissions).length : 0; // re-render trigger
+
+  const showBranch = user.role === 'ADMIN' || user.role === 'FOUNDER';
+
   return (
-    <div className={clsx(
-      'relative flex flex-col h-full transition-all duration-300',
-      `bg-gradient-to-b ${gradient}`,
-      collapsed ? 'w-16' : 'w-60'
-    )}>
-
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(c => !c)}
-        className="absolute -right-3 top-[72px] z-10 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center text-gray-500 hover:text-indigo-600 transition"
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
-
-      {/* Logo */}
-      <div className={clsx(
-        'flex items-center gap-3 px-4 py-4 border-b border-white/10',
-        collapsed && 'justify-center'
-      )}>
-        <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-          <Bot size={17} className="text-white" />
-        </div>
-        {!collapsed && (
-          <div>
-            <div className="font-bold text-white text-sm leading-tight">Robotic Edu</div>
-            <div className="text-white/45 text-[10px]">Learning Management</div>
-          </div>
-        )}
-      </div>
-
-      {/* User info */}
-      {!collapsed && (
-        <div className="px-3 py-3 border-b border-white/10">
-          <div className="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
-            <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              {user.fullName.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="text-white text-xs font-semibold truncate">{user.fullName}</div>
-              <div className="text-white/50 text-[10px]">{ROLE_LABELS[user.role]}</div>
-            </div>
-          </div>
-        </div>
+    <>
+      {/* Mobil overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
       )}
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1 scrollbar-hide">
-        {navConfig.map((item, i) => {
-          if (isGroup(item)) {
-            return (
-              <NavGroupSection
-                key={item.key}
-                group={item}
-                collapsed={collapsed}
-                defaultOpen={i === 1} // first group open by default
-              />
-            );
-          }
+      <div className={clsx(
+        'flex flex-col h-full transition-all duration-300',
+        `bg-gradient-to-b ${gradient}`,
+        // Desktop
+        'lg:relative',
+        collapsed ? 'lg:w-16' : 'lg:w-60',
+        // Mobile: drawer
+        'fixed inset-y-0 left-0 z-50 w-64 lg:translate-x-0',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+      )}>
 
-          // Standalone nav item
-          return collapsed ? (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === `/${user.role.toLowerCase()}`}
-              title={item.label}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center justify-center w-full p-2.5 rounded-lg transition-all duration-200',
-                  isActive ? 'bg-white/25 text-white' : 'text-white/60 hover:bg-white/15 hover:text-white'
-                )
-              }
-            >
-              <item.icon size={18} className="flex-shrink-0" />
-            </NavLink>
-          ) : (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === `/${user.role.toLowerCase()}`}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200',
-                  isActive
-                    ? 'bg-white/25 text-white shadow-sm'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                )
-              }
-            >
-              <item.icon size={18} className="flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      {/* Logout */}
-      <div className="p-2 border-t border-white/10">
+        {/* Collapse toggle — faqat desktop */}
         <button
-          onClick={handleLogout}
-          className={clsx(
-            'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium',
-            'text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200',
-            collapsed && 'justify-center'
-          )}
-          title={collapsed ? t('nav.logout') : undefined}
+          onClick={() => setCollapsed(c => !c)}
+          className="hidden lg:flex absolute -right-3 top-[72px] z-10 w-6 h-6 bg-white rounded-full shadow-md items-center justify-center text-gray-500 hover:text-indigo-600 transition"
         >
-          <LogOut size={17} className="flex-shrink-0" />
-          {!collapsed && <span>{t('nav.logout')}</span>}
+          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
+
+        {/* Logo */}
+        <div className={clsx('flex items-center gap-3 px-4 py-4 border-b border-white/10', collapsed && 'lg:justify-center')}>
+          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Bot size={17} className="text-white" />
+          </div>
+          {!collapsed && (
+            <div>
+              <div className="font-bold text-white text-sm leading-tight">Robotic Edu</div>
+              <div className="text-white/45 text-[10px]">Learning Management</div>
+            </div>
+          )}
+        </div>
+
+        {/* User info */}
+        {!collapsed && (
+          <div className="px-3 py-3 border-b border-white/10">
+            <div className="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-2.5">
+              <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                {user.fullName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="text-white text-xs font-semibold truncate">{user.fullName}</div>
+                <div className="text-white/50 text-[10px]">{ROLE_LABELS[user.role]}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filial tanlagich (admin/founder) */}
+        {showBranch && !collapsed && (
+          <div className="px-3 py-2 border-b border-white/10">
+            <BranchSelector compact />
+          </div>
+        )}
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1 scrollbar-hide">
+          {navConfig.map((item, i) => {
+            if (isGroup(item)) {
+              return (
+                <NavGroupSection
+                  key={item.key}
+                  group={item}
+                  collapsed={collapsed}
+                  defaultOpen={i === 1}
+                  onNavigate={onClose}
+                />
+              );
+            }
+            return collapsed ? (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === `/${user.role.toLowerCase()}`}
+                title={item.label}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center justify-center w-full p-2.5 rounded-lg transition-all duration-200',
+                    isActive ? 'bg-white/25 text-white' : 'text-white/60 hover:bg-white/15 hover:text-white'
+                  )
+                }
+              >
+                <item.icon size={18} className="flex-shrink-0" />
+              </NavLink>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === `/${user.role.toLowerCase()}`}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200',
+                    isActive ? 'bg-white/25 text-white shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  )
+                }
+              >
+                <item.icon size={18} className="flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <div className="p-2 border-t border-white/10">
+          <button
+            onClick={handleLogout}
+            className={clsx(
+              'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium',
+              'text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200',
+              collapsed && 'lg:justify-center'
+            )}
+            title={collapsed ? t('nav.logout') : undefined}
+          >
+            <LogOut size={17} className="flex-shrink-0" />
+            {(!collapsed || mobileOpen) && <span className={collapsed ? 'lg:hidden' : ''}>{t('nav.logout')}</span>}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

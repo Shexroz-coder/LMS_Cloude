@@ -22,6 +22,7 @@ enum Role {
   TEACHER
   STUDENT
   PARENT
+  FOUNDER
 }
 
 enum Language {
@@ -134,6 +135,57 @@ enum ExpenseCategory {
 }
 
 // ============================================
+// FILIALLAR
+// ============================================
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(150)
+  address   String?  @db.VarChar(300)
+  phone     String?  @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users    User[]
+  students Student[]
+  groups   Group[]
+  payments Payment[]
+  expenses Expense[]
+
+  @@map("branches")
+}
+
+// ============================================
+// ARXIV — davr bo'yicha moliyaviy yozuvlar arxivi
+// ============================================
+
+model Archive {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(200)
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd   DateTime @map("period_end") @db.Date
+  summary     Json?
+  createdBy   Int?     @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("archives")
+}
+
+// ============================================
+// RUXSATLAR — rol uchun funksiya yoqish/o'chirish
+// ============================================
+
+model RolePermission {
+  id      Int     @id @default(autoincrement())
+  role    Role
+  permKey String  @map("perm_key") @db.VarChar(100)
+  allowed Boolean @default(true)
+
+  @@unique([role, permKey])
+  @@map("role_permissions")
+}
+
+// ============================================
 // FOYDALANUVCHILAR
 // ============================================
 
@@ -154,6 +206,10 @@ model User {
   telegramChatId   String?   @unique @map("telegram_chat_id") @db.VarChar(100)
   telegramUsername  String?   @map("telegram_username") @db.VarChar(100)
   telegramLinkedAt  DateTime? @map("telegram_linked_at")
+
+  // Filial
+  branchId Int?    @map("branch_id")
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   // Relations
   student           Student?
@@ -192,6 +248,10 @@ model Student {
   preferredDays Int[]          @default([]) @map("preferred_days")
   preferredTime String?        @map("preferred_time") @db.VarChar(20)
   interestedCourseId Int?      @map("interested_course_id")
+
+  // Filial
+  branchId Int?    @map("branch_id")
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -269,6 +329,10 @@ model Group {
   status      GroupStatus @default(ACTIVE)
   room        String?     @db.VarChar(50)
   createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Filial
+  branchId Int?    @map("branch_id")
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   // Relations
   course       Course         @relation(fields: [courseId], references: [id])
@@ -443,11 +507,17 @@ model Payment {
   // Qaysi guruh/kurs uchun to'lov
   groupId     Int?          @map("group_id")
 
+  // Filial va Arxiv
+  branchId  Int? @map("branch_id")
+  archiveId Int? @map("archive_id")
+
   student  Student @relation(fields: [studentId], references: [id])
   receiver User?   @relation("PaymentReceiver", fields: [receivedBy], references: [id])
   group    Group?  @relation(fields: [groupId], references: [id])
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   @@index([studentId])
+  @@index([archiveId])
   @@index([isDeleted])
   @@index([paidAt])            // Oylik daromad so'rovlari uchun
   @@index([studentId, paidAt]) // O'quvchi to'lov tarixi uchun
@@ -485,10 +555,13 @@ model MonthlyFee {
   attendedCount   Int      @default(0) @map("attended_count")
   createdAt       DateTime @default(now()) @map("created_at")
 
+  archiveId Int? @map("archive_id")
+
   student Student @relation(fields: [studentId], references: [id])
   group   Group   @relation(fields: [groupId], references: [id])
 
   @@unique([studentId, groupId, month])
+  @@index([archiveId])
   @@map("monthly_fees")
 }
 
@@ -501,9 +574,15 @@ model Expense {
   addedBy     Int?              @map("added_by")
   createdAt   DateTime          @default(now()) @map("created_at")
 
-  user User? @relation(fields: [addedBy], references: [id])
+  // Filial va Arxiv
+  branchId  Int? @map("branch_id")
+  archiveId Int? @map("archive_id")
+
+  user   User?   @relation(fields: [addedBy], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
 
   @@index([date]) // Oylik xarajat so'rovlari uchun
+  @@index([archiveId])
   @@map("expenses")
 }
 
@@ -518,9 +597,12 @@ model TeacherSalary {
   status           SalaryStatus @default(PENDING)
   paidAt           DateTime?    @map("paid_at")
 
+  archiveId Int? @map("archive_id")
+
   teacher Teacher @relation(fields: [teacherId], references: [id])
 
   @@unique([teacherId, month])
+  @@index([archiveId])
   @@map("teacher_salaries")
 }
 
@@ -536,9 +618,12 @@ model StaffSalary {
   paidAt    DateTime     @default(now()) @map("paid_at")
   paidById  Int?         @map("paid_by_id")
 
+  archiveId Int? @map("archive_id")
+
   user   User  @relation("StaffSalaryUser",  fields: [userId],   references: [id])
   paidBy User? @relation("StaffSalaryPayer", fields: [paidById], references: [id])
 
+  @@index([archiveId])
   @@map("staff_salaries")
 }
 

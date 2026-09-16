@@ -83,7 +83,14 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
           endTime,
           topic: finalTopic,
           isForcedHoliday: isForcedHolidayLesson,
+          status: 'COMPLETED', // Davomat qilindi = dars o'tildi (soatbay ish haqi uchun)
         }
+      });
+    } else if (lesson.status !== 'COMPLETED') {
+      // Mavjud dars ham davomat belgilanganda COMPLETED bo'ladi
+      lesson = await prisma.lesson.update({
+        where: { id: lesson.id },
+        data: { status: 'COMPLETED' },
       });
     }
 

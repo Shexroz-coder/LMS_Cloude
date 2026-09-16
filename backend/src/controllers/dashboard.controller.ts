@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
+import { getFinanceTotals } from '../services/finance.service';
 
 
 // ══════════════════════════════════════════════
@@ -10,41 +11,52 @@ import { sendSuccess, sendError } from '../utils/response.utils';
 export const getDashboardStats = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // /attendance/stats bilan BIR XIL chegara (UTC) — sahifalar orasida farq bo'lmasligi uchun
+    const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999));
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
+    // Filial filtri (?branchId=N)
+    const bRaw = (req.query as Record<string, string>).branchId;
+    const bId = bRaw && bRaw !== 'all' ? parseInt(bRaw) : NaN;
+    const branchId = Number.isFinite(bId) && bId > 0 ? bId : undefined;
+    const studentBranch = branchId ? { branchId } : {};
+    const groupBranch = branchId ? { branchId } : {};
+
     const [
       studentsCount, teachersCount,
-      monthlyIncome, totalDebt,
+      monthlyIncome, financeTotals,
       totalExpenses, todayLessons,
       attendanceData, coinTotal, activeGroups
     ] = await Promise.all([
-      prisma.student.count({ where: { user: { isActive: true } } }),
+      prisma.student.count({ where: { user: { isActive: true }, ...(studentBranch as any) } }),
       prisma.teacher.count({ where: { user: { isActive: true } } }),
       prisma.payment.aggregate({
-        where: { paidAt: { gte: monthStart, lte: monthEnd } },
+        where: {
+          paidAt: { gte: monthStart, lte: monthEnd }, isDeleted: false,
+          ...(branchId ? { student: { branchId } } : {}),
+        } as any,
         _sum: { amount: true }
       }),
-      prisma.studentBalance.aggregate({ _sum: { debt: true } }),
+      getFinanceTotals(), // ← YAGONA qarz manbai (finance.service)
       prisma.expense.aggregate({
-        where: { date: { gte: monthStart, lte: monthEnd } },
+        where: { date: { gte: monthStart, lte: monthEnd }, ...(branchId ? { branchId } : {}) } as any,
         _sum: { amount: true }
       }),
-      prisma.lesson.count({ where: { date: { gte: todayStart, lte: todayEnd } } }),
+      prisma.lesson.count({ where: { date: { gte: todayStart, lte: todayEnd }, ...(branchId ? { group: { branchId } } : {}) } as any }),
       prisma.attendance.groupBy({
         by: ['status'],
-        where: { lesson: { date: { gte: monthStart, lte: monthEnd } } },
+        where: { lesson: { date: { gte: monthStart, lte: monthEnd }, ...(branchId ? { group: { branchId } } : {}) } } as any,
         _count: true
       }),
-      prisma.student.aggregate({ _sum: { coinBalance: true } }),
-      prisma.group.count({ where: { status: 'ACTIVE' } })
+      prisma.student.aggregate({ where: studentBranch as any, _sum: { coinBalance: true } }),
+      prisma.group.count({ where: { status: 'ACTIVE', ...(groupBranch as any) } })
     ]);
 
     const income = Number(monthlyIncome._sum.amount || 0);
     const expenses = Number(totalExpenses._sum.amount || 0);
-    const debt = Number(totalDebt._sum.debt || 0);
+    const debt = financeTotals.totalDebt;
     const netProfit = income - expenses;
 
     const totalAttendance = attendanceData.reduce((sum, a) => sum + a._count, 0);

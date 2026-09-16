@@ -346,7 +346,7 @@ export default function CoursesPage() {
           { label: "Jami kurslar", value: courses.length, icon: "🎓", color: "bg-indigo-50 text-indigo-700" },
           { label: "Faol kurslar", value: activeCourses.length, icon: "✅", color: "bg-emerald-50 text-emerald-700" },
           { label: "Jami guruhlar", value: totalGroups, icon: "👥", color: "bg-violet-50 text-violet-700" },
-          { label: "O'rtacha narx", value: activeCourses.length ? formatMoney(Math.round(activeCourses.reduce((s, c) => s + c.monthlyPrice, 0) / activeCourses.length)) : '—', icon: "💰", color: "bg-amber-50 text-amber-700" },
+          { label: "O'rtacha narx", value: activeCourses.length ? formatMoney(Math.round(activeCourses.reduce((s, c) => s + Number(c.monthlyPrice), 0) / activeCourses.length)) : '—', icon: "💰", color: "bg-amber-50 text-amber-700" },
         ].map(item => (
           <div key={item.label} className="card flex items-center gap-3">
             <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-xl", item.color)}>

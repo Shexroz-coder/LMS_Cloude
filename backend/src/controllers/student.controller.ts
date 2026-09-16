@@ -59,6 +59,13 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
       },
     };
 
+    // Filial filtri (?branchId=N)
+    {
+      const bRaw = (req.query as Record<string, string>).branchId;
+      const bId = bRaw && bRaw !== 'all' ? parseInt(bRaw) : NaN;
+      if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
+    }
+
     // Guruh bo'yicha filtr
     if (groupId) {
       where.groupStudents = { some: { groupId: parseInt(groupId), status: 'ACTIVE' } };
@@ -307,7 +314,8 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
           ...(demoDate && { demoDate: new Date(demoDate) }),
           ...(leftAt && { leftAt: new Date(leftAt) }),
           ...(leftReason && { leftReason }),
-        },
+          ...((req.body as any).branchId ? { branchId: parseInt(String((req.body as any).branchId)) } : {}),
+        } as any,
         include: studentInclude
       });
 

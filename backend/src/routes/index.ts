@@ -16,6 +16,9 @@ import lessonRoutes from './lesson.routes';
 import aiAssistantRoutes from './ai-assistant.routes';
 import paymeRoutes from './payme.routes';
 import holidayRoutes from './holiday.routes';
+import branchRoutes from './branch.routes';
+import archiveRoutes from './archive.routes';
+import permissionRoutes from './permission.routes';
 import { authenticate } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
 
@@ -64,5 +67,8 @@ router.use('/expenses', authenticate, expenseRoutes);
 router.use('/lessons', authenticate, lessonRoutes);
 router.use('/ai-assistant', authenticate, aiAssistantRoutes);
 router.use('/holidays', authenticate, holidayRoutes);
+router.use('/branches', authenticate, branchRoutes);
+router.use('/archives', authenticate, archiveRoutes);
+router.use('/permissions', authenticate, permissionRoutes);
 
 export default router;

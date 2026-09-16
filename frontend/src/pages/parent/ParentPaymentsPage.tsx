@@ -250,7 +250,7 @@ function BulkPayModal({
 
   const totalDebt = debtors.reduce((sum, c) => {
     const calc = childCalcs[c.id];
-    return sum + (calc?.debtAmount || 0);
+    return sum + Number(calc?.debtAmount || 0);
   }, 0);
 
   const payOne = async (child: ChildInfo) => {
@@ -495,7 +495,7 @@ const ParentPaymentsPage = () => {
 
   const totalDebtAll = children.reduce((sum, c) => {
     const calc = allChildCalcs[c.id];
-    return sum + (calc?.debtAmount || 0);
+    return sum + Number(calc?.debtAmount || 0);
   }, 0);
 
   return (

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/auth.store';
+import { useBranchStore } from '../store/branch.store';
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -7,11 +8,20 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Request interceptor — token qo'shish
+// Request interceptor — token + tanlangan filial qo'shish
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Tanlangan filialni har GET so'roviga qo'shish (agar tanlangan bo'lsa)
+  const branchId = useBranchStore.getState().selectedBranchId;
+  if (branchId != null) {
+    const method = (config.method || 'get').toLowerCase();
+    if (method === 'get') {
+      config.params = { ...(config.params || {}), branchId };
+    }
   }
   return config;
 });

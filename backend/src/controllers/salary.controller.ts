@@ -155,12 +155,17 @@ async function calcTeacherSalaryForMonth(teacherId: number, year: number, month:
       where: {
         groupId: { in: teacherGroupIds },
         date: { gte: monthStart, lt: monthEnd },
-        status: 'COMPLETED',
+        // O'tilgan dars = COMPLETED YOKI davomati belgilangan
+        // (eski darslar COMPLETED bo'lmagan, lekin davomati bor)
+        OR: [
+          { status: 'COMPLETED' },
+          { attendance: { some: {} } },
+        ],
       },
       select: { durationHours: true }
     });
 
-    totalHours = lessons.reduce((s, l) => s + Number(l.durationHours), 0);
+    totalHours = lessons.reduce((s, l) => s + Number(l.durationHours || 1), 0);
     calculatedSalary = Math.round(totalHours * salaryValue);
   }
 

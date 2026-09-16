@@ -5,7 +5,11 @@ import Header from './Header';
 import AIAssistant from '../ui/AIAssistant';
 import { usePermissionStore } from '../../store/permission.store';
 
-const AdminLayout = () => {
+/**
+ * Barcha rollar uchun umumiy layout — mobil drawer bilan.
+ * Sidebar mobilda drawer, desktopda doimiy panel.
+ */
+const AppLayout = ({ showAI = true }: { showAI?: boolean }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const fetchPermissions = usePermissionStore(s => s.fetchPermissions);
 
@@ -20,9 +24,9 @@ const AdminLayout = () => {
           <Outlet />
         </main>
       </div>
-      <AIAssistant />
+      {showAI && <AIAssistant />}
     </div>
   );
 };
 
-export default AdminLayout;
+export default AppLayout;

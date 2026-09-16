@@ -8,10 +8,11 @@ import {
   getGroupsList, getStudentsList,
 } from '../controllers/attendance-export.controller';
 import { authorize } from '../middleware/auth.middleware';
+import { requirePerm } from '../middleware/permission.middleware';
 
 const router = Router();
 
-router.post('/lesson', authorize('ADMIN', 'TEACHER'), markAttendance);
+router.post('/lesson', authorize('ADMIN', 'TEACHER'), requirePerm('attendance.mark'), markAttendance);
 router.get('/today', authorize('ADMIN', 'TEACHER'), getTodayAttendance);
 router.get('/stats', authorize('ADMIN', 'TEACHER'), getAttendanceStats);
 router.get('/teacher-report', authorize('ADMIN'), getTeacherAttendanceReport);

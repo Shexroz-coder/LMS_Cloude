@@ -4,6 +4,7 @@ import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 import { countLessonsInMonth, countStandardLessonsInMonth, getMonthCalendarData, countLessonsInMonthFromDate, countStandardLessonsFromDate } from '../utils/schedule.utils';
 import { sendPaymentNotification } from '../telegram/services/notify.service';
+import { getFinanceTotals } from '../services/finance.service';
 
 
 // ══════════════════════════════════════════════
@@ -182,7 +183,7 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
         })()
       : undefined;
 
-    const [incomeResult, expenseResult, debtResult, studentCount] = await Promise.all([
+    const [incomeResult, expenseResult, financeTotals, studentCount] = await Promise.all([
       prisma.payment.aggregate({
         where: dateFilter ? { paidAt: dateFilter, isDeleted: false } : { isDeleted: false },
         _sum: { amount: true }
@@ -191,15 +192,13 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
         where: dateFilter ? { date: dateFilter } : {},
         _sum: { amount: true }
       }),
-      prisma.studentBalance.aggregate({
-        _sum: { debt: true }
-      }),
+      getFinanceTotals(), // ← YAGONA qarz manbai (finance.service)
       prisma.student.count({ where: { user: { isActive: true } } })
     ]);
 
     const income = Number(incomeResult._sum.amount || 0);
     const expenses = Number(expenseResult._sum.amount || 0);
-    const totalDebt = Number(debtResult._sum.debt || 0);
+    const totalDebt = financeTotals.totalDebt;
     const netProfit = income - expenses;
 
     // Breakdown by paymentMethod
@@ -212,6 +211,9 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
 
     sendSuccess(res, {
       income, expenses, netProfit, totalDebt, studentCount,
+      totalBalance: financeTotals.totalBalance,
+      inactiveDebt: financeTotals.inactiveDebt,
+      debtorCount:  financeTotals.debtorCount,
       byMethod: byMethod.map(m => ({
         method: m.paymentMethod,
         total: Number(m._sum.amount || 0),

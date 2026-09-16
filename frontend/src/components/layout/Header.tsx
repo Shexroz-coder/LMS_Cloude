@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
@@ -11,9 +11,10 @@ import { connectSocket, getSocket } from '../../services/socket';
 
 interface HeaderProps {
   title?: string;
+  onMenuClick?: () => void;
 }
 
-const Header = ({ title }: HeaderProps) => {
+const Header = ({ title, onMenuClick }: HeaderProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, accessToken } = useAuthStore();
@@ -51,14 +52,23 @@ const Header = ({ title }: HeaderProps) => {
   }, [accessToken, qc]);
 
   return (
-    <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-5 gap-4 flex-shrink-0 transition-colors duration-300">
+    <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-3 sm:px-5 gap-2 sm:gap-4 flex-shrink-0 transition-colors duration-300">
+      {/* Mobil hamburger */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+        aria-label="Menyu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
       {/* Title */}
       {title && (
-        <h1 className="text-base font-semibold text-gray-800 dark:text-gray-100 mr-auto">{title}</h1>
+        <h1 className="text-base font-semibold text-gray-800 dark:text-gray-100 mr-auto truncate">{title}</h1>
       )}
 
-      {/* Search */}
-      <div className="relative flex-1 max-w-xs ml-auto">
+      {/* Search — faqat desktop */}
+      <div className="relative flex-1 max-w-xs ml-auto hidden md:block">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
@@ -67,6 +77,7 @@ const Header = ({ title }: HeaderProps) => {
         />
       </div>
 
+      <div className="ml-auto md:ml-0 flex items-center gap-2 sm:gap-4">
       {/* Language */}
       <LanguageSwitcher />
 
@@ -103,6 +114,7 @@ const Header = ({ title }: HeaderProps) => {
           <div className="text-xs text-gray-400 dark:text-gray-500 leading-tight">{user?.phone}</div>
         </div>
       </button>
+      </div>
     </header>
   );
 };

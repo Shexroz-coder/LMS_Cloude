@@ -2,8 +2,18 @@
 // Robotic Edu LMS — TypeScript Types
 // =============================================
 
-export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
+export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT' | 'FOUNDER';
 export type Language = 'uz' | 'ru';
+
+export interface Branch {
+  id: number;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+  studentsCount?: number;
+  groupsCount?: number;
+}
 
 export interface User {
   id: number;

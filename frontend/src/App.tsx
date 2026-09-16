@@ -26,6 +26,14 @@ import HolidaysPage from './pages/admin/HolidaysPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminDebtorsPage from './pages/admin/AdminDebtorsPage';
 import AdminBillingPage from './pages/admin/AdminBillingPage';
+import BranchesPage from './pages/admin/BranchesPage';
+import ArchivesPage from './pages/admin/ArchivesPage';
+import PermissionsPage from './pages/admin/PermissionsPage';
+
+// Pages — Founder
+import FounderDashboard from './pages/founder/FounderDashboard';
+import FounderFinance from './pages/founder/FounderFinance';
+import FounderPayments from './pages/founder/FounderPayments';
 
 // Pages — Teacher
 import TeacherLayout from './components/layout/TeacherLayout';
@@ -46,6 +54,9 @@ import StudentPaymentsPage from './pages/student/StudentPaymentsPage';
 import ParentLayout from './components/layout/ParentLayout';
 import ParentDashboard from './pages/parent/ParentDashboard';
 import ParentPaymentsPage from './pages/parent/ParentPaymentsPage';
+
+// Founder layout (umumiy AppLayout ishlatiladi)
+import AppLayout from './components/layout/AppLayout';
 
 // Shared
 import NotificationsPage from './pages/shared/NotificationsPage';
@@ -77,6 +88,7 @@ const RootRedirect = () => {
 
   switch (user?.role) {
     case 'ADMIN': return <Navigate to="/admin" replace />;
+    case 'FOUNDER': return <Navigate to="/founder" replace />;
     case 'TEACHER': return <Navigate to="/teacher" replace />;
     case 'STUDENT': return <Navigate to="/student" replace />;
     case 'PARENT': return <Navigate to="/parent" replace />;
@@ -117,6 +129,23 @@ const App = () => {
         <Route path="attendance-export" element={<AttendanceExportPage />} />
         <Route path="debtors" element={<AdminDebtorsPage />} />
         <Route path="billing" element={<AdminBillingPage />} />
+        <Route path="branches" element={<BranchesPage />} />
+        <Route path="archives" element={<ArchivesPage />} />
+        <Route path="permissions" element={<PermissionsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
+
+      {/* ── Founder (Ta'sischi) ── */}
+      <Route path="/founder" element={
+        <PrivateRoute allowedRoles={['FOUNDER']}>
+          <AppLayout showAI={false} />
+        </PrivateRoute>
+      }>
+        <Route index element={<FounderDashboard />} />
+        <Route path="finance" element={<FounderFinance />} />
+        <Route path="payments" element={<FounderPayments />} />
+        <Route path="archives" element={<ArchivesPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

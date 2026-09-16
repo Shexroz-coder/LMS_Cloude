@@ -121,8 +121,13 @@ const PaymentsPage = () => {
     o.groupName.toLowerCase().includes(obligSearch.toLowerCase())
   );
 
-  const totalDebtAmount = filteredObligations.reduce((sum, o) => sum + o.currentDebt, 0);
-  const studentsWithDebt = filteredObligations.filter(o => o.hasDebt).length;
+  // Qarz o'quvchi bo'yicha YAGONA sanaladi (bir o'quvchi bir necha guruhda bo'lsa ham)
+  const uniqueDebts = new Map<number, number>();
+  filteredObligations.forEach(o => {
+    if (!uniqueDebts.has(o.studentId)) uniqueDebts.set(o.studentId, Number(o.currentDebt || 0));
+  });
+  const totalDebtAmount = [...uniqueDebts.values()].reduce((sum, v) => sum + v, 0);
+  const studentsWithDebt = [...new Set(filteredObligations.filter(o => o.hasDebt).map(o => o.studentId))].length;
 
   const rawData = data?.data;
   const payments: Payment[] = Array.isArray(rawData) ? rawData : (rawData?.payments || []);

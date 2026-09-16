@@ -11,7 +11,8 @@ export const getCourses = async (_req: AuthRequest, res: Response): Promise<void
   try {
     const courses = await prisma.course.findMany({
       include: {
-        _count: { select: { groups: true } }
+        // Faqat FAOL guruhlar sanaladi (arxiv/tugagan guruhlar emas)
+        _count: { select: { groups: { where: { status: 'ACTIVE' } } } }
       },
       orderBy: { name: 'asc' }
     });

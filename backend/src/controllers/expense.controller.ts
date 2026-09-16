@@ -17,6 +17,13 @@ export const getExpenses = async (req: AuthRequest, res: Response): Promise<void
     const where: Record<string, unknown> = {};
     if (category) where.category = category;
 
+    // Filial filtri
+    {
+      const bRaw = (req.query as Record<string, string>).branchId;
+      const bId = bRaw && bRaw !== 'all' ? parseInt(bRaw) : NaN;
+      if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
+    }
+
     // month filter — agar berilmasa BARCHA xarajatlar
     if (month) {
       const start = new Date(month + '-01T00:00:00.000Z');
@@ -69,8 +76,9 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
         amount: parsedAmount,
         date: new Date(date),
         description: description || null,
-        addedBy: req.user?.id
-      },
+        addedBy: req.user?.id,
+        ...((req.body as any).branchId ? { branchId: parseInt(String((req.body as any).branchId)) } : {}),
+      } as any,
       include: { user: { select: { fullName: true } } }
     });
     sendSuccess(res, expense, 'Xarajat kiritildi!', 201);

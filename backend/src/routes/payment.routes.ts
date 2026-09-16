@@ -18,7 +18,7 @@ const router = Router();
 
 // ── Static routes (/:id dan oldin!) ─────────────────────
 router.get('/billing', authorize('ADMIN'), getBillingOverview);
-router.get('/summary', authorize('ADMIN'), getFinanceSummary);
+router.get('/summary', authorize('ADMIN', 'FOUNDER'), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
 router.get('/debtors-review', authorize('ADMIN'), getDebtorsReview);
@@ -40,7 +40,7 @@ router.post('/student/:studentId/waive-debt', authorize('ADMIN'), waiveStudentDe
 router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 
 // ── General ──────────────────────────────────────────────
-router.get('/', authorize('ADMIN'), getPayments);
+router.get('/', authorize('ADMIN', 'FOUNDER'), getPayments);
 router.post('/', authorize('ADMIN'), createPayment);
 router.put('/:id', authorize('ADMIN'), updatePayment);
 router.delete('/:id', authorize('ADMIN'), deletePayment);

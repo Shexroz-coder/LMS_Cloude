@@ -21,14 +21,20 @@ export const connectSocket = (): Socket => {
   }
 
   // Yangi socket yaratish
-  socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+  // Production: shu origin orqali (nginx /socket.io proxy qiladi)
+  // Development: localhost:5000
+  const socketUrl =
+    import.meta.env.VITE_SOCKET_URL ||
+    (import.meta.env.PROD ? window.location.origin : 'http://localhost:5000');
+
+  socket = io(socketUrl, {
     auth: { token },
     transports: ['websocket', 'polling'],
     autoConnect: true,
     reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 30000,
     timeout: 10000,
   });
 
@@ -44,8 +50,13 @@ export const connectSocket = (): Socket => {
     }
   });
 
+  let errorLogged = false;
   socket.on('connect_error', (err) => {
-    console.error('🔴 Socket ulanish xatosi:', err.message);
+    // Bir marta log — konsolni to'ldirmaslik uchun
+    if (!errorLogged) {
+      console.warn('🔴 Socket ulanish xatosi:', err.message);
+      errorLogged = true;
+    }
     // Token muammosi bo'lsa, yangi token bilan qayta ulanamiz
     if (err.message === 'Token noto\'g\'ri' || err.message === 'Token kerak') {
       const freshToken = useAuthStore.getState().accessToken;
@@ -54,6 +65,13 @@ export const connectSocket = (): Socket => {
       }
     }
   });
+
+  // Urinishlar tugagach — butunlay to'xtatish (cheksiz loop oldini olish)
+  socket.io.on('reconnect_failed', () => {
+    console.warn('⚠️ Socket qayta ulanish to\'xtatildi (limit tugadi). Sahifa yangilanganda qayta uriniladi.');
+  });
+
+  socket.on('connect', () => { errorLogged = false; });
 
   return socket;
 };

@@ -40,6 +40,14 @@ interface Student {
 const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
+// Xavfsiz sana formatlash — yaroqsiz sana React'ni yiqitmasligi uchun
+const safeFormat = (value: string | Date | null | undefined, fmt: string): string => {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '—';
+  try { return format(d, fmt); } catch { return '—'; }
+};
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="bg-white rounded-xl border border-gray-100 p-4">
     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{title}</h3>
@@ -241,7 +249,7 @@ const StudentDetailPage = () => {
                           <CalendarDays className="w-3.5 h-3.5 text-emerald-500" />
                           <span>O'qishni boshlagan:</span>
                           <span className="font-medium text-gray-700">
-                            {gs.joinedAt ? format(new Date(gs.joinedAt), 'd-MMM yyyy') : '—'}
+                            {safeFormat(gs.joinedAt, 'd-MMM yyyy')}
                           </span>
                         </div>
                         <button
@@ -280,19 +288,19 @@ const StudentDetailPage = () => {
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-amber-500">🎯</span>
                   <span className="text-gray-500 text-xs w-28">Demo dars:</span>
-                  <span className="font-medium text-amber-700">{format(new Date(s.demoDate), 'd-MMMM yyyy')}</span>
+                  <span className="font-medium text-amber-700">{safeFormat(s.demoDate, 'd-MMMM yyyy')}</span>
                 </div>
               )}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-blue-500">📅</span>
                 <span className="text-gray-500 text-xs w-28">Qo'shilgan:</span>
-                <span className="font-medium text-gray-700">{format(new Date(s.user.createdAt), 'd-MMMM yyyy')}</span>
+                <span className="font-medium text-gray-700">{safeFormat(s.user.createdAt, 'd-MMMM yyyy')}</span>
               </div>
               {s.status === 'INACTIVE' && s.leftAt && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-red-400">🚪</span>
                   <span className="text-gray-500 text-xs w-28">Ketgan:</span>
-                  <span className="font-medium text-red-600">{format(new Date(s.leftAt), 'd-MMMM yyyy')}</span>
+                  <span className="font-medium text-red-600">{safeFormat(s.leftAt, 'd-MMMM yyyy')}</span>
                 </div>
               )}
               {s.leftReason && (
@@ -306,7 +314,7 @@ const StudentDetailPage = () => {
           {/* Personal info */}
           <Section title="Shaxsiy ma'lumotlar">
             <div className="space-y-2">
-              {s.birthDate && <InfoRow icon={Calendar} label={format(new Date(s.birthDate), 'd-MMMM yyyy')} />}
+              {s.birthDate && <InfoRow icon={Calendar} label={safeFormat(s.birthDate, 'd-MMMM yyyy')} />}
               {s.address && <InfoRow icon={MapPin} label={s.address} />}
               {s.parent && <InfoRow icon={Phone} label={`${s.parent.fullName} (${s.parent.phone})`} />}
               {s.discountType && s.discountValue ? (
@@ -361,7 +369,7 @@ const StudentDetailPage = () => {
                   <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-100">
                     <div>
                       <p className="text-sm font-medium text-gray-800">
-                        {format(new Date(r.date), 'd-MMM yyyy')}
+                        {safeFormat(r.date, 'd-MMM yyyy')}
                       </p>
                       {r.lesson?.topic && (
                         <p className="text-xs text-gray-400 truncate max-w-[200px]">{r.lesson.topic}</p>
@@ -401,7 +409,7 @@ const StudentDetailPage = () => {
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{formatMoney(p.amount)}</p>
                     <p className="text-xs text-gray-400">
-                      {format(new Date(p.date), 'd-MMM yyyy')}
+                      {safeFormat(p.date, 'd-MMM yyyy')}
                       {p.group?.name && ` · ${p.group.name}`}
                     </p>
                     {p.description && <p className="text-xs text-gray-400 truncate">{p.description}</p>}

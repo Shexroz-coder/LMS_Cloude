@@ -154,7 +154,7 @@ export default function AdminDebtorsPage() {
     total:       all.length,
     withDebt:    all.filter(s => s.currentDebt > 0).length,
     dueSoon:     all.filter(s => s.isDueSoon || s.isOverdue).length,
-    totalDebt:   all.reduce((s, x) => s + x.currentDebt, 0),
+    totalDebt:   all.reduce((s, x) => s + Number(x.currentDebt || 0), 0),
   }), [all]);
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ export default function AdminDebtorsPage() {
             <span>O'quvchi</span>
             <span>Guruh</span>
             <span>Oylik summa</span>
-            <span>Qarz</span>
+            <span>Qarz / Balans</span>
             <span>Keyingi to'lov</span>
             <span>Telegram</span>
           </div>
@@ -335,16 +335,22 @@ export default function AdminDebtorsPage() {
                   <div className="hidden sm:flex items-center gap-1.5">
                     <div>
                       {s.currentDebt > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-sm font-bold text-red-600 dark:text-red-400">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          {fmt(s.currentDebt)} so'm
+                        <span className="inline-flex flex-col">
+                          <span className="inline-flex items-center gap-1 text-sm font-bold text-red-600 dark:text-red-400">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            {fmt(s.currentDebt)} so'm
+                          </span>
+                          <span className="text-[10px] text-red-400">qarz</span>
                         </span>
                       ) : s.currentBalance > 0 ? (
-                        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                          +{fmt(s.currentBalance)} so'm
+                        <span className="inline-flex flex-col">
+                          <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                            +{fmt(s.currentBalance)} so'm
+                          </span>
+                          <span className="text-[10px] text-emerald-500">oldindan to'lov</span>
                         </span>
                       ) : (
-                        <span className="text-sm text-gray-300 dark:text-gray-600">—</span>
+                        <span className="text-sm text-gray-300 dark:text-gray-600" title="Qarz ham, balans ham yo'q">—</span>
                       )}
                     </div>
                     <button
