@@ -151,8 +151,28 @@ model Branch {
   groups   Group[]
   payments Payment[]
   expenses Expense[]
+  rooms    Room[]
 
   @@map("branches")
+}
+
+// ============================================
+// XONALAR — filial ichidagi o'quv xonalari
+// ============================================
+
+model Room {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  branchId  Int      @map("branch_id")
+  capacity  Int?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  groups Group[]
+
+  @@index([branchId])
+  @@map("rooms")
 }
 
 // ============================================
@@ -330,9 +350,11 @@ model Group {
   room        String?     @db.VarChar(50)
   createdAt   DateTime    @default(now()) @map("created_at")
 
-  // Filial
+  // Filial va Xona
   branchId Int?    @map("branch_id")
   branch   Branch? @relation(fields: [branchId], references: [id])
+  roomId   Int?    @map("room_id")
+  roomRel  Room?   @relation(fields: [roomId], references: [id])
 
   // Relations
   course       Course         @relation(fields: [courseId], references: [id])
@@ -345,6 +367,7 @@ model Group {
 
   @@index([status])
   @@index([teacherId])
+  @@index([roomId])
   @@map("groups")
 }
 

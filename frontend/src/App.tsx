@@ -27,6 +27,7 @@ import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminDebtorsPage from './pages/admin/AdminDebtorsPage';
 import AdminBillingPage from './pages/admin/AdminBillingPage';
 import BranchesPage from './pages/admin/BranchesPage';
+import BranchDetailPage from './pages/admin/BranchDetailPage';
 import ArchivesPage from './pages/admin/ArchivesPage';
 import PermissionsPage from './pages/admin/PermissionsPage';
 
@@ -130,6 +131,7 @@ const App = () => {
         <Route path="debtors" element={<AdminDebtorsPage />} />
         <Route path="billing" element={<AdminBillingPage />} />
         <Route path="branches" element={<BranchesPage />} />
+        <Route path="branches/:id" element={<BranchDetailPage />} />
         <Route path="archives" element={<ArchivesPage />} />
         <Route path="permissions" element={<PermissionsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />

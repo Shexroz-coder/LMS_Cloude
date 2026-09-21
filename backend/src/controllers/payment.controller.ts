@@ -110,7 +110,9 @@ export const createPayment = async (req: AuthRequest, res: Response): Promise<vo
           note,
           receivedBy: req.user!.id,
           groupId: groupId ? parseInt(groupId) : null,
-        },
+          // Filial — o'quvchining filialidan (alohida moliya uchun)
+          ...((student as any).branchId ? { branchId: (student as any).branchId } : {}),
+        } as any,
         include: {
           student: { include: { user: { select: { fullName: true, phone: true } } } },
           group: { include: { course: { select: { name: true } } } }

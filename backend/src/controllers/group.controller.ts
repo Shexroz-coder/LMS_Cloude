@@ -163,6 +163,7 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
           room,
           status: 'ACTIVE',
           ...((req.body as any).branchId ? { branchId: parseInt(String((req.body as any).branchId)) } : {}),
+          ...((req.body as any).roomId ? { roomId: parseInt(String((req.body as any).roomId)) } : {}),
         } as any,
         include: groupInclude
       });
@@ -196,7 +197,7 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
 export const updateGroup = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
-    const { name, courseId, teacherId, maxStudents, startDate, endDate, room, status } = req.body;
+    const { name, courseId, teacherId, maxStudents, startDate, endDate, room, status, branchId, roomId } = req.body;
 
     const group = await prisma.group.findUnique({ where: { id } });
     if (!group) {
@@ -215,7 +216,9 @@ export const updateGroup = async (req: AuthRequest, res: Response): Promise<void
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(room !== undefined && { room }),
         ...(status && { status }),
-      },
+        ...(branchId !== undefined && { branchId: branchId ? parseInt(String(branchId)) : null }),
+        ...(roomId !== undefined && { roomId: roomId ? parseInt(String(roomId)) : null }),
+      } as any,
       include: groupInclude
     });
 

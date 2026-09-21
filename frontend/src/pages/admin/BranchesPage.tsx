@@ -3,8 +3,9 @@
  * Mobil-moslashuvchan karta ko'rinishida.
  */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { Building2, Plus, Edit3, X, MapPin, Phone, Users, BookOpen, Check } from 'lucide-react';
+import { Building2, Plus, Edit3, X, MapPin, Phone, Users, BookOpen, Check, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import api from '../../api/axios';
@@ -12,6 +13,7 @@ import { Branch } from '../../types';
 
 export default function BranchesPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; branch?: Branch } | null>(null);
 
   const { data: branches = [], isLoading } = useQuery<Branch[]>(
@@ -48,7 +50,11 @@ export default function BranchesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {branches.map(b => (
-            <div key={b.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 p-5">
+            <div
+              key={b.id}
+              onClick={() => navigate(`/admin/branches/${b.id}`)}
+              className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 p-5 cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group"
+            >
               <div className="flex items-start justify-between mb-3">
                 <div className={clsx(
                   'w-10 h-10 rounded-xl flex items-center justify-center',
@@ -57,13 +63,16 @@ export default function BranchesPage() {
                   <Building2 className="w-5 h-5" />
                 </div>
                 <button
-                  onClick={() => setModal({ mode: 'edit', branch: b })}
+                  onClick={(e) => { e.stopPropagation(); setModal({ mode: 'edit', branch: b }); }}
                   className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-zinc-100 dark:hover:bg-gray-700 rounded-lg"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
               </div>
-              <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{b.name}</h3>
+              <h3 className="font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
+                {b.name}
+                <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-indigo-500 transition-colors" />
+              </h3>
               {!b.isActive && <span className="text-xs text-red-500">Nofaol</span>}
               {b.address && (
                 <p className="text-xs text-zinc-500 mt-1 flex items-center gap-1">
