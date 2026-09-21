@@ -1,0 +1,18 @@
+{
+  "name": "roboticedu-mcp",
+  "version": "1.0.0",
+  "description": "Robotic Edu LMS — MCP server (AI agent bilan tizimni boshqarish)",
+  "type": "module",
+  "bin": {
+    "roboticedu-mcp": "index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

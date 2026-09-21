@@ -19,6 +19,7 @@ import holidayRoutes from './holiday.routes';
 import branchRoutes from './branch.routes';
 import archiveRoutes from './archive.routes';
 import permissionRoutes from './permission.routes';
+import agentRoutes from './agent.routes';
 import { authenticate } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
 
@@ -39,6 +40,9 @@ router.use('/auth', authRoutes);
 
 // PayMe webhook — public (auth PayMe tomonidan tekshiriladi)
 router.use('/payme', paymeRoutes);
+
+// AI Agent API — API-kalit bilan himoyalangan (JWT emas)
+router.use('/agent', agentRoutes);
 
 // Public: courses list (ro'yxatdan o'tish formasi uchun)
 router.get('/public/courses', async (_req, res) => {
