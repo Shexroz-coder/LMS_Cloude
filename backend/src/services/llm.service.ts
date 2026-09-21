@@ -143,9 +143,30 @@ async function geminiChat(messages: ChatMessage[], tools?: ToolDef[]): Promise<C
   return { content, toolCalls };
 }
 
-// ── Umumiy ──
+// OpenAI'ga yuborishdan oldin Gemini'ga xos maydonlarni tozalash
+function sanitizeForOpenAI(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map(m => {
+    if (m.tool_calls) {
+      return { ...m, tool_calls: m.tool_calls.map((tc: any) => ({ id: tc.id, type: tc.type, function: tc.function })) };
+    }
+    return m;
+  });
+}
+
+// ── Umumiy (Gemini band bo'lsa OpenAI'ga tushadi) ──
 export async function chatWithTools(messages: ChatMessage[], tools?: ToolDef[]): Promise<ChatResult> {
-  if (llmProvider() === 'gemini') return geminiChat(messages, tools);
+  if (llmProvider() === 'gemini') {
+    try {
+      return await geminiChat(messages, tools);
+    } catch (e) {
+      // Gemini band/xato → OpenAI GPT zaxira (kalit bo'lsa)
+      if (process.env.OPENAI_API_KEY) {
+        console.warn('⚠️ Gemini band — OpenAI zaxiraga o\'tildi:', (e as Error).message);
+        return openaiChat(sanitizeForOpenAI(messages), tools);
+      }
+      throw e;
+    }
+  }
   return openaiChat(messages, tools);
 }
 

@@ -67,10 +67,19 @@ async function geminiTranscribe(audio: Buffer, mime = 'audio/ogg'): Promise<stri
   return text.trim();
 }
 
-// ── Umumiy: provayderga qarab ──
+// ── Umumiy: provayderga qarab (Gemini band bo'lsa Whisper'ga tushadi) ──
 export async function transcribe(audio: Buffer, filename = 'voice.oga', mime = 'audio/ogg'): Promise<string> {
   if (sttProvider() === 'gemini') {
-    return geminiTranscribe(audio, mime);
+    try {
+      return await geminiTranscribe(audio, mime);
+    } catch (e) {
+      // Gemini band/xato → OpenAI Whisper zaxira (kalit bo'lsa)
+      if (process.env.OPENAI_API_KEY) {
+        console.warn('⚠️ Gemini STT band — Whisper zaxiraga o\'tildi:', (e as Error).message);
+        return whisperTranscribe(audio, filename);
+      }
+      throw e;
+    }
   }
   return whisperTranscribe(audio, filename);
 }
