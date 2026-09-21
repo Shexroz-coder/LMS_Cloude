@@ -29,8 +29,9 @@ export async function transcribeAudio(audio: Buffer, filename = 'voice.oga'): Pr
   const blob = new Blob([audio]);
   form.append('file', blob, filename);
   form.append('model', 'whisper-1');
-  // O'zbek/rus aralash — tilni avtomatik aniqlaydi, lekin ipucha beramiz
-  form.append('prompt', 'Bu o\'quv markazi administratori uchun buyruq. O\'zbekcha yoki ruscha.');
+  // O'zbek tilini majburiy belgilaymiz — aks holda rus/turk deb adashadi
+  form.append('language', process.env.STT_LANGUAGE || 'uz');
+  form.append('prompt', 'Bu o\'quv markazi administratori uchun o\'zbekcha buyruq. O\'quvchi ismlari, to\'lov, davomat, guruh haqida.');
 
   const res = await fetch(`${OPENAI_BASE}/audio/transcriptions`, {
     method: 'POST',

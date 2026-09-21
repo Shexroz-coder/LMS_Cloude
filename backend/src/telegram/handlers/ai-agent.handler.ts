@@ -11,7 +11,8 @@
 import { InlineKeyboard } from 'grammy';
 import { BotContext } from '../bot';
 import { getUserByChatId } from '../services/data.service';
-import { isOpenAIConfigured, transcribeAudio, chatWithTools, ChatMessage, ToolDef } from '../../services/openai.service';
+import { isOpenAIConfigured, chatWithTools, ChatMessage, ToolDef } from '../../services/openai.service';
+import { transcribe, isSttConfigured } from '../../services/stt.service';
 import * as tools from '../../services/agent-tools.service';
 
 // ─── Kim AI agentdan foydalana oladi ───
@@ -187,8 +188,8 @@ export async function handleVoice(ctx: BotContext): Promise<void> {
     await ctx.reply('🎙 Ovozli buyruq faqat administrator uchun. /start bilan hisobingizni ulang.');
     return;
   }
-  if (!isOpenAIConfigured()) {
-    await ctx.reply('🤖 AI agent sozlanmagan (OPENAI_API_KEY yo\'q).');
+  if (!isSttConfigured()) {
+    await ctx.reply('🤖 Ovoz tanish sozlanmagan (STT kaliti yo\'q).');
     return;
   }
 
@@ -200,7 +201,7 @@ export async function handleVoice(ctx: BotContext): Promise<void> {
     const resp = await fetch(url);
     const buf = Buffer.from(await resp.arrayBuffer());
 
-    const text = await transcribeAudio(buf, 'voice.oga');
+    const text = await transcribe(buf, 'voice.oga', 'audio/ogg');
     if (!text) { await ctx.reply('🎙 Ovozni tushunolmadim, qayta urinib ko\'ring.'); return; }
 
     await ctx.reply(`🗣 <i>${text}</i>`, { parse_mode: 'HTML' });
