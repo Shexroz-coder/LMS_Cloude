@@ -3,6 +3,7 @@ import {
   getBranches, createBranch, updateBranch, assignToBranch,
   getBranchDetail, createRoom, updateRoom, deleteRoom, assignGroupsToRoom,
   getBranchManager, assignManager, removeManager, setManagerPermission,
+  transferToBranch,
 } from '../controllers/branch.controller';
 import { authorize } from '../middleware/auth.middleware';
 import { adminOrManager } from '../middleware/permission.middleware';
@@ -19,6 +20,7 @@ router.get('/:id/detail', adminOrManager('students.view'), getBranchDetail);
 router.post('/', authorize('ADMIN'), createBranch);
 router.put('/:id', authorize('ADMIN'), updateBranch);
 router.post('/:id/assign', authorize('ADMIN'), assignToBranch);
+router.post('/transfer', authorize('ADMIN'), transferToBranch);
 
 // Xonalar — ADMIN
 router.post('/:id/rooms', authorize('ADMIN'), createRoom);

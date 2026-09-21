@@ -295,6 +295,10 @@ model Student {
   branchId Int?    @map("branch_id")
   branch   Branch? @relation(fields: [branchId], references: [id])
 
+  // Filialga ko'chirish (rejalashtirilgan — yangi oydan kuchga kiradi)
+  pendingBranchId Int?      @map("pending_branch_id")
+  branchTransferAt DateTime? @map("branch_transfer_at")
+
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent          User?             @relation("ParentStudents", fields: [parentId], references: [id])
@@ -377,6 +381,10 @@ model Group {
   branch   Branch? @relation(fields: [branchId], references: [id])
   roomId   Int?    @map("room_id")
   roomRel  Room?   @relation(fields: [roomId], references: [id])
+
+  // Filialga ko'chirish (rejalashtirilgan — yangi oydan)
+  pendingBranchId  Int?      @map("pending_branch_id")
+  branchTransferAt DateTime? @map("branch_transfer_at")
 
   // Relations
   course       Course         @relation(fields: [courseId], references: [id])

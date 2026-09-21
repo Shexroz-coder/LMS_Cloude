@@ -16,6 +16,7 @@ import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
 import { countLessonsInMonth, countLessonsInMonthFromDate } from '../utils/schedule.utils';
+import { applyPendingBranchTransfers } from '../controllers/branch.controller';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -352,8 +353,10 @@ export async function sendPromiseDateReminders() {
 // ══════════════════════════════════════════════════════
 export function startMonthlyDebtCron() {
   // Har kuni 00:01 — to'lov kuni kelgan o'quvchilar uchun qarz hisoblash
+  // + rejalashtirilgan filial ko'chirishlarini qo'llash (yangi oy kelganda)
   cron.schedule('1 0 * * *', async () => {
     console.log('🔄 [CRON] Kunlik qarz tekshiruvi...');
+    try { await applyPendingBranchTransfers(); } catch (err) { console.error('❌ [CRON] ko\'chirish:', err); }
     try { await calculateMonthlyDebts(); } catch (err) { console.error('❌ [CRON]:', err); }
   }, { timezone: 'Asia/Tashkent' });
 

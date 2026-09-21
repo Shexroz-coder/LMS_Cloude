@@ -76,6 +76,7 @@ const StudentDetailPage = () => {
   const [joinedAtValue, setJoinedAtValue] = useState('');
   const [savingJoinedAt, setSavingJoinedAt] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const { data: s, isLoading, isError } = useQuery<Student>(
     ['student-detail', studentId],
@@ -178,12 +179,21 @@ const StudentDetailPage = () => {
               {s.user.email && <p className="text-white/60 text-xs mt-0.5">{s.user.email}</p>}
             </div>
           </div>
-          <button
-            onClick={() => setShowEditModal(true)}
-            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Edit2 className="w-3.5 h-3.5" /> Tahrirlash
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTransferModal(true)}
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              title="Boshqa filialga ko'chirish"
+            >
+              🏢 Ko'chirish
+            </button>
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" /> Tahrirlash
+            </button>
+          </div>
         </div>
 
         {/* Quick stats */}
@@ -456,8 +466,74 @@ const StudentDetailPage = () => {
           </div>
         </div>
       )}
+
+      {showTransferModal && (
+        <TransferStudentModal studentId={studentId} studentName={s.user.fullName}
+          onClose={() => setShowTransferModal(false)}
+          onDone={() => { setShowTransferModal(false); qc.invalidateQueries(['student-detail', studentId]); }} />
+      )}
     </div>
   );
 };
+
+// ─── O'quvchini boshqa filialga ko'chirish ───
+function TransferStudentModal({ studentId, studentName, onClose, onDone }: {
+  studentId: number; studentName: string; onClose: () => void; onDone: () => void;
+}) {
+  const [targetBranchId, setTargetBranchId] = useState<number | null>(null);
+  const [immediate, setImmediate] = useState(false);
+  const { data: branches = [] } = useQuery<any[]>(['branches'], () => api.get('/branches').then(r => r.data?.data ?? []));
+
+  const mutation = useMutation(
+    () => api.post('/branches/transfer', { studentIds: [studentId], targetBranchId, immediate }),
+    { onSuccess: (r: any) => { toast.success(r.data?.message || 'Ko\'chirildi'); onDone(); },
+      onError: (e: any) => { toast.error(e.response?.data?.message || 'Xato!'); } }
+  );
+  const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('uz-UZ');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-100">O'quvchini ko'chirish</h2>
+          <button onClick={onClose} className="p-1 hover:bg-zinc-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-zinc-500" /></button>
+        </div>
+        <p className="text-sm text-zinc-500 mb-4">{studentName} ni boshqa filialga ko'chirasiz.</p>
+
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">Qaysi filialga?</span>
+          <select value={targetBranchId ?? ''} onChange={e => setTargetBranchId(Number(e.target.value) || null)}
+            className="w-full border border-zinc-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">— Filial tanlang —</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </label>
+
+        <div className="space-y-2 mb-5">
+          <button type="button" onClick={() => setImmediate(false)}
+            className={clsx('w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
+              !immediate ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-zinc-200 dark:border-gray-600')}>
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">📅 Yangi oydan ({nextMonth})</p>
+            <p className="text-xs text-zinc-500">Joriy oy moliyasi eski filialda qoladi. Tavsiya.</p>
+          </button>
+          <button type="button" onClick={() => setImmediate(true)}
+            className={clsx('w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
+              immediate ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : 'border-zinc-200 dark:border-gray-600')}>
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">⚡ Darhol</p>
+            <p className="text-xs text-zinc-500">Hoziroq, moliya ham shu ondan.</p>
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-zinc-200 dark:border-gray-600 rounded-xl text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-gray-700 font-medium">Bekor</button>
+          <button onClick={() => mutation.mutate()} disabled={mutation.isLoading || !targetBranchId}
+            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold">
+            {mutation.isLoading ? '...' : "Ko'chirish"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default StudentDetailPage;

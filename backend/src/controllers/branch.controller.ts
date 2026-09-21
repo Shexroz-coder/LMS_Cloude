@@ -382,3 +382,95 @@ export const setManagerPermission = async (req: AuthRequest, res: Response): Pro
     sendError(res, 'Ruxsatni yangilashda xato.', 500);
   }
 };
+
+// ══════════════════════════════════════════════════════════════════
+// FILIALDAN FILIALGA KO'CHIRISH
+// Standart: yangi oyning 1-sanasidan kuchga kiradi (moliya yangi oydan).
+// immediate=true: darhol ko'chadi (moliya ham darhol yangi filialga).
+// ══════════════════════════════════════════════════════════════════
+function nextMonthStart(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+}
+
+export const transferToBranch = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { studentIds, groupId, targetBranchId, immediate } = req.body as {
+      studentIds?: number[]; groupId?: number; targetBranchId?: number; immediate?: boolean;
+    };
+    if (!targetBranchId) { sendError(res, 'targetBranchId kerak.', 400); return; }
+
+    const branch = await p.branch.findUnique({ where: { id: Number(targetBranchId) } });
+    if (!branch) { sendError(res, 'Maqsad filial topilmadi.', 404); return; }
+
+    const effectiveAt = immediate ? new Date() : nextMonthStart();
+    let movedStudents = 0, movedGroups = 0;
+
+    // ── Butun guruh ──
+    if (groupId) {
+      const gid = Number(groupId);
+      // Guruhning faol o'quvchilari
+      const gsList = await p.groupStudent.findMany({ where: { groupId: gid, status: 'ACTIVE' }, select: { studentId: true } });
+      const sids = gsList.map((x: any) => x.studentId);
+
+      if (immediate) {
+        await p.group.update({ where: { id: gid }, data: { branchId: Number(targetBranchId), roomId: null, pendingBranchId: null, branchTransferAt: null } });
+        if (sids.length) await p.student.updateMany({ where: { id: { in: sids } }, data: { branchId: Number(targetBranchId), pendingBranchId: null, branchTransferAt: null } });
+      } else {
+        await p.group.update({ where: { id: gid }, data: { pendingBranchId: Number(targetBranchId), branchTransferAt: effectiveAt } });
+        if (sids.length) await p.student.updateMany({ where: { id: { in: sids } }, data: { pendingBranchId: Number(targetBranchId), branchTransferAt: effectiveAt } });
+      }
+      movedGroups = 1; movedStudents = sids.length;
+    }
+
+    // ── Alohida o'quvchilar ──
+    if (Array.isArray(studentIds) && studentIds.length) {
+      const ids = studentIds.map(Number);
+      if (immediate) {
+        await p.student.updateMany({ where: { id: { in: ids } }, data: { branchId: Number(targetBranchId), pendingBranchId: null, branchTransferAt: null } });
+      } else {
+        await p.student.updateMany({ where: { id: { in: ids } }, data: { pendingBranchId: Number(targetBranchId), branchTransferAt: effectiveAt } });
+      }
+      movedStudents += ids.length;
+    }
+
+    if (movedStudents === 0 && movedGroups === 0) { sendError(res, 'studentIds yoki groupId kerak.', 400); return; }
+
+    const when = immediate ? 'darhol' : `${effectiveAt.toLocaleDateString('uz-UZ')} dan (yangi oydan)`;
+    sendSuccess(res, { movedStudents, movedGroups, effectiveAt, immediate: !!immediate },
+      `${movedGroups ? '1 guruh' : ''}${movedGroups && movedStudents ? ', ' : ''}${movedStudents ? movedStudents + ' o\'quvchi' : ''} "${branch.name}" filialiga ${when} ko'chiriladi.`);
+  } catch (err) {
+    console.error('transferToBranch error:', err);
+    sendError(res, 'Ko\'chirishda xato.', 500);
+  }
+};
+
+// Cron: muddati kelgan rejalashtirilgan ko'chirishlarni qo'llash
+export async function applyPendingBranchTransfers(): Promise<{ students: number; groups: number }> {
+  const now = new Date();
+  let students = 0, groups = 0;
+  try {
+    // Guruhlar
+    const pendingGroups = await p.group.findMany({
+      where: { pendingBranchId: { not: null }, branchTransferAt: { lte: now } },
+      select: { id: true, pendingBranchId: true },
+    });
+    for (const g of pendingGroups) {
+      await p.group.update({ where: { id: g.id }, data: { branchId: g.pendingBranchId, roomId: null, pendingBranchId: null, branchTransferAt: null } });
+      groups++;
+    }
+    // O'quvchilar
+    const pendingStudents = await p.student.findMany({
+      where: { pendingBranchId: { not: null }, branchTransferAt: { lte: now } },
+      select: { id: true, pendingBranchId: true },
+    });
+    for (const s of pendingStudents) {
+      await p.student.update({ where: { id: s.id }, data: { branchId: s.pendingBranchId, pendingBranchId: null, branchTransferAt: null } });
+      students++;
+    }
+    if (students || groups) console.log(`✅ [CRON] Filial ko'chirish qo'llandi: ${groups} guruh, ${students} o'quvchi`);
+  } catch (e) {
+    console.error('applyPendingBranchTransfers error:', e);
+  }
+  return { students, groups };
+}

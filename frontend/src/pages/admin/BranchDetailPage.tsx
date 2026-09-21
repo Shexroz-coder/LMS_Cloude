@@ -36,6 +36,7 @@ export default function BranchDetailPage() {
 
   const [roomModal, setRoomModal] = useState<{ mode: 'create' | 'edit'; room?: RoomRow } | null>(null);
   const [assignRoom, setAssignRoom] = useState<RoomRow | null>(null);
+  const [transferGroup, setTransferGroup] = useState<GroupRow | null>(null);
 
   const { data, isLoading } = useQuery<BranchDetail>(
     ['branch-detail', branchId],
@@ -141,7 +142,7 @@ export default function BranchDetailPage() {
                 <p className="text-sm text-zinc-400 px-4 py-4">Bu xonada guruh yo'q</p>
               ) : (
                 <div className="divide-y divide-zinc-50 dark:divide-gray-700/50">
-                  {room.groups.map(g => <GroupLine key={g.id} g={g} />)}
+                  {room.groups.map(g => <GroupLine key={g.id} g={g} onTransfer={isAdmin ? setTransferGroup : undefined} />)}
                 </div>
               )}
             </div>
@@ -156,7 +157,7 @@ export default function BranchDetailPage() {
             Xonasiz guruhlar ({looseGroups.length})
           </h2>
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-zinc-300 dark:border-gray-600 overflow-hidden divide-y divide-zinc-50 dark:divide-gray-700/50">
-            {looseGroups.map(g => <GroupLine key={g.id} g={g} />)}
+            {looseGroups.map(g => <GroupLine key={g.id} g={g} onTransfer={isAdmin ? setTransferGroup : undefined} />)}
           </div>
         </>
       )}
@@ -169,11 +170,86 @@ export default function BranchDetailPage() {
         <AssignGroupsModal room={assignRoom} looseGroups={looseGroups}
           onClose={() => setAssignRoom(null)} onSaved={() => { setAssignRoom(null); refresh(); }} />
       )}
+      {transferGroup && (
+        <TransferGroupModal group={transferGroup} currentBranchId={branchId}
+          onClose={() => setTransferGroup(null)} onDone={() => { setTransferGroup(null); refresh(); }} />
+      )}
     </div>
   );
 }
 
-function GroupLine({ g }: { g: GroupRow }) {
+// ─── Guruhni boshqa filialga ko'chirish ───
+function TransferGroupModal({ group, currentBranchId, onClose, onDone }: {
+  group: GroupRow; currentBranchId: number; onClose: () => void; onDone: () => void;
+}) {
+  const [targetBranchId, setTargetBranchId] = useState<number | null>(null);
+  const [immediate, setImmediate] = useState(false);
+
+  const { data: branches = [] } = useQuery<any[]>(
+    ['branches'],
+    () => api.get('/branches').then(r => r.data?.data ?? []),
+  );
+  const others = branches.filter(b => b.id !== currentBranchId);
+
+  const mutation = useMutation(
+    () => api.post('/branches/transfer', { groupId: group.id, targetBranchId, immediate }),
+    { onSuccess: (r) => { toast.success(r.data?.message || 'Ko\'chirildi'); onDone(); },
+      onError: (e: any) => { toast.error(e.response?.data?.message || 'Xato!'); } }
+  );
+
+  const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('uz-UZ');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-zinc-800 dark:text-zinc-100">Guruhni ko'chirish</h2>
+          <button onClick={onClose} className="p-1 hover:bg-zinc-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5 text-zinc-500" /></button>
+        </div>
+
+        <div className="bg-zinc-50 dark:bg-gray-700/40 rounded-lg p-3 mb-4 text-sm">
+          <p className="font-semibold text-zinc-800 dark:text-zinc-100">{group.name}</p>
+          <p className="text-xs text-zinc-500">{group.courseName} · {group.studentsCount} o'quvchi</p>
+        </div>
+
+        <label className="block mb-3">
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 block">Qaysi filialga?</span>
+          <select value={targetBranchId ?? ''} onChange={e => setTargetBranchId(Number(e.target.value) || null)}
+            className="w-full border border-zinc-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="">— Filial tanlang —</option>
+            {others.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </label>
+
+        {/* Vaqt tanlash */}
+        <div className="space-y-2 mb-5">
+          <button type="button" onClick={() => setImmediate(false)}
+            className={clsx('w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
+              !immediate ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'border-zinc-200 dark:border-gray-600')}>
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">📅 Yangi oydan ({nextMonth})</p>
+            <p className="text-xs text-zinc-500">Joriy oy moliyasi eski filialda qoladi, yangi oydan yangi filialga o'tadi. Tavsiya.</p>
+          </button>
+          <button type="button" onClick={() => setImmediate(true)}
+            className={clsx('w-full text-left px-3 py-2.5 rounded-xl border-2 transition-all',
+              immediate ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : 'border-zinc-200 dark:border-gray-600')}>
+            <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">⚡ Darhol</p>
+            <p className="text-xs text-zinc-500">Hoziroq ko'chadi, moliya ham shu ondan yangi filialga.</p>
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-zinc-200 dark:border-gray-600 rounded-xl text-sm text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-gray-700 font-medium">Bekor</button>
+          <button onClick={() => mutation.mutate()} disabled={mutation.isLoading || !targetBranchId}
+            className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold">
+            {mutation.isLoading ? '...' : "Ko'chirish"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupLine({ g, onTransfer }: { g: GroupRow; onTransfer?: (g: GroupRow) => void }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-2.5">
       <div className="flex items-center gap-2 min-w-0">
@@ -186,9 +262,17 @@ function GroupLine({ g }: { g: GroupRow }) {
           </div>
         </div>
       </div>
-      <span className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-        <Users className="w-3.5 h-3.5 text-emerald-500" /> {g.studentsCount}
-      </span>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-300">
+          <Users className="w-3.5 h-3.5 text-emerald-500" /> {g.studentsCount}
+        </span>
+        {onTransfer && (
+          <button onClick={() => onTransfer(g)} title="Boshqa filialga ko'chirish"
+            className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-zinc-100 dark:hover:bg-gray-700 rounded-lg">
+            <ArrowLeft className="w-4 h-4 rotate-180" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
