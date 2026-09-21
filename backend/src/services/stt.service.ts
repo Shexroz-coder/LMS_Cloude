@@ -12,6 +12,24 @@ import { transcribeAudio as whisperTranscribe } from './openai.service';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+async function fetchRetry(url: string, init: RequestInit, tries = 4): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url, init);
+      if ((res.status === 429 || res.status === 503 || res.status === 500) && i < tries - 1) {
+        await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+    }
+  }
+  if (lastErr) throw lastErr;
+  return fetch(url, init);
+}
+
 export function sttProvider(): 'whisper' | 'gemini' {
   return (process.env.STT_PROVIDER === 'gemini') ? 'gemini' : 'whisper';
 }
@@ -26,7 +44,7 @@ async function geminiTranscribe(audio: Buffer, mime = 'audio/ogg'): Promise<stri
   if (!key) throw new Error('GEMINI_API_KEY .env da yo\'q');
   const model = process.env.GEMINI_STT_MODEL || 'gemini-3.6-flash';
 
-  const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
+  const res = await fetchRetry(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -41,6 +59,7 @@ async function geminiTranscribe(audio: Buffer, mime = 'audio/ogg'): Promise<stri
   });
   if (!res.ok) {
     const t = await res.text();
+    if (res.status === 503 || res.status === 429) throw new Error('Ovoz tanish xizmati band. Qayta urinib ko\'ring.');
     throw new Error(`Gemini STT xato: ${res.status} ${t.slice(0, 200)}`);
   }
   const json = await res.json() as any;

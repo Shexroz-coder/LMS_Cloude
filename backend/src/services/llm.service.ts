@@ -15,6 +15,26 @@ export type { ChatMessage, ToolDef, ChatResult } from './openai.service';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+// Vaqtinchalik xatolarda (429/503/500) qayta urinish — kutish bilan
+async function fetchRetry(url: string, init: RequestInit, tries = 4): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status === 429 || res.status === 503 || res.status === 500) {
+        // qayta urinishdan oldin kutamiz: 0.8s, 1.6s, 3.2s...
+        if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+    }
+  }
+  if (lastErr) throw lastErr;
+  return fetch(url, init);
+}
+
 export function llmProvider(): 'openai' | 'gemini' {
   return (process.env.LLM_PROVIDER === 'gemini') ? 'gemini' : 'openai';
 }
@@ -83,7 +103,7 @@ async function geminiChat(messages: ChatMessage[], tools?: ToolDef[]): Promise<C
   const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   const { systemInstruction, contents, geminiTools } = toGemini(messages, tools);
 
-  const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
+  const res = await fetchRetry(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -95,6 +115,9 @@ async function geminiChat(messages: ChatMessage[], tools?: ToolDef[]): Promise<C
   });
   if (!res.ok) {
     const t = await res.text();
+    if (res.status === 503 || res.status === 429) {
+      throw new Error('Gemini hozir band. Bir necha soniyadan keyin qayta urinib ko\'ring.');
+    }
     throw new Error(`Gemini xato: ${res.status} ${t.slice(0, 200)}`);
   }
   const json = await res.json() as any;
