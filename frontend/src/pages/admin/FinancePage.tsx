@@ -23,10 +23,23 @@ interface Payment {
 interface Expense {
   id: number;
   category: string;
-  amount: number;
+  amount: number;            // so'mda (normallashtirilgan)
   date: string;
   description?: string;
   user?: { fullName: string };
+  currency?: string;         // UZS | USD
+  originalAmount?: number;   // kiritilgan valyutadagi summa
+  exchangeRate?: number;     // 1$ = ? so'm
+}
+
+// Xarajat summasini ko'rsatish — dollarda kiritilgan bo'lsa ikkalasini
+function expenseAmountLabel(e: Expense): string {
+  const uzs = new Intl.NumberFormat('uz-UZ').format(Math.round(e.amount)) + " so'm";
+  if (e.currency === 'USD' && e.originalAmount) {
+    const usd = '$' + new Intl.NumberFormat('en-US').format(Math.round(e.originalAmount));
+    return `${usd} (${uzs})`;
+  }
+  return uzs;
 }
 
 interface Summary {
@@ -746,7 +759,10 @@ function ExpenseTable({ expenses, loading, totalAmount, emptyText, showMonth = f
                       {e.user?.fullName || '—'}
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
-                      <span className="font-bold text-red-500 dark:text-red-400">−{fmt(Number(e.amount))}</span>
+                      <span className="font-bold text-red-500 dark:text-red-400">−{expenseAmountLabel(e)}</span>
+                      {e.currency === 'USD' && (
+                        <span className="ml-1.5 text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">$</span>
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
@@ -786,24 +802,41 @@ function ExpenseModal({ expense, onClose, onSuccess }: {
   const isEdit = !!expense;
   const [form, setForm] = useState({
     category: expense?.category || 'OTHER',
-    amount: expense?.amount?.toString() || '',
+    // Tahrirlashда asl kiritilgan summa (dollar bo'lsa dollarda)
+    amount: (expense?.currency === 'USD' ? expense?.originalAmount : expense?.amount)?.toString() || '',
     date: expense?.date ? format(new Date(expense.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
     description: expense?.description || '',
+    currency: expense?.currency || 'UZS',
+    exchangeRate: expense?.exchangeRate?.toString() || '',
   });
   const [loading, setLoading] = useState(false);
   const cat = catInfo(form.category);
+
+  const isUsd = form.currency === 'USD';
+  const amountNum = parseFloat(form.amount) || 0;
+  const rateNum = parseFloat(form.exchangeRate) || 0;
+  const computedUzs = isUsd ? Math.round(amountNum * rateNum) : Math.round(amountNum);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount || !form.date) { toast.error('Summa va sana kiritilishi shart'); return; }
     if (parseFloat(form.amount) <= 0) { toast.error("Summa 0 dan katta bo'lishi kerak"); return; }
+    if (isUsd && (!rateNum || rateNum <= 0)) { toast.error("Dollar kursini kiriting (1$ = ? so'm)"); return; }
     setLoading(true);
     try {
+      const payload = {
+        category: form.category,
+        amount: form.amount,           // kiritilgan valyutadagi summa
+        date: form.date,
+        description: form.description,
+        currency: form.currency,
+        exchangeRate: isUsd ? form.exchangeRate : undefined,
+      };
       if (isEdit) {
-        await api.put(`/expenses/${expense!.id}`, form);
+        await api.put(`/expenses/${expense!.id}`, payload);
         toast.success('Xarajat yangilandi!');
       } else {
-        await api.post('/expenses', form);
+        await api.post('/expenses', payload);
         toast.success('Xarajat arxivga saqlandi! ✅');
       }
       onSuccess();
@@ -850,17 +883,54 @@ function ExpenseModal({ expense, onClose, onSuccess }: {
             </div>
           </div>
 
+          {/* Valyuta tanlash */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Valyuta</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([['UZS', "so'm"], ['USD', '$ dollar']] as const).map(([val, lbl]) => (
+                <button key={val} type="button"
+                  onClick={() => setForm(f => ({ ...f, currency: val }))}
+                  className={clsx('py-2 rounded-xl border-2 text-sm font-semibold transition-all',
+                    form.currency === val
+                      ? 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300'
+                      : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-500'
+                  )}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Amount */}
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Summa (so'm) *</label>
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">
+              Summa {isUsd ? '($)' : "(so'm)"} *
+            </label>
             <input type="number" value={form.amount}
               onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-red-400 text-center"
-              placeholder="0" min="1" step="1000" required />
-            {form.amount && parseFloat(form.amount) > 0 && (
-              <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-1">{fmt(parseFloat(form.amount))}</p>
-            )}
+              placeholder="0" min="0" step={isUsd ? '1' : '1000'} required />
           </div>
+
+          {/* Dollar kursi — faqat USD bo'lsa */}
+          {isUsd && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5 block">Kurs: 1$ = ? so'm *</label>
+              <input type="number" value={form.exchangeRate}
+                onChange={e => setForm(f => ({ ...f, exchangeRate: e.target.value }))}
+                className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 text-center"
+                placeholder="Masalan: 12800" min="1" step="10" required />
+            </div>
+          )}
+
+          {/* Hisoblangan so'm summasi */}
+          {computedUzs > 0 && (
+            <div className="text-center bg-gray-50 dark:bg-gray-700/40 rounded-xl py-2">
+              <p className="text-xs text-gray-400 dark:text-gray-500">So'mda</p>
+              <p className="text-base font-bold text-gray-700 dark:text-gray-200">{fmt(computedUzs)}</p>
+              {isUsd && rateNum > 0 && <p className="text-[11px] text-gray-400 mt-0.5">${amountNum} × {new Intl.NumberFormat('uz-UZ').format(rateNum)}</p>}
+            </div>
+          )}
 
           {/* Date */}
           <div>

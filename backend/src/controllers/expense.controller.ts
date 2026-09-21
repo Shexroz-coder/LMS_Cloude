@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
+import { getFinanceTotals } from '../services/finance.service';
 
 
 // ══════════════════════════════════════════════
@@ -57,6 +58,18 @@ export const getExpenses = async (req: AuthRequest, res: Response): Promise<void
 // ══════════════════════════════════════════════
 // POST /expenses — Xarajat qo'shish
 // ══════════════════════════════════════════════
+// Valyutani normallashtirish: so'mdagi summa + asl valyuta ma'lumoti
+function normalizeCurrency(body: any): { amountUzs: number; currency: string; originalAmount: number; exchangeRate: number | null } {
+  const currency = (body.currency === 'USD') ? 'USD' : 'UZS';
+  const original = parseFloat(body.amount);
+  if (currency === 'USD') {
+    const rate = parseFloat(body.exchangeRate);
+    if (isNaN(rate) || rate <= 0) throw new Error('Dollar uchun to\'g\'ri kurs (1$ = ? so\'m) kiriting');
+    return { amountUzs: Math.round(original * rate), currency, originalAmount: original, exchangeRate: rate };
+  }
+  return { amountUzs: original, currency, originalAmount: original, exchangeRate: null };
+}
+
 export const createExpense = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { category, amount, date, description } = req.body;
@@ -64,19 +77,25 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
       sendError(res, 'Kategoriya, summa va sana kiritilishi shart', 400);
       return;
     }
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       sendError(res, 'Summa 0 dan katta bo\'lishi kerak', 400);
       return;
     }
 
+    let cur;
+    try { cur = normalizeCurrency(req.body); }
+    catch (e: any) { sendError(res, e.message, 400); return; }
+
     const expense = await prisma.expense.create({
       data: {
         category,
-        amount: parsedAmount,
+        amount: cur.amountUzs,
         date: new Date(date),
         description: description || null,
         addedBy: req.user?.id,
+        currency: cur.currency,
+        originalAmount: cur.originalAmount,
+        exchangeRate: cur.exchangeRate,
         ...((req.body as any).branchId ? { branchId: parseInt(String((req.body as any).branchId)) } : {}),
       } as any,
       include: { user: { select: { fullName: true } } }
@@ -95,14 +114,29 @@ export const updateExpense = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const id = parseInt(req.params.id);
     const { category, amount, date, description } = req.body;
+
+    // Summa yoki valyuta o'zgargan bo'lsa — qayta normallashtirish
+    let currencyData: any = {};
+    if (amount !== undefined) {
+      try {
+        const cur = normalizeCurrency(req.body);
+        currencyData = {
+          amount: cur.amountUzs,
+          currency: cur.currency,
+          originalAmount: cur.originalAmount,
+          exchangeRate: cur.exchangeRate,
+        };
+      } catch (e: any) { sendError(res, e.message, 400); return; }
+    }
+
     const updated = await prisma.expense.update({
       where: { id },
       data: {
         ...(category && { category }),
-        ...(amount && { amount: parseFloat(amount) }),
         ...(date && { date: new Date(date) }),
-        ...(description !== undefined && { description })
-      },
+        ...(description !== undefined && { description }),
+        ...currencyData,
+      } as any,
       include: { user: { select: { fullName: true } } }
     });
     sendSuccess(res, updated, 'Xarajat yangilandi');
@@ -143,9 +177,9 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
     }
 
     const [incomeAgg, expenseAgg, salaryAgg, debtAgg] = await Promise.all([
-      // Daromad (to'lovlar)
+      // Daromad (to'lovlar) — o'chirilganlar HISOBGA OLINMAYDI
       prisma.payment.aggregate({
-        where: dateFilter ? { paidAt: dateFilter } : {},
+        where: { isDeleted: false, ...(dateFilter ? { paidAt: dateFilter } : {}) },
         _sum: { amount: true }
       }),
       // Xarajatlar
@@ -161,8 +195,8 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
         },
         _sum: { paidSalary: true }
       }),
-      // Umumiy qarz
-      prisma.studentBalance.aggregate({ _sum: { debt: true } })
+      // Umumiy qarz — YAGONA manba (finance.service, faqat faol o'quvchilar)
+      getFinanceTotals(),
     ]);
 
     // Kategoriya bo'yicha breakdown
@@ -181,7 +215,7 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
       income,
       expenses,
       profit,
-      totalDebt: Number(debtAgg._sum.debt || 0),
+      totalDebt: debtAgg.totalDebt,
       byCategory: byCategory.map(c => ({
         category: c.category,
         amount: Number(c._sum.amount || 0),
@@ -200,11 +234,11 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
 // ══════════════════════════════════════════════
 export const getAllTimeBalance = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const [totalIncome, totalExpenses, totalSalaries, totalDebt, expenseCount] = await Promise.all([
-      prisma.payment.aggregate({ _sum: { amount: true } }),
+    const [totalIncome, totalExpenses, totalSalaries, finance, expenseCount] = await Promise.all([
+      prisma.payment.aggregate({ where: { isDeleted: false }, _sum: { amount: true } }),
       prisma.expense.aggregate({ _sum: { amount: true } }),
       prisma.teacherSalary.aggregate({ where: { status: 'PAID' }, _sum: { paidSalary: true } }),
-      prisma.studentBalance.aggregate({ _sum: { debt: true } }),
+      getFinanceTotals(),
       prisma.expense.count()
     ]);
 
@@ -215,7 +249,7 @@ export const getAllTimeBalance = async (_req: AuthRequest, res: Response): Promi
       income,
       expenses,
       balance: income - expenses,
-      totalDebt: Number(totalDebt._sum.debt || 0),
+      totalDebt: finance.totalDebt,
       expenseCount
     });
   } catch (err) {
