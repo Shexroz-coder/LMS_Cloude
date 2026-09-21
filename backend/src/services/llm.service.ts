@@ -15,20 +15,22 @@ export type { ChatMessage, ToolDef, ChatResult } from './openai.service';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-// Vaqtinchalik xatolarda (429/503/500) qayta urinish — kutish bilan
-async function fetchRetry(url: string, init: RequestInit, tries = 4): Promise<Response> {
+// Vaqtinchalik xatolarda (429/503/500) qayta urinish — uzoq, sabrli
+// Gemini bepul limit band bo'lsa ham bir necha urinishда o'tib ketadi.
+async function fetchRetry(url: string, init: RequestInit, tries = 6): Promise<Response> {
+  const waits = [1000, 2000, 4000, 6000, 8000]; // kutish (ms)
   let lastErr: any;
   for (let i = 0; i < tries; i++) {
     try {
       const res = await fetch(url, init);
-      if (res.status === 429 || res.status === 503 || res.status === 500) {
-        // qayta urinishdan oldin kutamiz: 0.8s, 1.6s, 3.2s...
-        if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+      if ((res.status === 429 || res.status === 503 || res.status === 500) && i < tries - 1) {
+        await new Promise(r => setTimeout(r, waits[Math.min(i, waits.length - 1)]));
+        continue;
       }
       return res;
     } catch (e) {
       lastErr = e;
-      if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+      if (i < tries - 1) { await new Promise(r => setTimeout(r, waits[Math.min(i, waits.length - 1)])); continue; }
     }
   }
   if (lastErr) throw lastErr;

@@ -12,18 +12,19 @@ import { transcribeAudio as whisperTranscribe } from './openai.service';
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-async function fetchRetry(url: string, init: RequestInit, tries = 4): Promise<Response> {
+async function fetchRetry(url: string, init: RequestInit, tries = 6): Promise<Response> {
+  const waits = [1000, 2000, 4000, 6000, 8000];
   let lastErr: any;
   for (let i = 0; i < tries; i++) {
     try {
       const res = await fetch(url, init);
       if ((res.status === 429 || res.status === 503 || res.status === 500) && i < tries - 1) {
-        await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue;
+        await new Promise(r => setTimeout(r, waits[Math.min(i, waits.length - 1)])); continue;
       }
       return res;
     } catch (e) {
       lastErr = e;
-      if (i < tries - 1) { await new Promise(r => setTimeout(r, 800 * Math.pow(2, i))); continue; }
+      if (i < tries - 1) { await new Promise(r => setTimeout(r, waits[Math.min(i, waits.length - 1)])); continue; }
     }
   }
   if (lastErr) throw lastErr;
