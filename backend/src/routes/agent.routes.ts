@@ -6,8 +6,8 @@ import { Router } from 'express';
 import { apiKeyAuth } from '../middleware/apiKey.middleware';
 import {
   agentOverview, agentFinance, agentDebtors, agentBranches,
-  agentStudents, agentGroups,
-  agentCreatePayment, agentAdjustDebt, agentAnnouncement, agentCreateStudent,
+  agentStudents, agentGroups, agentGroupStudents,
+  agentCreatePayment, agentMarkAttendance, agentAdjustDebt, agentAnnouncement, agentCreateStudent,
 } from '../controllers/agent.controller';
 
 const router = Router();
@@ -22,9 +22,11 @@ router.get('/debtors', agentDebtors);
 router.get('/branches', agentBranches);
 router.get('/students', agentStudents);
 router.get('/groups', agentGroups);
+router.get('/groups/:groupId/students', agentGroupStudents);
 
 // ── Yozish (to'liq boshqaruv) ──
 router.post('/payment', agentCreatePayment);
+router.post('/attendance', agentMarkAttendance);
 router.post('/adjust-debt', agentAdjustDebt);
 router.post('/announcement', agentAnnouncement);
 router.post('/student', agentCreateStudent);

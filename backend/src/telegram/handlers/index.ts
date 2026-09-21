@@ -7,13 +7,23 @@ import { routeCallback } from './menu.handler';
 import { handleLateAttReason, handleTeacherCoinAmount } from './teacher.handler';
 import { handleNewPassword } from './account.handler';
 import { handleBroadcastSend } from './admin.handler';
+import { handleVoice, handleAiText, handleAiConfirm, handleAiCancel } from './ai-agent.handler';
 
 export function registerHandlers() {
   // ── /start komandasi ────────────────────────────
   bot.command('start', handleStart);
 
+  // ── AI agent tasdiqlash tugmalari (menyudan oldin) ──
+  bot.callbackQuery('ai_confirm', handleAiConfirm);
+  bot.callbackQuery('ai_cancel', handleAiCancel);
+
   // ── Callback query handler (menyu tugmalari) ────
   bot.on('callback_query:data', routeCallback);
+
+  // ── Ovozli xabar (AI agent) ─────────────────────
+  bot.on('message:voice', async (ctx: BotContext) => {
+    await handleVoice(ctx);
+  });
 
   // ── Contact (telefon raqam ulashish) ────────────
   bot.on('message:contact', async (ctx: BotContext) => {
@@ -70,7 +80,11 @@ export function registerHandlers() {
       return;
     }
 
-    // Registratsiyadan o'tgan foydalanuvchi oddiy xabar yozsa
+    // ADMIN/FOUNDER oddiy matn yozsa — AI agentga yo'naltirish
+    const handledByAi = await handleAiText(ctx);
+    if (handledByAi) return;
+
+    // Boshqa foydalanuvchilar uchun menyu eslatmasi
     await ctx.reply(
       '🤖 Menyudan foydalaning!\n\n/start — Asosiy menyu',
       { parse_mode: 'HTML' }

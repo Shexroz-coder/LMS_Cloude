@@ -30,6 +30,10 @@ export interface SessionData {
   /** Broadcast uchun */
   broadcastTarget?: string;
   lastBroadcastMessages?: { chatId: string; messageId: number; name: string; role: string }[];
+  /** AI agent: tasdiqlash kutayotgan yozish amali */
+  pendingAction?: { tool: string; args: any; summary: string };
+  /** AI agent: suhbat konteksti (oxirgi bir nechta xabar) */
+  aiHistory?: { role: 'user' | 'assistant'; content: string }[];
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;

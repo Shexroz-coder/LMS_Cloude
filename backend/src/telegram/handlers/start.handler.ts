@@ -83,8 +83,17 @@ export async function handleStart(ctx: BotContext) {
         keyboard = teacherMainMenu();
       } else if (role === 'ADMIN') {
         menuText = brandHeader('👑', 'ADMIN PANEL');
-        menuText += `Salom, <b>${name}</b>!`;
+        menuText += `Salom, <b>${name}</b>!\n\n`;
+        menuText += `🤖 <b>AI administrator:</b> menga matn yozing yoki ovozli xabar yuboring — to'lov, davomat, hisobot va boshqalarni bajaraman.\n`;
+        menuText += `Masalan: <i>"Ahmaddan 660000 to'lov qabul qil"</i> yoki <i>"bugungi holatni ayt"</i>.`;
         keyboard = adminMenu();
+      } else if (role === 'FOUNDER') {
+        menuText = brandHeader('💼', 'TA\'SISCHI KABINETI');
+        menuText += `Salom, <b>${name}</b>!\n\n`;
+        menuText += `🤖 Menga savol yozing yoki ovozli so'rang — moliya, qarzdorlik, davomat va umumiy holat bo'yicha tahlil beraman.\n`;
+        menuText += `Masalan: <i>"bu oy moliyaviy holat qanday?"</i> yoki <i>"eng katta qarzdorlar kim?"</i>\n\n`;
+        menuText += `📊 Har hafta va oy oxirida avtomatik tahliliy hisobot yuboraman.`;
+        keyboard = undefined; // Founder faqat AI bilan ishlaydi
       } else {
         menuText = `👋 Salom, <b>${name}</b>!\nSizning rolingiz: ${role}`;
         keyboard = studentMainMenu();

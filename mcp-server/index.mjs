@@ -79,6 +79,24 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { branchId: { type: 'number' } } },
   },
   {
+    name: 'group_students',
+    description: 'Bitta guruhning faol o\'quvchilari (ID va ism). Davomatdan oldin ismlarni ID ga bog\'lash uchun.',
+    inputSchema: { type: 'object', properties: { groupId: { type: 'number' } }, required: ['groupId'] },
+  },
+  {
+    name: 'mark_attendance',
+    description: 'Davomat belgilash. Avval list_groups va group_students bilan ID toping. entries: [{studentId, status}]. status: PRESENT/ABSENT/LATE/EXCUSED.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        groupId: { type: 'number' },
+        date: { type: 'string', description: 'YYYY-MM-DD' },
+        entries: { type: 'array', items: { type: 'object', properties: { studentId: { type: 'number' }, status: { type: 'string' } } } },
+      },
+      required: ['groupId', 'date', 'entries'],
+    },
+  },
+  {
     name: 'create_payment',
     description: 'O\'quvchidan to\'lov qabul qilish. Avval qarzni yopadi, ortig\'i balansga o\'tadi.',
     inputSchema: {
@@ -144,6 +162,8 @@ async function runTool(name, args = {}) {
     case 'list_branches':    return callApi('GET', '/branches');
     case 'search_students':  return callApi('GET', '/students', { query: args });
     case 'list_groups':      return callApi('GET', '/groups', { query: args });
+    case 'group_students':   return callApi('GET', `/groups/${args.groupId}/students`);
+    case 'mark_attendance':  return callApi('POST', '/attendance', { body: args });
     case 'create_payment':   return callApi('POST', '/payment', { body: args });
     case 'adjust_debt':      return callApi('POST', '/adjust-debt', { body: args });
     case 'send_announcement':return callApi('POST', '/announcement', { body: args });
