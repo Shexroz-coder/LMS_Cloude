@@ -63,7 +63,7 @@ export interface ToolDef {
 
 export interface ChatResult {
   content: string | null;
-  toolCalls: Array<{ id: string; name: string; args: any }>;
+  toolCalls: Array<{ id: string; name: string; args: any; thoughtSignature?: string }>;
 }
 
 export async function chatWithTools(

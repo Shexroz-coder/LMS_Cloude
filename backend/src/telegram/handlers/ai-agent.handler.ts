@@ -191,7 +191,7 @@ ${isFounder ? '- Sen FOUNDER uchun ishlaysan: faqat ma\'lumot ko\'rsatasan, hech
 
     // O'qish tool'lari → bajarib, natijani qaytaramiz
     if (result.toolCalls.length > 0) {
-      messages.push({ role: 'assistant', content: result.content, tool_calls: result.toolCalls.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.name, arguments: JSON.stringify(tc.args) } })) });
+      messages.push({ role: 'assistant', content: result.content, tool_calls: result.toolCalls.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.name, arguments: JSON.stringify(tc.args) }, ...(tc.thoughtSignature ? { thoughtSignature: tc.thoughtSignature } : {}) })) });
       for (const tc of result.toolCalls) {
         let out: any;
         try { out = await runRead(tc.name, tc.args); }

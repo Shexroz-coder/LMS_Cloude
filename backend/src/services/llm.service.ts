@@ -65,7 +65,10 @@ function toGemini(messages: ChatMessage[], tools?: ToolDef[]) {
       if (m.content) parts.push({ text: m.content });
       for (const tc of m.tool_calls || []) {
         callIdToName.set(tc.id, tc.function?.name);
-        parts.push({ functionCall: { name: tc.function?.name, args: JSON.parse(tc.function?.arguments || '{}') } });
+        const part: any = { functionCall: { name: tc.function?.name, args: JSON.parse(tc.function?.arguments || '{}') } };
+        // Gemini 3.x: functionCall tarixда thoughtSignature bilan qaytarilishi SHART
+        if (tc.thoughtSignature) part.thoughtSignature = tc.thoughtSignature;
+        parts.push(part);
       }
       if (parts.length) contents.push({ role: 'model', parts });
       continue;
@@ -128,7 +131,13 @@ async function geminiChat(messages: ChatMessage[], tools?: ToolDef[]): Promise<C
   for (const part of parts) {
     if (part.text) content = (content || '') + part.text;
     if (part.functionCall) {
-      toolCalls.push({ id: `gemini_${Date.now()}_${idx++}`, name: part.functionCall.name, args: part.functionCall.args || {} });
+      toolCalls.push({
+        id: `gemini_${Date.now()}_${idx++}`,
+        name: part.functionCall.name,
+        args: part.functionCall.args || {},
+        // thoughtSignature part darajasida keladi (Gemini 3.x)
+        thoughtSignature: part.thoughtSignature || part.functionCall.thoughtSignature,
+      });
     }
   }
   return { content, toolCalls };
