@@ -24,7 +24,7 @@ export function isSttConfigured(): boolean {
 async function geminiTranscribe(audio: Buffer, mime = 'audio/ogg'): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY .env da yo\'q');
-  const model = process.env.GEMINI_STT_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_STT_MODEL || 'gemini-3.6-flash';
 
   const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${key}`, {
     method: 'POST',
