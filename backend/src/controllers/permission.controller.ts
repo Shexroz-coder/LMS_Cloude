@@ -92,11 +92,35 @@ export const setPermission = async (req: AuthRequest, res: Response): Promise<vo
 export const getMyPermissions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const role = req.user!.role as string;
+    const userId = req.user!.id;
+
+    // Per-user ruxsatlar (filial mas'uli)
+    let userPerms: Array<{ permKey: string; allowed: boolean }> = [];
+    let managedBranchId: number | null = null;
+    try {
+      const u = await p.user.findUnique({
+        where: { id: userId },
+        select: { managedBranchId: true, permissions: true },
+      });
+      managedBranchId = u?.managedBranchId ?? null;
+      userPerms = (u?.permissions || []).map((x: any) => ({ permKey: x.permKey, allowed: x.allowed }));
+    } catch { /* jadval yo'q */ }
+    const userPermMap = new Map(userPerms.map(x => [x.permKey, x.allowed]));
+
     const perms: Record<string, boolean> = {};
     for (const def of PERMISSIONS) {
-      perms[def.key] = await hasPermission(role, def.key);
+      // Per-user ustunlik qiladi, keyin rol
+      perms[def.key] = userPermMap.has(def.key) ? !!userPermMap.get(def.key) : await hasPermission(role, def.key);
     }
-    sendSuccess(res, { role, permissions: perms });
+
+    // Mas'ul boshqaradigan filial nomi
+    let managedBranch: { id: number; name: string } | null = null;
+    if (managedBranchId) {
+      const b = await p.branch.findUnique({ where: { id: managedBranchId }, select: { id: true, name: true } });
+      if (b) managedBranch = b;
+    }
+
+    sendSuccess(res, { role, permissions: perms, managedBranchId, managedBranch });
   } catch (err) {
     console.error('getMyPermissions error:', err);
     sendError(res, 'Ruxsatlarni olishda xato.', 500);

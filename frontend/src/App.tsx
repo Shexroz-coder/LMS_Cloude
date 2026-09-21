@@ -163,6 +163,9 @@ const App = () => {
         <Route path="groups" element={<TeacherGroupsPage />} />
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="coins" element={<CoinsPage />} />
+        {/* Filial mas'uli (menejer) sahifalari — backend ruxsat/branch bo'yicha cheklaydi */}
+        <Route path="branch/:id" element={<BranchDetailPage />} />
+        <Route path="billing" element={<AdminBillingPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

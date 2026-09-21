@@ -146,7 +146,8 @@ model Branch {
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
 
-  users    User[]
+  users    User[]    @relation("UserBranch")
+  managers User[]    @relation("BranchManager")
   students Student[]
   groups   Group[]
   payments Payment[]
@@ -205,6 +206,20 @@ model RolePermission {
   @@map("role_permissions")
 }
 
+// Per-user ruxsatlar — filial mas'uli (ustoz) uchun qo'shimcha admin huquqlar
+model UserPermission {
+  id      Int     @id @default(autoincrement())
+  userId  Int     @map("user_id")
+  permKey String  @map("perm_key") @db.VarChar(100)
+  allowed Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permKey])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
 // ============================================
 // FOYDALANUVCHILAR
 // ============================================
@@ -227,9 +242,16 @@ model User {
   telegramUsername  String?   @map("telegram_username") @db.VarChar(100)
   telegramLinkedAt  DateTime? @map("telegram_linked_at")
 
-  // Filial
+  // Filial (uy filiali)
   branchId Int?    @map("branch_id")
-  branch   Branch? @relation(fields: [branchId], references: [id])
+  branch   Branch? @relation("UserBranch", fields: [branchId], references: [id])
+
+  // Filial mas'uli — bu foydalanuvchi (ustoz) qaysi filialni boshqaradi
+  managedBranchId Int?    @map("managed_branch_id")
+  managedBranch   Branch? @relation("BranchManager", fields: [managedBranchId], references: [id])
+
+  // Per-user ruxsatlar (filial mas'uli uchun)
+  permissions UserPermission[]
 
   // Relations
   student           Student?

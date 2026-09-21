@@ -8,6 +8,8 @@ import api from '../api/axios';
 interface PermissionState {
   permissions: Record<string, boolean>;
   loaded: boolean;
+  managedBranchId: number | null;
+  managedBranch: { id: number; name: string } | null;
   fetchPermissions: () => Promise<void>;
   can: (key: string) => boolean;
   reset: () => void;
@@ -16,10 +18,18 @@ interface PermissionState {
 export const usePermissionStore = create<PermissionState>((set, get) => ({
   permissions: {},
   loaded: false,
+  managedBranchId: null,
+  managedBranch: null,
   fetchPermissions: async () => {
     try {
       const r = await api.get('/permissions/my');
-      set({ permissions: r.data?.data?.permissions ?? {}, loaded: true });
+      const d = r.data?.data;
+      set({
+        permissions: d?.permissions ?? {},
+        managedBranchId: d?.managedBranchId ?? null,
+        managedBranch: d?.managedBranch ?? null,
+        loaded: true,
+      });
     } catch {
       set({ permissions: {}, loaded: true });
     }
@@ -30,5 +40,5 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     if (!loaded) return true;
     return permissions[key] !== false;
   },
-  reset: () => set({ permissions: {}, loaded: false }),
+  reset: () => set({ permissions: {}, loaded: false, managedBranchId: null, managedBranch: null }),
 }));

@@ -255,7 +255,7 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { can, permissions, loaded } = usePermissionStore();
+  const { can, permissions, loaded, managedBranchId } = usePermissionStore();
   const [collapsed, setCollapsed] = useState(false);
 
   if (!user) return null;
@@ -274,6 +274,17 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
       return (!item.perm || can(item.perm)) ? item : null;
     })
     .filter(Boolean) as NavConfig;
+
+  // Filial mas'uli (menejer) uchun qo'shimcha bo'lim
+  if (user.role === 'TEACHER' && managedBranchId) {
+    const managerItems: NavItem[] = [
+      { to: `/teacher/branch/${managedBranchId}`, icon: Building2, label: 'Filialim' },
+      { to: '/teacher/billing', icon: CreditCard, label: "To'lov & Qarz", perm: 'payments.view' },
+    ].filter(it => !it.perm || can(it.perm));
+    if (managerItems.length) {
+      navConfig.splice(1, 0, { key: 'manager', label: 'Filial boshqaruvi', icon: ShieldCheck, items: managerItems });
+    }
+  }
 
   const gradient = ROLE_COLORS[user.role];
 

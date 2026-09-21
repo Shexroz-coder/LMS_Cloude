@@ -121,7 +121,8 @@ export const assignToBranch = async (req: AuthRequest, res: Response): Promise<v
 // ══════════════════════════════════════════════════════════════════
 export const getBranchDetail = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const branchId = parseInt(req.params.id);
+    // Filial mas'uli FAQAT o'z filialini ko'radi (URL'dagi boshqa ID ni e'tiborsiz qoldiramiz)
+    const branchId = req.managedBranchId ?? parseInt(req.params.id);
     const branch = await p.branch.findUnique({ where: { id: branchId } });
     if (!branch) { sendError(res, 'Filial topilmadi.', 404); return; }
 
@@ -280,5 +281,104 @@ export const assignGroupsToRoom = async (req: AuthRequest, res: Response): Promi
   } catch (err) {
     console.error('assignGroupsToRoom error:', err);
     sendError(res, 'Guruhlarni biriktirishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// FILIAL MAS'ULI (ustoz-menejer) boshqaruvi
+// ══════════════════════════════════════════════════════════════════
+
+// Mas'ul tayinlanganda beriladigan standart ruxsatlar
+const MANAGER_DEFAULT_PERMS = [
+  'students.view', 'payments.view', 'payments.create',
+  'finance.view', 'debtors.view', 'attendance.view',
+];
+
+// GET /branches/:id/manager — filial mas'uli(lari)
+export const getBranchManager = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const branchId = parseInt(req.params.id);
+    const managers = await p.user.findMany({
+      where: { managedBranchId: branchId },
+      select: { id: true, fullName: true, phone: true, role: true },
+    });
+    // Har mas'ulning ruxsatlari
+    const withPerms = await Promise.all(managers.map(async (m: any) => {
+      const perms = await p.userPermission.findMany({ where: { userId: m.id } });
+      return { ...m, permissions: perms.map((x: any) => ({ permKey: x.permKey, allowed: x.allowed })) };
+    }));
+    sendSuccess(res, withPerms);
+  } catch (err) {
+    console.error('getBranchManager error:', err);
+    sendError(res, 'Mas\'ulni olishda xato.', 500);
+  }
+};
+
+// POST /branches/:id/manager — ustozni filial mas'uli qilib tayinlash
+// body: { userId }
+export const assignManager = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const branchId = parseInt(req.params.id);
+    const { userId } = req.body;
+    if (!userId) { sendError(res, 'userId kerak.', 400); return; }
+
+    const branch = await p.branch.findUnique({ where: { id: branchId } });
+    if (!branch) { sendError(res, 'Filial topilmadi.', 404); return; }
+
+    const user = await p.user.findUnique({ where: { id: parseInt(String(userId)) } });
+    if (!user) { sendError(res, 'Foydalanuvchi topilmadi.', 404); return; }
+    if (user.role !== 'TEACHER') { sendError(res, 'Faqat ustozni mas\'ul qilib tayinlash mumkin.', 400); return; }
+
+    // Filialга bog'lash + uy filialini ham shu qilish
+    await p.user.update({
+      where: { id: user.id },
+      data: { managedBranchId: branchId, branchId: user.branchId ?? branchId },
+    });
+
+    // Standart ruxsatlarni berish
+    for (const key of MANAGER_DEFAULT_PERMS) {
+      await p.userPermission.upsert({
+        where: { userId_permKey: { userId: user.id, permKey: key } },
+        update: { allowed: true },
+        create: { userId: user.id, permKey: key, allowed: true },
+      });
+    }
+
+    sendSuccess(res, { userId: user.id, branchId }, `${user.fullName} "${branch.name}" filialiga mas'ul qilib tayinlandi.`);
+  } catch (err) {
+    console.error('assignManager error:', err);
+    sendError(res, 'Mas\'ul tayinlashda xato.', 500);
+  }
+};
+
+// DELETE /branches/:id/manager/:userId — mas'ullikni olib tashlash
+export const removeManager = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = parseInt(req.params.userId);
+    await p.user.update({ where: { id: userId }, data: { managedBranchId: null } });
+    await p.userPermission.deleteMany({ where: { userId } });
+    sendSuccess(res, null, 'Mas\'ullik olib tashlandi.');
+  } catch (err) {
+    console.error('removeManager error:', err);
+    sendError(res, 'Mas\'ullikni olib tashlashda xato.', 500);
+  }
+};
+
+// PUT /branches/manager/:userId/permission — mas'ul ruxsatini yoqish/o'chirish
+// body: { permKey, allowed }
+export const setManagerPermission = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const { permKey, allowed } = req.body;
+    if (!permKey || allowed === undefined) { sendError(res, 'permKey va allowed kerak.', 400); return; }
+    await p.userPermission.upsert({
+      where: { userId_permKey: { userId, permKey } },
+      update: { allowed: Boolean(allowed) },
+      create: { userId, permKey, allowed: Boolean(allowed) },
+    });
+    sendSuccess(res, { userId, permKey, allowed: Boolean(allowed) }, 'Ruxsat yangilandi.');
+  } catch (err) {
+    console.error('setManagerPermission error:', err);
+    sendError(res, 'Ruxsatni yangilashda xato.', 500);
   }
 };

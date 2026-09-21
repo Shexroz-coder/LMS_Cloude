@@ -8,6 +8,8 @@ export interface AuthRequest extends Request {
     role: Role;
     phone: string;
   };
+  /** Filial mas'uli bo'lsa — boshqaradigan filial ID (adminOrManager middleware o'rnatadi) */
+  managedBranchId?: number;
 }
 
 // JWT Payload

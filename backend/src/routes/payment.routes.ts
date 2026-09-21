@@ -13,15 +13,17 @@ import {
   getBillingOverview, updateBillingConfig, waiveStudentDebt,
 } from '../controllers/payment.controller';
 import { authorize } from '../middleware/auth.middleware';
+import { adminOrManager } from '../middleware/permission.middleware';
 
 const router = Router();
 
 // ── Static routes (/:id dan oldin!) ─────────────────────
-router.get('/billing', authorize('ADMIN'), getBillingOverview);
+// Filial mas'uli ham o'z filiali bo'yicha ko'ra oladi (branchId avtomatik cheklanadi)
+router.get('/billing', adminOrManager('payments.view'), getBillingOverview);
 router.get('/summary', authorize('ADMIN', 'FOUNDER'), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
-router.get('/debtors-review', authorize('ADMIN'), getDebtorsReview);
+router.get('/debtors-review', adminOrManager('debtors.view'), getDebtorsReview);
 router.post('/notify-debtors', authorize('ADMIN'), notifyDebtors);
 router.get('/archive', authorize('ADMIN'), getArchivedPayments);
 router.post('/generate-fees', authorize('ADMIN'), generateMonthlyFees);
@@ -41,7 +43,7 @@ router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPro
 
 // ── General ──────────────────────────────────────────────
 router.get('/', authorize('ADMIN', 'FOUNDER'), getPayments);
-router.post('/', authorize('ADMIN'), createPayment);
+router.post('/', adminOrManager('payments.create'), createPayment);
 router.put('/:id', authorize('ADMIN'), updatePayment);
 router.delete('/:id', authorize('ADMIN'), deletePayment);
 
