@@ -10,7 +10,7 @@ import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
 import { getFinanceTotals, getTotalIncome, getTotalExpenses } from '../services/finance.service';
-import { isOpenAIConfigured, analyzeText } from '../services/openai.service';
+import { isLlmConfigured, analyze } from '../services/llm.service';
 
 const p = prisma as any;
 const money = (v: number) => Math.round(v).toLocaleString('uz-UZ').replace(/,/g, ' ') + " so'm";
@@ -82,11 +82,11 @@ function formatReport(d: PeriodData, aiAnalysis: string): string {
 
 async function buildAndSend(d: PeriodData): Promise<void> {
   let aiAnalysis = '';
-  if (isOpenAIConfigured()) {
+  if (isLlmConfigured()) {
     try {
       const incomeChange = d.prevIncome > 0 ? Math.round((d.income - d.prevIncome) / d.prevIncome * 100) : 0;
       const debtChange = d.debt - d.prevDebt;
-      aiAnalysis = await analyzeText(
+      aiAnalysis = await analyze(
         'Sen o\'quv markazi moliyaviy tahlilchisisan. Qisqa (3-5 gap), o\'zbek tilida, aniq va amaliy tahlil ber. Asosiy muammoni va 1-2 tavsiyani ayt.',
         `Davr: ${d.label}. Tushum: ${d.income} (o'tgan davrga nisbatan ${incomeChange}%). Xarajat: ${d.expenses}. Sof: ${d.net}. Qarzdorlik: ${d.debt} (o'zgarish: ${debtChange >= 0 ? '+' : ''}${debtChange}). Faol o'quvchi: ${d.activeStudents}, yangi: ${d.newStudents}, ketgan: ${d.leftStudents}. Davomat: ${d.attendanceRate}%. Filiallar: ${JSON.stringify(d.branches)}.`
       );

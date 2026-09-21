@@ -11,9 +11,10 @@
 import { InlineKeyboard } from 'grammy';
 import { BotContext } from '../bot';
 import { getUserByChatId } from '../services/data.service';
-import { isOpenAIConfigured, chatWithTools, ChatMessage, ToolDef } from '../../services/openai.service';
+import { chatWithTools, isLlmConfigured, ChatMessage, ToolDef } from '../../services/llm.service';
 import { transcribe, isSttConfigured } from '../../services/stt.service';
 import * as tools from '../../services/agent-tools.service';
+import prisma from '../../lib/prisma';
 
 // ─── Kim AI agentdan foydalana oladi ───
 async function getAgentUser(ctx: BotContext): Promise<{ id: number; role: string; fullName: string } | null> {
@@ -58,19 +59,48 @@ async function runRead(name: string, args: any): Promise<any> {
   }
 }
 
-// ─── Yozish amali tasdig'i uchun qisqa xulosa ───
-function summarize(tool: string, args: any): string {
+// ─── Yozish amali tasdig'i uchun qisqa xulosa (ism/qarz bilan) ───
+const p = prisma as any;
+async function studentLabel(studentId: number): Promise<string> {
+  try {
+    const s = await p.student.findUnique({
+      where: { id: Number(studentId) },
+      include: { user: { select: { fullName: true, phone: true } }, balance: true },
+    });
+    if (!s) return `#${studentId} (topilmadi ⚠️)`;
+    const debt = Math.round(Number(s.balance?.debt || 0));
+    return `${s.user?.fullName} (${s.user?.phone})${debt > 0 ? ` · joriy qarz: ${debt.toLocaleString('uz-UZ')} so'm` : ''}`;
+  } catch { return `#${studentId}`; }
+}
+async function groupLabel(groupId: number): Promise<string> {
+  try {
+    const g = await p.group.findUnique({ where: { id: Number(groupId) }, select: { name: true } });
+    return g?.name || `#${groupId}`;
+  } catch { return `#${groupId}`; }
+}
+
+async function summarize(tool: string, args: any): Promise<string> {
   const money = (v: any) => Number(v || 0).toLocaleString('uz-UZ');
   switch (tool) {
-    case 'create_payment': return `💳 To'lov\nO'quvchi ID: ${args.studentId}\nSumma: ${money(args.amount)} so'm\nUsul: ${args.method || 'CASH'}${args.month ? `\nOy: ${args.month}` : ''}`;
+    case 'create_payment':
+      return `💳 <b>To'lov</b>\n👤 ${await studentLabel(args.studentId)}\n💰 Summa: <b>${money(args.amount)} so'm</b>\n💳 Usul: ${args.method || 'CASH'}${args.month ? `\n📅 Oy: ${args.month}` : ''}`;
     case 'mark_attendance': {
-      const n = (args.entries || []).length;
-      const present = (args.entries || []).filter((e: any) => e.status === 'PRESENT' || e.status === 'LATE').length;
-      return `✅ Davomat\nGuruh ID: ${args.groupId}\nSana: ${args.date}\nJami: ${n} o'quvchi (${present} keldi)`;
+      const entries = args.entries || [];
+      const present = entries.filter((e: any) => e.status === 'PRESENT' || e.status === 'LATE').length;
+      // Har o'quvchi ismini ko'rsatamiz (aniqlik uchun)
+      const lines = await Promise.all(entries.slice(0, 20).map(async (e: any) => {
+        const st = ({ PRESENT: 'Keldi ✅', LATE: 'Kechikdi 🕒', ABSENT: 'Kelmadi ❌', EXCUSED: 'Sababli 📄' } as any)[e.status] || e.status;
+        const nm = (await studentLabel(e.studentId)).split(' (')[0];
+        return `  • ${nm} — ${st}`;
+      }));
+      return `✅ <b>Davomat</b>\n📚 Guruh: ${await groupLabel(args.groupId)}\n📅 Sana: ${args.date}\n${lines.join('\n')}\n\nJami: ${entries.length} (${present} keldi)`;
     }
-    case 'adjust_debt': return `⚖️ Qarz/balans\nO'quvchi ID: ${args.studentId}${args.debt !== undefined ? `\nQarz: ${money(args.debt)}` : ''}${args.balance !== undefined ? `\nBalans: ${money(args.balance)}` : ''}`;
-    case 'create_student': return `👤 Yangi o'quvchi\nIsm: ${args.fullName}\nTelefon: ${args.phone}`;
-    case 'send_announcement': return `📢 E'lon\nSarlavha: ${args.title}\nMatn: ${args.body}\nKimga: ${(args.roles || ['STUDENT', 'PARENT']).join(', ')}`;
+    case 'adjust_debt':
+      return `⚖️ <b>Qarz/balans</b>\n👤 ${await studentLabel(args.studentId)}${args.debt !== undefined ? `\n➡️ Yangi qarz: ${money(args.debt)} so'm` : ''}${args.balance !== undefined ? `\n➡️ Yangi balans: ${money(args.balance)} so'm` : ''}`;
+    case 'create_student':
+      return `👤 <b>Yangi o'quvchi</b>\nIsm: ${args.fullName}\nTelefon: ${args.phone}`;
+    case 'send_announcement':
+      return `📢 <b>E'lon</b>\nSarlavha: ${args.title}\nMatn: ${args.body}\nKimga: ${(args.roles || ['STUDENT', 'PARENT']).join(', ')}`;
     default: return tool;
   }
 }
@@ -116,8 +146,8 @@ export async function executePendingAction(actorId: number, tool: string, args: 
 
 // ─── Asosiy: matnli buyruqni qayta ishlash ───
 export async function processAgentCommand(ctx: BotContext, text: string, agentUser: { id: number; role: string }): Promise<void> {
-  if (!isOpenAIConfigured()) {
-    await ctx.reply('🤖 AI agent sozlanmagan (OPENAI_API_KEY yo\'q). Admin bilan bog\'laning.');
+  if (!isLlmConfigured()) {
+    await ctx.reply('🤖 AI agent sozlanmagan (LLM kaliti yo\'q). Admin bilan bog\'laning.');
     return;
   }
 
@@ -152,7 +182,7 @@ ${isFounder ? '- Sen FOUNDER uchun ishlaysan: faqat ma\'lumot ko\'rsatasan, hech
     // Yozish tool'i chaqirilganmi? → tasdiqlash
     const writeCall = result.toolCalls.find(tc => WRITE_NAMES.has(tc.name));
     if (writeCall) {
-      const summary = summarize(writeCall.name, writeCall.args);
+      const summary = await summarize(writeCall.name, writeCall.args);
       ctx.session.pendingAction = { tool: writeCall.name, args: writeCall.args, summary };
       const kb = new InlineKeyboard().text('✅ Tasdiqlash', 'ai_confirm').text('❌ Bekor', 'ai_cancel');
       await ctx.reply(`${summary}\n\nTasdiqlaysizmi?`, { parse_mode: 'HTML', reply_markup: kb });
