@@ -616,12 +616,12 @@ export default function AdminBillingPage() {
                       )}
                     </td>
 
-                    {/* Payment Day — inline edit */}
+                    {/* Payment Day — yangi qoida: har oy 1-5 sana */}
                     <td className="px-4 py-3">
-                      <EditableDay
-                        value={row.paymentDay}
-                        onSave={v => configMutation.mutate({ studentId: row.studentId, body: { paymentDay: v } })}
-                      />
+                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Har oy <span className="text-blue-600">1–5</span> sana
+                      </span>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">Boshlagan oy — qisman</p>
                     </td>
 
                     {/* Last payment */}

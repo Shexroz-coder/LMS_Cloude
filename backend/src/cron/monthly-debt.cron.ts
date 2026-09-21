@@ -15,6 +15,7 @@ process.env.TZ = 'Asia/Tashkent';
 import cron from 'node-cron';
 import prisma from '../lib/prisma';
 import bot from '../telegram/bot';
+import { countLessonsInMonth, countLessonsInMonthFromDate } from '../utils/schedule.utils';
 
 const MONTH_NAMES = [
   'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
@@ -23,6 +24,17 @@ const MONTH_NAMES = [
 
 function formatMoney(amount: number): string {
   return amount.toLocaleString('uz-UZ').replace(/,/g, ' ') + ' so\'m';
+}
+
+/**
+ * Guruh jadvalidan hafta kunlarini yig'ish (0=Yakshanba ... 6=Shanba)
+ */
+function scheduleDays(group: { schedules?: { daysOfWeek: number[] }[] }): number[] {
+  const set = new Set<number>();
+  for (const sc of group.schedules ?? []) {
+    for (const d of sc.daysOfWeek ?? []) set.add(d);
+  }
+  return [...set];
 }
 
 // ══════════════════════════════════════════════════════
@@ -52,6 +64,7 @@ export async function calculateMonthlyDebts() {
             group: {
               include: {
                 course: { select: { monthlyPrice: true, name: true } },
+                schedules: { select: { daysOfWeek: true } },
               },
             },
           },
@@ -65,45 +78,40 @@ export async function calculateMonthlyDebts() {
     for (const student of activeStudents) {
       if (!student.groupStudents.length) continue;
 
-      // ── To'lov kunini aniqlash ──
-      // Ustuvor: student.paymentDueDay (admin belgilagan)
-      // Zaxira:  eng erta qo'shilgan guruhning joinedAt.getDate()
+      // ── O'qishni boshlagan sana (eng erta faol guruh) ──
       const sortedGroups = [...student.groupStudents].sort(
         (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
       );
-      const paymentDayRaw: number =
-        (student as any).paymentDueDay ?? new Date(sortedGroups[0].joinedAt).getDate();
+      const startDate = new Date(sortedGroups[0].joinedAt);
+      const startYear = startDate.getFullYear();
+      const startMonth = startDate.getMonth();
 
-      // Oyning oxiridagi kunlarni moslashtirish
-      // (masalan, 31-yanvarda kelgan → Fevralda 28/29-da to'laydi)
-      const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      const effectivePaymentDay = Math.min(paymentDayRaw, daysInCurrentMonth);
+      // Joriy oy start oyidan oldinmi? → hali boshlanmagan, o'tkazib yuborish
+      const currentIdx = currentYear * 12 + currentMonth;
+      const startIdx = startYear * 12 + startMonth;
+      if (currentIdx < startIdx) continue;
 
-      // Bugun to'lov kuni emas → o'tkazib yuborish
-      if (today !== effectivePaymentDay) continue;
+      const isFirstMonth = currentIdx === startIdx;
 
-      // ── Shu oy allaqachon hisoblangan bo'lsa → o'tkazib yuborish ──
+      // Birinchi (qisman) oy uchun: o'quvchi hali boshlamagan kunlarda kutamiz
+      if (isFirstMonth && today < startDate.getDate()) continue;
+
+      // ── Shu oy allaqachon hisoblanganmi? ──
       const existingFee = await prisma.monthlyFee.findFirst({
         where: {
           studentId: student.id,
           month: { gte: monthStart, lt: new Date(currentYear, currentMonth + 1, 1) },
         },
       });
-      if (existingFee) {
-        console.log(`  ⏭️  ${student.user.fullName} — shu oy allaqachon hisoblangan`);
-        continue;
-      }
+      if (existingFee) continue;
 
-      // ── Oylik summa hisoblash: FAQAT monthlyPrice - discount ──
+      // ── Chegirmani hisoblash uchun to'liq oylik summa ──
       let totalMonthly = 0;
-      const courseNames: string[] = [];
       for (const gs of student.groupStudents) {
         totalMonthly += Number(gs.group.course.monthlyPrice);
-        courseNames.push(gs.group.course.name);
       }
       if (totalMonthly === 0) continue;
 
-      // Chegirma hisoblash
       let discount = 0;
       if (student.discountType && student.discountValue) {
         const discountVal = Number(student.discountValue);
@@ -114,35 +122,66 @@ export async function calculateMonthlyDebts() {
         }
       }
 
-      const monthlyFee = totalMonthly - discount; // ← Kelishilgan summa
-      if (monthlyFee <= 0) continue;
-
-      // ── MonthlyFee yozuvlarini yaratish (guruhlar bo'yicha) ──
+      // ══════════════════════════════════════════════════════
+      //  QOIDA:
+      //  1) Birinchi (qisman) oy → pro-rata: boshlagan sanadan oy
+      //     oxirigacha bo'lgan darslar soniga qarab. Keyingi oyning
+      //     1-sanasigacha to'lash kerak.
+      //  2) Keyingi oylar → TO'LIQ oylik to'lov, 1-5 sana orasida.
+      // ══════════════════════════════════════════════════════
+      let studentFee = 0;
       let discountDistributed = 0;
+      const feeRows: Array<{ groupId: number; baseAmount: number; discountAmount: number; finalAmount: number }> = [];
+
       for (let idx = 0; idx < student.groupStudents.length; idx++) {
         const gs = student.groupStudents[idx];
-        const baseAmount = Number(gs.group.course.monthlyPrice);
+        const price = Number(gs.group.course.monthlyPrice);
+
+        // Guruh chegirma ulushi
         const discountPart =
           idx === student.groupStudents.length - 1
             ? discount - discountDistributed
             : Math.round(discount / student.groupStudents.length);
         discountDistributed += discountPart;
-        const finalAmount = baseAmount - discountPart;
 
+        let baseAmount = price;
+
+        if (isFirstMonth) {
+          // Pro-rata: shu guruh jadvali bo'yicha darslar soni
+          const days = scheduleDays(gs.group);
+          const totalLessons = await countLessonsInMonth(currentYear, currentMonth, days);
+          const remainingLessons = await countLessonsInMonthFromDate(currentYear, currentMonth, days, startDate);
+          if (totalLessons > 0) {
+            baseAmount = Math.round(price * remainingLessons / totalLessons);
+          } else {
+            // Jadval yo'q bo'lsa — kalendar kuniga qarab pro-rata (zaxira)
+            const daysInM = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const remainingDays = daysInM - startDate.getDate() + 1;
+            baseAmount = Math.round(price * remainingDays / daysInM);
+          }
+        }
+
+        const finalAmount = Math.max(0, baseAmount - discountPart);
+        studentFee += finalAmount;
+        feeRows.push({ groupId: gs.groupId, baseAmount, discountAmount: discountPart, finalAmount });
+      }
+
+      if (studentFee <= 0) continue;
+
+      // ── MonthlyFee yozuvlarini yaratish ──
+      for (const row of feeRows) {
         try {
-          // Faqat Prisma client bilgan maydonlar (regenerate kerak emas)
           await (prisma.monthlyFee as any).create({
             data: {
               studentId: student.id,
-              groupId: gs.groupId,
+              groupId: row.groupId,
               month: monthStart,
-              baseAmount,
-              discountAmount: discountPart,
-              finalAmount,
+              baseAmount: row.baseAmount,
+              discountAmount: row.discountAmount,
+              finalAmount: row.finalAmount,
             },
           });
         } catch (e: any) {
-          // Unique constraint xatosi — allaqachon mavjud
           if (e.code !== 'P2002') console.error('  ⚠️ MonthlyFee yaratishda xato:', e.message);
         }
       }
@@ -154,12 +193,10 @@ export async function calculateMonthlyDebts() {
       let newBalance = currentBalance;
       let newDebt = currentDebt;
 
-      if (currentBalance >= monthlyFee) {
-        // Balans yetarli — to'liq yeching
-        newBalance = currentBalance - monthlyFee;
+      if (currentBalance >= studentFee) {
+        newBalance = currentBalance - studentFee;
       } else {
-        // Balans yetmaydi — qoldiqni qarzga o'tkazing
-        const shortfall = monthlyFee - currentBalance;
+        const shortfall = studentFee - currentBalance;
         newBalance = 0;
         newDebt = currentDebt + shortfall;
       }
@@ -167,17 +204,20 @@ export async function calculateMonthlyDebts() {
       await prisma.studentBalance.upsert({
         where: { studentId: student.id },
         update: { balance: newBalance, debt: newDebt, lastUpdated: new Date() },
-        create: { studentId: student.id, balance: 0, debt: monthlyFee, lastUpdated: new Date() },
+        create: { studentId: student.id, balance: 0, debt: studentFee, lastUpdated: new Date() },
       });
 
-      // ── O'quvchiga tizim bildirishnomasi (Telegram YO'Q) ──
+      // ── O'quvchiga tizim bildirishnomasi ──
+      const dueLabel = isFirstMonth
+        ? `Keyingi oyning 1-sanasigacha to'lang.`
+        : `${MONTH_NAMES[currentMonth]} 1-5 sanasi orasida to'lang.`;
       await prisma.notification.create({
         data: {
           userId: student.user.id,
-          title: `${monthName} oyi to'lov`,
+          title: `${monthName} oyi to'lov${isFirstMonth ? ' (qisman)' : ''}`,
           body: newBalance < currentBalance
-            ? `${monthName} oyi uchun ${formatMoney(monthlyFee)} balansdan yechildi.`
-            : `${monthName} oyi uchun ${formatMoney(monthlyFee)} to'lov hisoblandi. Qarzingiz: ${formatMoney(newDebt)}`,
+            ? `${monthName} oyi uchun ${formatMoney(studentFee)} balansdan yechildi.`
+            : `${monthName} oyi uchun ${formatMoney(studentFee)} to'lov hisoblandi. ${dueLabel} Qarzingiz: ${formatMoney(newDebt)}`,
           type: 'PAYMENT',
         },
       });
@@ -186,7 +226,7 @@ export async function calculateMonthlyDebts() {
       totalDebtAdded += Math.max(0, newDebt - currentDebt);
 
       console.log(
-        `  ✅ ${student.user.fullName}: ${formatMoney(monthlyFee)} ` +
+        `  ✅ ${student.user.fullName}: ${formatMoney(studentFee)}${isFirstMonth ? ' (qisman/pro-rata)' : ''} ` +
         `(balance: ${formatMoney(newBalance)}, debt: ${formatMoney(newDebt)})`
       );
     }

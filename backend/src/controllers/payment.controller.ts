@@ -902,7 +902,7 @@ export const getDebtorsReview = async (req: AuthRequest, res: Response): Promise
         const student   = gs.student;
         const course    = gs.group.course;
         const joinedAt  = new Date(gs.joinedAt);
-        const dueDay    = joinedAt.getDate(); // har oyning shu sanasida
+        const dueDay    = 5; // Yangi qoida: har oy 1-5 sana orasida to'lov (deadline = 5)
 
         // Belgilangan oylik summa (chegirmasiz asosiy narx — chegirma qo'shilsa ayiriladi)
         const base = Number(course.monthlyPrice);
@@ -1689,6 +1689,18 @@ export const getBillingOverview = async (req: AuthRequest, res: Response): Promi
       paymentByMonth.set(key, (paymentByMonth.get(key) || 0) + Number(p.amount));
     });
 
+    // Har oy uchun HAQIQIY hisoblangan summa (MonthlyFee) — pro-rata birinchi oy uchun aniq
+    const allFees = await prisma.monthlyFee.findMany({
+      where: { studentId: { in: studentIds }, month: { gte: oldestMonthStart } },
+      select: { studentId: true, finalAmount: true, month: true },
+    });
+    const feeByMonth = new Map<string, number>();
+    allFees.forEach(f => {
+      const d   = new Date(f.month);
+      const key = `${f.studentId}-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      feeByMonth.set(key, (feeByMonth.get(key) || 0) + Number(f.finalAmount));
+    });
+
     // Oxirgi to'lov — har o'quvchi uchun
     const lastPayments = await prisma.payment.findMany({
       where:    { studentId: { in: studentIds }, isDeleted: false },
@@ -1721,9 +1733,9 @@ export const getBillingOverview = async (req: AuthRequest, res: Response): Promi
         }
         const monthlyAmount = Math.max(0, totalPrice - discount);
 
-        // To'lov kuni: paymentDueDay ustunligi, keyin joinedAt
-        const paymentDay: number =
-          (student as any).paymentDueDay ?? new Date(student.groupStudents[0].joinedAt).getDate();
+        // Yangi qoida: to'lov har oy 1-5 sana orasida (deadline = 5-sana)
+        // Birinchi (qisman) oy pro-rata bo'ladi, keyingilar to'liq.
+        const paymentDay = 5;
 
         // Keyingi to'lov sanasi
         const daysInCur = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1741,22 +1753,27 @@ export const getBillingOverview = async (req: AuthRequest, res: Response): Promi
         // Har oy uchun holat
         const monthlyStatus = monthRange.map(m => {
           const paid = paymentByMonth.get(`${student.id}-${m.key}`) || 0;
+          // Shu oy uchun HAQIQIY hisoblangan summa (pro-rata bo'lsa kamroq).
+          // MonthlyFee yo'q bo'lsa — to'liq oylik summaga qaytamiz.
+          const charged = feeByMonth.get(`${student.id}-${m.key}`);
+          const due = charged !== undefined ? charged : monthlyAmount;
+
           const daysInM = new Date(m.year, m.month + 1, 0).getDate();
           const payDayInM = new Date(m.year, m.month, Math.min(paymentDay, daysInM));
           const payDayPassed = payDayInM <= now;
 
           let status: 'PAID' | 'PARTIAL' | 'DEBT' | 'UPCOMING';
-          if (monthlyAmount === 0)        status = 'PAID';
-          else if (!payDayPassed)         status = 'UPCOMING';
-          else if (paid >= monthlyAmount) status = 'PAID';
-          else if (paid > 0)              status = 'PARTIAL';
-          else                            status = 'DEBT';
+          if (due === 0)             status = 'PAID';
+          else if (!payDayPassed && paid === 0) status = 'UPCOMING';
+          else if (paid >= due)      status = 'PAID';
+          else if (paid > 0)         status = 'PARTIAL';
+          else                       status = 'DEBT';
 
           return {
             month: m.key,
             label: m.label,
             paid:  Math.round(paid),
-            due:   monthlyAmount,
+            due:   Math.round(due),
             status,
           };
         });
