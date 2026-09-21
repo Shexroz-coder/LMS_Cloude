@@ -90,10 +90,26 @@ export async function listDebtors(branchId?: number, limit = 50) {
 }
 
 export async function searchStudents(search: string, branchId?: number, limit = 30) {
+  // Qidiruvni so'zlarga ajratamiz — tartibdan qat'i nazar topadi.
+  // "Karimov Alisher" ham, "Alisher Karimov" ham bir xil natija beradi.
+  const tokens = String(search || '').trim().split(/\s+/).filter(Boolean);
+
+  // Har token uchun: fullName YOKI phone ichida bo'lsin (AND — hammasi mos kelsin)
+  const userFilter = tokens.length
+    ? {
+        AND: tokens.map(tok => ({
+          OR: [
+            { fullName: { contains: tok, mode: 'insensitive' } },
+            { phone: { contains: tok } },
+          ],
+        })),
+      }
+    : {};
+
   const students = await p.student.findMany({
     where: {
       status: 'ACTIVE', ...(branchId ? { branchId } : {}),
-      ...(search ? { user: { OR: [{ fullName: { contains: search, mode: 'insensitive' } }, { phone: { contains: search } }] } } : {}),
+      ...(tokens.length ? { user: userFilter } : {}),
     },
     take: Math.min(100, limit),
     include: {
@@ -102,7 +118,26 @@ export async function searchStudents(search: string, branchId?: number, limit = 
     },
     orderBy: { id: 'desc' },
   });
-  return students.map((s: any) => ({
+
+  let list = students;
+
+  // Agar hamma token bilan topilmasa — kamroq qattiq: istalgan token mos kelsa (OR)
+  if (list.length === 0 && tokens.length > 1) {
+    list = await p.student.findMany({
+      where: {
+        status: 'ACTIVE', ...(branchId ? { branchId } : {}),
+        user: { OR: tokens.map(tok => ({ fullName: { contains: tok, mode: 'insensitive' } })) },
+      },
+      take: Math.min(100, limit),
+      include: {
+        user: { select: { fullName: true, phone: true } }, balance: true,
+        groupStudents: { where: { status: 'ACTIVE' }, include: { group: { select: { id: true, name: true } } } },
+      },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  return list.map((s: any) => ({
     id: s.id, fullName: s.user?.fullName ?? '—', phone: s.user?.phone ?? '—',
     groups: s.groupStudents.map((gs: any) => ({ id: gs.group?.id, name: gs.group?.name })).filter((g: any) => g.id),
     debt: num(s.balance?.debt), balance: num(s.balance?.balance),
