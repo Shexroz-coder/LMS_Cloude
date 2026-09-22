@@ -3,7 +3,7 @@ import {
   getBranches, createBranch, updateBranch, assignToBranch,
   getBranchDetail, createRoom, updateRoom, deleteRoom, assignGroupsToRoom,
   getBranchManager, assignManager, removeManager, setManagerPermission,
-  transferToBranch, getUnassigned,
+  transferToBranch, getUnassigned, syncStudentsBranchFromGroups,
 } from '../controllers/branch.controller';
 import { authorize } from '../middleware/auth.middleware';
 import { adminOrManager } from '../middleware/permission.middleware';
@@ -15,6 +15,7 @@ router.get('/', getBranches);
 
 // Filialga biriktirilmagan o'quvchi/guruhlar — ADMIN
 router.get('/unassigned', authorize('ADMIN'), getUnassigned);
+router.post('/sync-from-groups', authorize('ADMIN'), syncStudentsBranchFromGroups);
 
 // Filial batafsil — ADMIN, FOUNDER yoki shu filial MAS'ULI
 router.get('/:id/detail', adminOrManager('students.view'), getBranchDetail);

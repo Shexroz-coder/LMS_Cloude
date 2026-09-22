@@ -434,7 +434,8 @@ export const updateStudent = async (req: AuthRequest, res: Response): Promise<vo
           ...(demoDate !== undefined && { demoDate: demoDate ? new Date(demoDate) : null }),
           ...(leftAt !== undefined && { leftAt: leftAt ? new Date(leftAt) : null }),
           ...(leftReason !== undefined && { leftReason: leftReason || null }),
-        },
+          ...((req.body as any).branchId !== undefined && { branchId: (req.body as any).branchId ? parseInt(String((req.body as any).branchId)) : null }),
+        } as any,
         include: studentInclude
       });
     });
@@ -520,6 +521,10 @@ export const addToGroup = async (req: AuthRequest, res: Response): Promise<void>
         where: { id: existing.id },
         data: { status: 'ACTIVE', joinedAt: joinedDate }
       });
+      // O'quvchi filialini guruh filialiga tenglashtirish
+      if ((group as any).branchId) {
+        await (prisma.student as any).update({ where: { id: studentId }, data: { branchId: (group as any).branchId } });
+      }
       sendSuccess(res, result, 'O\'quvchi guruhga qayta qo\'shildi.');
       return;
     }
@@ -527,6 +532,11 @@ export const addToGroup = async (req: AuthRequest, res: Response): Promise<void>
     const result = await prisma.groupStudent.create({
       data: { groupId, studentId, joinedAt: joinedDate }
     });
+
+    // O'quvchi guruhga qo'shilganda avtomatik shu guruh filialiga o'tadi
+    if ((group as any).branchId) {
+      await (prisma.student as any).update({ where: { id: studentId }, data: { branchId: (group as any).branchId } });
+    }
 
     sendSuccess(res, result, 'O\'quvchi guruhga qo\'shildi!', 201);
   } catch (err) {

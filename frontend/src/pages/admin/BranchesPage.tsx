@@ -210,6 +210,19 @@ function UnassignedBanner({ branches }: { branches: Branch[] }) {
     }
   );
 
+  // O'quvchilarni GURUHI filialiga avtomatik biriktirish
+  const syncFromGroups = useMutation(
+    () => api.post('/branches/sync-from-groups'),
+    {
+      onSuccess: (r) => {
+        toast.success(r.data?.message || 'Sinxronlandi');
+        qc.invalidateQueries(['unassigned']);
+        qc.invalidateQueries(['branches']);
+      },
+      onError: (e: any) => { toast.error(e.response?.data?.message || 'Xato!'); },
+    }
+  );
+
   if (total === 0) return null;
 
   return (
@@ -223,10 +236,17 @@ function UnassignedBanner({ branches }: { branches: Branch[] }) {
             Bular hech qaysi filialда ko'rinmaydi. Ularni filialga biriktiring.
           </p>
         </div>
-        <button onClick={() => setOpen(o => !o)}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">
-          {open ? 'Yopish' : 'Biriktirish'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => syncFromGroups.mutate()} disabled={syncFromGroups.isLoading}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold whitespace-nowrap"
+            title="O'quvchilar qaysi guruhda bo'lsa, o'sha guruh filialiga biriktiriladi">
+            {syncFromGroups.isLoading ? '...' : '🔄 Guruhi bo\'yicha'}
+          </button>
+          <button onClick={() => setOpen(o => !o)}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">
+            {open ? 'Yopish' : 'Qo\'lda'}
+          </button>
+        </div>
       </div>
 
       {open && (

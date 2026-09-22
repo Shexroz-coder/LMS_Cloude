@@ -505,3 +505,40 @@ export const getUnassigned = async (_req: AuthRequest, res: Response): Promise<v
     sendError(res, 'Biriktirilmaganlarni olishda xato.', 500);
   }
 };
+
+// ══════════════════════════════════════════════════════════════════
+// POST /branches/sync-from-groups — O'quvchilarni GURUHI filialiga
+// avtomatik biriktirish (o'quvchi qaysi guruhda bo'lsa, shu filialга)
+// ══════════════════════════════════════════════════════════════════
+export const syncStudentsBranchFromGroups = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Faol o'quvchilar + faol guruh a'zoliklari (guruh filiali bilan)
+    const links = await p.groupStudent.findMany({
+      where: { status: 'ACTIVE', group: { branchId: { not: null } } },
+      include: { group: { select: { branchId: true } } },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // Har o'quvchi uchun eng erta guruhining filiali
+    const studentBranch = new Map<number, number>();
+    for (const l of links) {
+      if (!studentBranch.has(l.studentId) && l.group?.branchId) {
+        studentBranch.set(l.studentId, l.group.branchId);
+      }
+    }
+
+    let updated = 0;
+    for (const [studentId, branchId] of studentBranch) {
+      const r = await p.student.updateMany({
+        where: { id: studentId, OR: [{ branchId: null }, { branchId: { not: branchId } }] },
+        data: { branchId },
+      });
+      updated += r.count;
+    }
+
+    sendSuccess(res, { updated }, `${updated} o'quvchi guruhi filialiga biriktirildi.`);
+  } catch (err) {
+    console.error('syncStudentsBranchFromGroups error:', err);
+    sendError(res, 'Sinxronlashда xato.', 500);
+  }
+};
