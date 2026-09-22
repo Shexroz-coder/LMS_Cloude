@@ -17,6 +17,12 @@ export const getLeaderboard = async (req: AuthRequest, res: Response): Promise<v
     if (groupId) {
       where.groupStudents = { some: { groupId: parseInt(groupId), status: 'ACTIVE' } };
     }
+    // Filial filtri
+    {
+      const bRaw = (req.query as Record<string, string>).branchId;
+      const bId = bRaw && bRaw !== 'all' ? parseInt(bRaw) : NaN;
+      if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
+    }
 
     const students = await prisma.student.findMany({
       where,

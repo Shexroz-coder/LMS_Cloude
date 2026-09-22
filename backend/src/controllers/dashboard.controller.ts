@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { getFinanceTotals } from '../services/finance.service';
+import { getBranchId } from '../utils/branch.utils';
 
 
 // ══════════════════════════════════════════════
@@ -87,8 +88,9 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
 // ══════════════════════════════════════════════
 // GET /dashboard/income-chart — So'nggi 6 oy
 // ══════════════════════════════════════════════
-export const getIncomeChart = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getIncomeChart = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
@@ -101,11 +103,11 @@ export const getIncomeChart = async (_req: AuthRequest, res: Response): Promise<
         const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
         const [income, expenses] = await Promise.all([
           prisma.payment.aggregate({
-            where: { paidAt: { gte: start, lte: end } },
+            where: { paidAt: { gte: start, lte: end }, isDeleted: false, ...(branchId ? { student: { branchId } } : {}) } as any,
             _sum: { amount: true }
           }),
           prisma.expense.aggregate({
-            where: { date: { gte: start, lte: end } },
+            where: { date: { gte: start, lte: end }, ...(branchId ? { branchId } : {}) } as any,
             _sum: { amount: true }
           })
         ]);
@@ -128,10 +130,11 @@ export const getIncomeChart = async (_req: AuthRequest, res: Response): Promise<
 // ══════════════════════════════════════════════
 // GET /dashboard/recent-payments
 // ══════════════════════════════════════════════
-export const getRecentPayments = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getRecentPayments = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const payments = await prisma.payment.findMany({
-      where: { isDeleted: false },
+      where: { isDeleted: false, ...(branchId ? { student: { branchId } } : {}) } as any,
       take: 10,
       orderBy: { paidAt: 'desc' },
       include: {
@@ -151,8 +154,9 @@ export const getRecentPayments = async (_req: AuthRequest, res: Response): Promi
 // ══════════════════════════════════════════════
 // GET /dashboard/weekly-attendance — Haftalik davomat
 // ══════════════════════════════════════════════
-export const getWeeklyAttendance = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getWeeklyAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const now = new Date();
     const dayNames = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
     const result = [];
@@ -165,7 +169,7 @@ export const getWeeklyAttendance = async (_req: AuthRequest, res: Response): Pro
 
       const grouped = await prisma.attendance.groupBy({
         by: ['status'],
-        where: { lesson: { date: { gte: start, lte: end } } },
+        where: { lesson: { date: { gte: start, lte: end }, ...(branchId ? { group: { branchId } } : {}) } } as any,
         _count: true,
       });
 
@@ -189,14 +193,15 @@ export const getWeeklyAttendance = async (_req: AuthRequest, res: Response): Pro
 // ══════════════════════════════════════════════
 // GET /dashboard/today-lessons — Bugungi darslar
 // ══════════════════════════════════════════════
-export const getTodayLessons = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getTodayLessons = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
     const lessons = await prisma.lesson.findMany({
-      where: { date: { gte: todayStart, lte: todayEnd } },
+      where: { date: { gte: todayStart, lte: todayEnd }, ...(branchId ? { group: { branchId } } : {}) } as any,
       include: {
         group: {
           include: {
@@ -358,14 +363,16 @@ const TIME_LABELS_LEAD: Record<string, string> = {
   evening:   'Kechqurun (17–21)',
 };
 
-export const getNewLeads = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getNewLeads = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const leads = await prisma.student.findMany({
       where: {
         status: 'LEAD',
         // Faol guruhda yo'q bo'lgan LEAD larni ko'rsatish
         groupStudents: { none: { status: 'ACTIVE' } },
-      },
+        ...(branchId ? { branchId } : {}),
+      } as any,
       include: {
         user: {
           select: { id: true, fullName: true, phone: true, createdAt: true },

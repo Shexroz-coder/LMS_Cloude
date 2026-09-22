@@ -5,6 +5,7 @@ import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 import { countLessonsInMonth, countStandardLessonsInMonth, getMonthCalendarData, countLessonsInMonthFromDate, countStandardLessonsFromDate } from '../utils/schedule.utils';
 import { sendPaymentNotification } from '../telegram/services/notify.service';
 import { getFinanceTotals } from '../services/finance.service';
+import { getBranchId } from '../utils/branch.utils';
 
 
 // ══════════════════════════════════════════════
@@ -29,6 +30,9 @@ export const getPayments = async (req: AuthRequest, res: Response): Promise<void
       const end = new Date(start.getFullYear(), start.getMonth() + 1, 1); // keyingi oyning 1-kuni
       where.paidAt = { gte: start, lt: end }; // lt = keyingi oydan kichik
     }
+    // Filial filtri — o'quvchi filiali bo'yicha
+    const _branchId = getBranchId(req);
+    if (_branchId) (where as any).student = { branchId: _branchId };
 
     const [payments, total] = await Promise.all([
       prisma.payment.findMany({
@@ -185,17 +189,21 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
         })()
       : undefined;
 
+    const branchId = getBranchId(req);
+    const payBranch = branchId ? { student: { branchId } } : {};
+    const expBranch = branchId ? { branchId } : {};
+
     const [incomeResult, expenseResult, financeTotals, studentCount] = await Promise.all([
       prisma.payment.aggregate({
-        where: dateFilter ? { paidAt: dateFilter, isDeleted: false } : { isDeleted: false },
+        where: { isDeleted: false, ...(dateFilter ? { paidAt: dateFilter } : {}), ...payBranch } as any,
         _sum: { amount: true }
       }),
       prisma.expense.aggregate({
-        where: dateFilter ? { date: dateFilter } : {},
+        where: { ...(dateFilter ? { date: dateFilter } : {}), ...expBranch } as any,
         _sum: { amount: true }
       }),
-      getFinanceTotals(), // ← YAGONA qarz manbai (finance.service)
-      prisma.student.count({ where: { user: { isActive: true } } })
+      getFinanceTotals(branchId), // ← YAGONA qarz manbai (filial bo'yicha)
+      prisma.student.count({ where: { user: { isActive: true }, ...(branchId ? { branchId } : {}) } as any })
     ]);
 
     const income = Number(incomeResult._sum.amount || 0);
@@ -206,7 +214,7 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
     // Breakdown by paymentMethod
     const byMethod = await prisma.payment.groupBy({
       by: ['paymentMethod'],
-      where: dateFilter ? { paidAt: dateFilter, isDeleted: false } : { isDeleted: false },
+      where: { isDeleted: false, ...(dateFilter ? { paidAt: dateFilter } : {}), ...payBranch } as any,
       _sum: { amount: true },
       _count: true
     });
@@ -628,11 +636,13 @@ export const getUpcomingDues = async (req: AuthRequest, res: Response): Promise<
     const dayOfMonth = today.getDate();
 
     // paymentDueDay belgilangan o'quvchilar
+    const _udId = getBranchId(req);
     const students = await prisma.student.findMany({
       where: {
         paymentDueDay: { not: null },
         status: 'ACTIVE',
-      },
+        ...(_udId ? { branchId: _udId } : {}),
+      } as any,
       include: {
         user: { select: { id: true, fullName: true, phone: true } },
         balance: true,
@@ -877,8 +887,9 @@ export const getDebtorsReview = async (req: AuthRequest, res: Response): Promise
   try {
     const today = new Date();
 
+    const _dbId = getBranchId(req);
     const activeStudents = await prisma.groupStudent.findMany({
-      where: { status: 'ACTIVE', student: { status: 'ACTIVE' } },
+      where: { status: 'ACTIVE', student: { status: 'ACTIVE', ...(_dbId ? { branchId: _dbId } : {}) } } as any,
       include: {
         student: {
           include: {
@@ -1650,8 +1661,9 @@ export const getBillingOverview = async (req: AuthRequest, res: Response): Promi
 
     const oldestMonthStart = monthRange[0].start;
 
+    const _bId = getBranchId(req);
     const activeStudents = await prisma.student.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', ...(_bId ? { branchId: _bId } : {}) } as any,
       include: {
         user:    { select: { id: true, fullName: true, phone: true } },
         balance: true,

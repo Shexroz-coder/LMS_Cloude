@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError, paginate } from '../utils/response.utils';
 import { getFinanceTotals } from '../services/finance.service';
+import { getBranchId } from '../utils/branch.utils';
 
 
 // ══════════════════════════════════════════════
@@ -176,18 +177,19 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
       dateFilter = { gte: start, lt: end };
     }
 
+    const branchId = getBranchId(req);
     const [incomeAgg, expenseAgg, salaryAgg, debtAgg] = await Promise.all([
       // Daromad (to'lovlar) — o'chirilganlar HISOBGA OLINMAYDI
       prisma.payment.aggregate({
-        where: { isDeleted: false, ...(dateFilter ? { paidAt: dateFilter } : {}) },
+        where: { isDeleted: false, ...(dateFilter ? { paidAt: dateFilter } : {}), ...(branchId ? { student: { branchId } } : {}) } as any,
         _sum: { amount: true }
       }),
       // Xarajatlar
       prisma.expense.aggregate({
-        where: dateFilter ? { date: dateFilter } : {},
+        where: { ...(dateFilter ? { date: dateFilter } : {}), ...(branchId ? { branchId } : {}) } as any,
         _sum: { amount: true }
       }),
-      // To'langan maoshlar
+      // To'langan maoshlar (filialга bog'lanmagan — umumiy)
       prisma.teacherSalary.aggregate({
         where: {
           status: 'PAID',
@@ -195,14 +197,14 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
         },
         _sum: { paidSalary: true }
       }),
-      // Umumiy qarz — YAGONA manba (finance.service, faqat faol o'quvchilar)
-      getFinanceTotals(),
+      // Umumiy qarz — YAGONA manba (filial bo'yicha)
+      getFinanceTotals(branchId),
     ]);
 
     // Kategoriya bo'yicha breakdown
     const byCategory = await prisma.expense.groupBy({
       by: ['category'],
-      where: dateFilter ? { date: dateFilter } : {},
+      where: { ...(dateFilter ? { date: dateFilter } : {}), ...(branchId ? { branchId } : {}) } as any,
       _sum: { amount: true },
       _count: true,
     });
@@ -232,14 +234,15 @@ export const getFinanceSummary = async (req: AuthRequest, res: Response): Promis
 // ══════════════════════════════════════════════
 // GET /expenses/all-time — Barcha vaqt balansi
 // ══════════════════════════════════════════════
-export const getAllTimeBalance = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAllTimeBalance = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const branchId = getBranchId(req);
     const [totalIncome, totalExpenses, totalSalaries, finance, expenseCount] = await Promise.all([
-      prisma.payment.aggregate({ where: { isDeleted: false }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ _sum: { amount: true } }),
+      prisma.payment.aggregate({ where: { isDeleted: false, ...(branchId ? { student: { branchId } } : {}) } as any, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: (branchId ? { branchId } : {}) as any, _sum: { amount: true } }),
       prisma.teacherSalary.aggregate({ where: { status: 'PAID' }, _sum: { paidSalary: true } }),
-      getFinanceTotals(),
-      prisma.expense.count()
+      getFinanceTotals(branchId),
+      prisma.expense.count({ where: (branchId ? { branchId } : {}) as any })
     ]);
 
     const income = Number(totalIncome._sum.amount || 0);
