@@ -43,6 +43,9 @@ export default function BranchesPage() {
         </button>
       </div>
 
+      {/* Biriktirilmaganlar — filialsiz o'quvchi/guruhlar */}
+      {branches.length > 0 && <UnassignedBanner branches={branches} />}
+
       {isLoading ? (
         <div className="text-center py-20 text-zinc-400">Yuklanmoqda...</div>
       ) : branches.length === 0 ? (
@@ -172,6 +175,79 @@ function BranchModal({ mode, branch, onClose, onSaved }: {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Filialga biriktirilmagan o'quvchi/guruhlar bannerи ───
+function UnassignedBanner({ branches }: { branches: Branch[] }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<number | ''>('');
+
+  const { data } = useQuery<{ students: any[]; groups: any[] }>(
+    ['unassigned'],
+    () => api.get('/branches/unassigned').then(r => r.data?.data ?? { students: [], groups: [] }),
+  );
+
+  const students = data?.students ?? [];
+  const groups = data?.groups ?? [];
+  const total = students.length + groups.length;
+
+  const assignAll = useMutation(
+    () => api.post(`/branches/${target}/assign`, {
+      studentIds: students.map(s => s.id),
+      groupIds: groups.map(g => g.id),
+    }),
+    {
+      onSuccess: (r) => {
+        toast.success(r.data?.message || 'Biriktirildi');
+        qc.invalidateQueries(['unassigned']);
+        qc.invalidateQueries(['branches']);
+        setOpen(false); setTarget('');
+      },
+      onError: (e: any) => { toast.error(e.response?.data?.message || 'Xato!'); },
+    }
+  );
+
+  if (total === 0) return null;
+
+  return (
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+            ⚠️ Filialga biriktirilmagan: {students.length} o'quvchi, {groups.length} guruh
+          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+            Bular hech qaysi filialда ko'rinmaydi. Ularni filialga biriktiring.
+          </p>
+        </div>
+        <button onClick={() => setOpen(o => !o)}
+          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">
+          {open ? 'Yopish' : 'Biriktirish'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+          <label className="block mb-3">
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1 block">Qaysi filialга?</span>
+            <select value={target} onChange={e => setTarget(Number(e.target.value) || '')}
+              className="w-full sm:w-64 border border-amber-300 dark:border-amber-700 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
+              <option value="">— Filialni tanlang —</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </label>
+          <button onClick={() => assignAll.mutate()} disabled={!target || assignAll.isLoading}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold">
+            {assignAll.isLoading ? '...' : `Hammasini biriktirish (${total})`}
+          </button>
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2">
+            Barcha biriktirilmagan o'quvchi va guruhlar tanlangan filialga o'tkaziladi.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

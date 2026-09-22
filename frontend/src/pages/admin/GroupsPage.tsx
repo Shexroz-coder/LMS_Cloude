@@ -270,6 +270,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
     endDate: group?.endDate ? format(new Date(group.endDate), 'yyyy-MM-dd') : '',
     room: group?.room || '',
     status: group?.status || 'ACTIVE',
+    branchId: (group as any)?.branchId?.toString() || '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -285,6 +286,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
   const { data: courses } = useQuery('courses-list', () => api.get('/courses').then(r => r.data.data).catch(() => []));
   const { data: teachers } = useQuery('teachers-list', () => api.get('/teachers').then(r => r.data.data).catch(() => []));
+  const { data: branches = [] } = useQuery<any[]>('branches', () => api.get('/branches').then(r => r.data?.data ?? []).catch(() => []));
   const { data: allStudents = [] } = useQuery<Student[]>('students-all', () =>
     api.get('/students?limit=200').then(r => { const d = r.data?.data; return Array.isArray(d) ? d : d?.students || []; }).catch(() => [])
   );
@@ -329,13 +331,15 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.courseId || !form.teacherId) { toast.error('Nom, kurs va ustoz shart'); return; }
+    if (branches.length > 0 && !form.branchId) { toast.error('Filial tanlanishi shart'); return; }
     setLoading(true);
     try {
+      const payload = { ...form, branchId: form.branchId ? parseInt(form.branchId) : undefined };
       if (isEdit) {
-        await api.put(`/groups/${group!.id}`, form);
+        await api.put(`/groups/${group!.id}`, payload);
         toast.success('Guruh yangilandi!');
       } else {
-        const r = await api.post('/groups', form);
+        const r = await api.post('/groups', payload);
         const newGroup = r.data?.data;
         if (newGroup?.id) {
           // Switch to schedule tab after create
@@ -465,6 +469,15 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                   <label className="label">Guruh nomi *</label>
                   <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Robotika-A" className="input" />
                 </div>
+                {branches.length > 0 && (
+                  <div className="col-span-2">
+                    <label className="label">Filial <span className="text-red-500">*</span></label>
+                    <select value={form.branchId} onChange={e => set('branchId', e.target.value)} className="input">
+                      <option value="">— Filialni tanlang —</option>
+                      {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="label">Kurs *</label>
                   <select value={form.courseId} onChange={e => set('courseId', e.target.value)} className="input">

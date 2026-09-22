@@ -144,6 +144,13 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    // Filial MAJBURIY — agar tizimda filial mavjud bo'lsa
+    const branchCount = await (prisma as any).branch.count();
+    if (branchCount > 0 && !(req.body as any).branchId) {
+      sendError(res, 'Filial tanlanishi shart. Guruh qaysi filialga tegishli?', 400);
+      return;
+    }
+
     // Guruh nomi unikal
     const existing = await prisma.group.findFirst({ where: { name, status: 'ACTIVE' } });
     if (existing) {

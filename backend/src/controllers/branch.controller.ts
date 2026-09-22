@@ -474,3 +474,34 @@ export async function applyPendingBranchTransfers(): Promise<{ students: number;
   }
   return { students, groups };
 }
+
+// ══════════════════════════════════════════════════════════════════
+// GET /branches/unassigned — Filialga biriktirilmagan o'quvchi/guruhlar
+// ══════════════════════════════════════════════════════════════════
+export const getUnassigned = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const [students, groups] = await Promise.all([
+      p.student.findMany({
+        where: { branchId: null, status: 'ACTIVE' },
+        include: { user: { select: { fullName: true, phone: true } } },
+        orderBy: { id: 'desc' },
+      }),
+      p.group.findMany({
+        where: { branchId: null, status: 'ACTIVE' },
+        include: {
+          course: { select: { name: true } },
+          teacher: { include: { user: { select: { fullName: true } } } },
+          _count: { select: { groupStudents: { where: { status: 'ACTIVE' } } } },
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+    sendSuccess(res, {
+      students: students.map((s: any) => ({ id: s.id, fullName: s.user?.fullName ?? '—', phone: s.user?.phone ?? '—' })),
+      groups: groups.map((g: any) => ({ id: g.id, name: g.name, courseName: g.course?.name ?? '—', teacherName: g.teacher?.user?.fullName ?? '—', studentsCount: g._count?.groupStudents ?? 0 })),
+    });
+  } catch (err) {
+    console.error('getUnassigned error:', err);
+    sendError(res, 'Biriktirilmaganlarni olishda xato.', 500);
+  }
+};

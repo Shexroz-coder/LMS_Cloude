@@ -250,6 +250,13 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // Filial MAJBURIY — agar tizimda filial mavjud bo'lsa
+    const branchCount = await (prisma as any).branch.count();
+    if (branchCount > 0 && !(req.body as any).branchId) {
+      sendError(res, 'Filial tanlanishi shart. O\'quvchi qaysi filialга tegishli?', 400);
+      return;
+    }
+
     // Telefon raqamlarni standart formatga keltirish: +998XXXXXXXXX
     const normalizedPhone = normalizePhone(phone);
     const normalizedParentPhone = parentPhone ? normalizePhone(parentPhone) : undefined;

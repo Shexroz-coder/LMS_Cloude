@@ -584,6 +584,7 @@ interface FormState {
   birthDate: string; address: string; notes: string;
   discountType: string; discountValue: string; language: string;
   status: string; demoDate: string; startDate: string; leftReason: string;
+  branchId: string;
 }
 
 const StudentFormModal = ({ student, onClose, onSuccess }: {
@@ -607,7 +608,11 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
     startDate: student?.groupStudents?.[0]?.joinedAt
       ? format(new Date(student.groupStudents[0].joinedAt), 'yyyy-MM-dd') : '',
     leftReason: student?.leftReason || '',
+    branchId: (student as any)?.branchId?.toString() || '',
   });
+
+  // Filiallar (majburiy tanlash uchun)
+  const { data: branches = [] } = useQuery<any[]>(['branches'], () => api.get('/branches').then(r => r.data?.data ?? []));
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
 
@@ -623,10 +628,13 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
     if (!form.phone.trim()) errs.phone = 'Telefon kiritilishi shart';
     else if (!validatePhone(form.phone)) errs.phone = "Format: +998XXXXXXXXX (9 raqam)";
     if (!isEdit && !form.password) errs.password = 'Parol kiritilishi shart';
+    if (branches.length > 0 && !form.branchId) errs.branchId = 'Filial tanlanishi shart';
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
       const payload: Record<string, unknown> = { ...form };
+      if (payload.branchId) payload.branchId = parseInt(String(payload.branchId));
+      else delete payload.branchId;
       if (!payload.password) delete payload.password;
       if (!payload.parentPhone) delete payload.parentPhone;
       if (!payload.parentName) delete payload.parentName;
@@ -710,6 +718,17 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
               <label className="label">Tug'ilgan sana</label>
               <input type="date" value={form.birthDate} onChange={e => set('birthDate', e.target.value)} className="input" />
             </div>
+            {branches.length > 0 && (
+              <div className="sm:col-span-2">
+                <label className="label">Filial <span className="text-red-500">*</span></label>
+                <select value={form.branchId} onChange={e => set('branchId', e.target.value)}
+                  className={clsx('input', errors.branchId && 'border-red-400')}>
+                  <option value="">— Filialni tanlang —</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+                {errors.branchId && <p className="text-xs text-red-500 mt-1">{errors.branchId}</p>}
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="label">Manzil</label>
               <input type="text" value={form.address} onChange={e => set('address', e.target.value)}
