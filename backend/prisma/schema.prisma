@@ -153,8 +153,47 @@ model Branch {
   payments Payment[]
   expenses Expense[]
   rooms    Room[]
+  assets   Asset[]
 
   @@map("branches")
+}
+
+// ============================================
+// INVENTAR / JIHOZLAR
+// ============================================
+
+enum AssetCategory {
+  ROBOTICS     // Robototexnika to'plamlari
+  ELECTRONICS  // Elektronika
+  COMPUTER     // Kompyuter/noutbuk
+  FURNITURE    // Mebel
+  TOOL         // Asbob-uskuna
+  OTHER
+}
+
+enum AssetCondition {
+  NEW      // Yangi
+  GOOD     // Yaxshi
+  USED     // Ishlatilgan
+  BROKEN   // Buzuq
+}
+
+model Asset {
+  id        Int            @id @default(autoincrement())
+  name      String         @db.VarChar(200)
+  category  AssetCategory  @default(OTHER)
+  quantity  Int            @default(1)
+  condition AssetCondition @default(GOOD)
+  unitValue Decimal?       @map("unit_value") @db.Decimal(14, 2) // birlik narxi (so'm)
+  note      String?
+  branchId  Int            @map("branch_id")
+  roomId    Int?           @map("room_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@map("assets")
 }
 
 // ============================================

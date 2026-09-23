@@ -3,12 +3,14 @@ import {
   getDashboardStats, getIncomeChart,
   getRecentPayments, getTodayLessons, getWeeklyAttendance,
   getTodaySchedule, getTeacherDebtors, getNewLeads,
+  getBranchesComparison,
 } from '../controllers/dashboard.controller';
 import { authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.get('/stats', authorize('ADMIN', 'FOUNDER'), getDashboardStats);
+router.get('/branches-comparison', authorize('ADMIN', 'FOUNDER'), getBranchesComparison);
 router.get('/income-chart', authorize('ADMIN', 'FOUNDER'), getIncomeChart);
 router.get('/recent-payments', authorize('ADMIN', 'FOUNDER'), getRecentPayments);
 router.get('/today-lessons', authorize('ADMIN', 'TEACHER', 'FOUNDER'), getTodayLessons);

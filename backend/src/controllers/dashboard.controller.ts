@@ -32,7 +32,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
       attendanceData, coinTotal, activeGroups
     ] = await Promise.all([
       prisma.student.count({ where: { user: { isActive: true }, ...(studentBranch as any) } }),
-      prisma.teacher.count({ where: { user: { isActive: true } } }),
+      prisma.teacher.count({ where: { user: { isActive: true, ...(branchId ? { branchId } : {}) } } as any }),
       prisma.payment.aggregate({
         where: {
           paidAt: { gte: monthStart, lte: monthEnd }, isDeleted: false,
@@ -40,7 +40,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
         } as any,
         _sum: { amount: true }
       }),
-      getFinanceTotals(), // ← YAGONA qarz manbai (finance.service)
+      getFinanceTotals(branchId), // ← YAGONA qarz manbai (filial bo'yicha)
       prisma.expense.aggregate({
         where: { date: { gte: monthStart, lte: monthEnd }, ...(branchId ? { branchId } : {}) } as any,
         _sum: { amount: true }
@@ -412,5 +412,58 @@ export const getNewLeads = async (req: AuthRequest, res: Response): Promise<void
   } catch (err) {
     console.error('getNewLeads error:', err);
     sendError(res, 'Yangi arizalarni olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /dashboard/branches-comparison — Filiallar taqqoslamasi
+// "Barcha filiallar" tanlanганда har filial ko'rsatkichlari yonma-yon
+// ══════════════════════════════════════════════
+export const getBranchesComparison = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const p = prisma as any;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const branches = await p.branch.findMany({ where: { isActive: true }, orderBy: { id: 'asc' } });
+
+    const rows = await Promise.all(branches.map(async (b: any) => {
+      const [students, groups, teachers, income, expenses, finance, assetAgg] = await Promise.all([
+        p.student.count({ where: { branchId: b.id, status: 'ACTIVE' } }),
+        p.group.count({ where: { branchId: b.id, status: 'ACTIVE' } }),
+        p.user.count({ where: { branchId: b.id, role: 'TEACHER', isActive: true } }),
+        p.payment.aggregate({ where: { isDeleted: false, paidAt: { gte: monthStart, lte: monthEnd }, student: { branchId: b.id } }, _sum: { amount: true } }),
+        p.expense.aggregate({ where: { branchId: b.id, date: { gte: monthStart, lte: monthEnd } }, _sum: { amount: true } }),
+        getFinanceTotals(b.id),
+        p.asset.aggregate({ where: { branchId: b.id }, _sum: { quantity: true } }),
+      ]);
+      const inc = Math.round(Number(income._sum?.amount || 0));
+      const exp = Math.round(Number(expenses._sum?.amount || 0));
+      return {
+        id: b.id, name: b.name,
+        students, groups, teachers,
+        monthIncome: inc, monthExpenses: exp, netProfit: inc - exp,
+        totalDebt: finance.totalDebt,
+        assets: Number(assetAgg._sum?.quantity || 0),
+      };
+    }));
+
+    // Umumiy yig'indi
+    const totals = rows.reduce((acc: any, r: any) => ({
+      students: acc.students + r.students,
+      groups: acc.groups + r.groups,
+      teachers: acc.teachers + r.teachers,
+      monthIncome: acc.monthIncome + r.monthIncome,
+      monthExpenses: acc.monthExpenses + r.monthExpenses,
+      netProfit: acc.netProfit + r.netProfit,
+      totalDebt: acc.totalDebt + r.totalDebt,
+      assets: acc.assets + r.assets,
+    }), { students: 0, groups: 0, teachers: 0, monthIncome: 0, monthExpenses: 0, netProfit: 0, totalDebt: 0, assets: 0 });
+
+    sendSuccess(res, { branches: rows, totals });
+  } catch (err) {
+    console.error('getBranchesComparison error:', err);
+    sendError(res, 'Filiallar taqqoslamasini olishda xato.', 500);
   }
 };

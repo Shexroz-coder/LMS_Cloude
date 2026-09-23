@@ -15,6 +15,8 @@ import {
 import api from '../../api/axios';
 import StatCard from '../../components/ui/StatCard';
 import { useAuthStore } from '../../store/auth.store';
+import { useBranchStore } from '../../store/branch.store';
+import clsx from 'clsx';
 import { format } from 'date-fns';
 
 const formatMoney = (v: number) =>
@@ -165,6 +167,9 @@ const AdminDashboard = () => {
           Tizim ishlayapti
         </div>
       </div>
+
+      {/* ── "Barcha filiallar" tanlanганда — filiallar taqqoslamasi ── */}
+      <BranchComparison />
 
       {/* ── 🆕 Yangi arizalar (LEAD) ─────────────────── */}
       {leadsCount > 0 && (
@@ -570,5 +575,75 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+// ─── "Barcha filiallar" taqqoslama ko'rinishi ───
+function BranchComparison() {
+  const selectedBranchId = useBranchStore(s => s.selectedBranchId);
+
+  const { data } = useQuery(
+    ['branches-comparison'],
+    () => api.get('/dashboard/branches-comparison').then(r => r.data?.data),
+    { enabled: selectedBranchId == null, staleTime: 30_000 }
+  );
+
+  // Faqat "Barcha filiallar" tanlanганда va 2+ filial bo'lsa
+  if (selectedBranchId != null) return null;
+  const rows = data?.branches ?? [];
+  const totals = data?.totals;
+  if (rows.length < 2) return null;
+
+  const money = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+        <span className="text-base">🏢</span>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Filiallar taqqoslamasi</h3>
+        <span className="text-xs text-gray-400">joriy oy</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
+              <th className="text-left font-medium px-4 py-2">Filial</th>
+              <th className="text-right font-medium px-3 py-2">O'quvchi</th>
+              <th className="text-right font-medium px-3 py-2">Guruh</th>
+              <th className="text-right font-medium px-3 py-2">Tushum</th>
+              <th className="text-right font-medium px-3 py-2">Xarajat</th>
+              <th className="text-right font-medium px-3 py-2">Sof</th>
+              <th className="text-right font-medium px-3 py-2">Qarz</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+            {rows.map((b: any) => (
+              <tr key={b.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30">
+                <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-100">{b.name}</td>
+                <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{b.students}</td>
+                <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{b.groups}</td>
+                <td className="px-3 py-2.5 text-right text-emerald-600 font-medium">{money(b.monthIncome)}</td>
+                <td className="px-3 py-2.5 text-right text-red-500">{money(b.monthExpenses)}</td>
+                <td className={clsx('px-3 py-2.5 text-right font-semibold', b.netProfit >= 0 ? 'text-indigo-600' : 'text-red-600')}>{money(b.netProfit)}</td>
+                <td className="px-3 py-2.5 text-right text-amber-600">{money(b.totalDebt)}</td>
+              </tr>
+            ))}
+          </tbody>
+          {totals && (
+            <tfoot>
+              <tr className="border-t-2 border-gray-200 dark:border-gray-600 font-bold text-gray-800 dark:text-gray-100 bg-gray-50 dark:bg-gray-700/40">
+                <td className="px-4 py-2.5">Jami</td>
+                <td className="px-3 py-2.5 text-right">{totals.students}</td>
+                <td className="px-3 py-2.5 text-right">{totals.groups}</td>
+                <td className="px-3 py-2.5 text-right text-emerald-600">{money(totals.monthIncome)}</td>
+                <td className="px-3 py-2.5 text-right text-red-500">{money(totals.monthExpenses)}</td>
+                <td className={clsx('px-3 py-2.5 text-right', totals.netProfit >= 0 ? 'text-indigo-600' : 'text-red-600')}>{money(totals.netProfit)}</td>
+                <td className="px-3 py-2.5 text-right text-amber-600">{money(totals.totalDebt)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export default AdminDashboard;

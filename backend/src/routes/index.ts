@@ -20,6 +20,7 @@ import branchRoutes from './branch.routes';
 import archiveRoutes from './archive.routes';
 import permissionRoutes from './permission.routes';
 import agentRoutes from './agent.routes';
+import assetRoutes from './asset.routes';
 import { authenticate } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
 
@@ -74,5 +75,6 @@ router.use('/holidays', authenticate, holidayRoutes);
 router.use('/branches', authenticate, branchRoutes);
 router.use('/archives', authenticate, archiveRoutes);
 router.use('/permissions', authenticate, permissionRoutes);
+router.use('/assets', authenticate, assetRoutes);
 
 export default router;

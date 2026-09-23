@@ -8,7 +8,7 @@ import {
   CreditCard, BarChart3, Wallet, Coins, Bell, AlertCircle,
   Megaphone, FileText, User, LogOut, Bot, ChevronLeft, ChevronRight,
   ChevronDown, GraduationCap, DollarSign, Settings2, CalendarOff,
-  Building2, Archive, ShieldCheck,
+  Building2, Archive, ShieldCheck, Package,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
@@ -106,6 +106,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
       {
         key: 'settings', label: 'Sozlamalar', icon: Settings2, items: [
           { to: '/admin/branches', icon: Building2, label: 'Filiallar' },
+          { to: '/admin/inventory', icon: Package, label: 'Inventar' },
           { to: '/admin/archives', icon: Archive, label: 'Arxiv' },
           { to: '/admin/permissions', icon: ShieldCheck, label: 'Ruxsatlar' },
         ]
