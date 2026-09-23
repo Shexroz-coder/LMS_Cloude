@@ -66,6 +66,12 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
       if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
     }
 
+    // Filial mas'uli — FAQAT o'z filiali o'quvchilari
+    if (req.user?.role === 'TEACHER') {
+      const me = await (prisma as any).user.findUnique({ where: { id: req.user.id }, select: { managedBranchId: true } });
+      if (me?.managedBranchId) (where as any).branchId = me.managedBranchId;
+    }
+
     // Guruh bo'yicha filtr
     if (groupId) {
       where.groupStudents = { some: { groupId: parseInt(groupId), status: 'ACTIVE' } };
@@ -249,13 +255,8 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
       sendError(res, 'To\'liq ism va telefon raqam kiritilishi shart.', 400);
       return;
     }
-
-    // Filial MAJBURIY — agar tizimda filial mavjud bo'lsa
-    const branchCount = await (prisma as any).branch.count();
-    if (branchCount > 0 && !(req.body as any).branchId) {
-      sendError(res, 'Filial tanlanishi shart. O\'quvchi qaysi filialга tegishli?', 400);
-      return;
-    }
+    // Eslatma: filial ALOHIDA majburiy emas — o'quvchi guruhga qo'shilganда
+    // avtomatik o'sha guruh filialiga biriktiriladi (quyida).
 
     // Telefon raqamlarni standart formatga keltirish: +998XXXXXXXXX
     const normalizedPhone = normalizePhone(phone);
@@ -331,15 +332,20 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
         data: { studentId: student.id, balance: 0, debt: 0 }
       });
 
-      // Guruhga qo'shish
+      // Guruhga qo'shish — va o'quvchi filialini GURUH filialiga tenglash
       if (groupId) {
+        const gid = parseInt(groupId);
         await tx.groupStudent.create({
           data: {
-            groupId: parseInt(groupId),
+            groupId: gid,
             studentId: student.id,
             ...(joinedAt && { joinedAt: new Date(joinedAt) }),
           }
         });
+        const g = await (tx.group as any).findUnique({ where: { id: gid }, select: { branchId: true } });
+        if ((g as any)?.branchId) {
+          await (tx.student as any).update({ where: { id: student.id }, data: { branchId: (g as any).branchId } });
+        }
       }
 
       return student;

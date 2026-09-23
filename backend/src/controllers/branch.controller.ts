@@ -290,8 +290,9 @@ export const assignGroupsToRoom = async (req: AuthRequest, res: Response): Promi
 
 // Mas'ul tayinlanganda beriladigan standart ruxsatlar
 const MANAGER_DEFAULT_PERMS = [
-  'students.view', 'payments.view', 'payments.create',
-  'finance.view', 'debtors.view', 'attendance.view',
+  'students.view', 'students.create', 'students.edit', 'groups.manage',
+  'payments.view', 'payments.create', 'finance.view', 'debtors.view',
+  'attendance.view', 'attendance.mark', 'coins.award',
 ];
 
 // GET /branches/:id/manager — filial mas'uli(lari)

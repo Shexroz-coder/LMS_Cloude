@@ -168,6 +168,9 @@ const App = () => {
         {/* Filial mas'uli (menejer) sahifalari — backend ruxsat/branch bo'yicha cheklaydi */}
         <Route path="branch/:id" element={<BranchDetailPage />} />
         <Route path="billing" element={<AdminBillingPage />} />
+        <Route path="students" element={<StudentsPage />} />
+        <Route path="students/:id" element={<StudentDetailPage />} />
+        <Route path="manage-groups" element={<GroupsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

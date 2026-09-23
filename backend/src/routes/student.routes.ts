@@ -18,6 +18,7 @@ import {
   updateGroupJoinedAt,
 } from '../controllers/student.controller';
 import { authorize } from '../middleware/auth.middleware';
+import { adminOrManager } from '../middleware/permission.middleware';
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.get('/me', authorize('STUDENT'), getMyStudent);
 
 // CRUD
 router.get('/', authorize('ADMIN', 'TEACHER'), getStudents);
-router.post('/', authorize('ADMIN'), createStudent);
+router.post('/', adminOrManager('students.create'), createStudent);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'PARENT'), getStudentById);
 router.put('/:id', authorize('ADMIN'), updateStudent);
 router.delete('/:id', authorize('ADMIN'), deleteStudent);
@@ -45,7 +46,7 @@ router.patch('/:id/reject-lead', authorize('ADMIN'), rejectLead);
 router.post('/cleanup-inactive', authorize('ADMIN'), cleanupInactiveStudents);
 
 // Guruh boshqaruvi
-router.post('/:id/groups/:groupId', authorize('ADMIN'), addToGroup);
+router.post('/:id/groups/:groupId', adminOrManager('students.create'), addToGroup);
 router.patch('/:id/groups/:groupId/joined-at', authorize('ADMIN'), updateGroupJoinedAt);
 router.delete('/:id/groups/:groupId', authorize('ADMIN'), removeFromGroup);
 

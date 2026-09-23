@@ -6,11 +6,12 @@ import {
   addStudentToGroup, removeStudentFromGroup, transferStudent,
 } from '../controllers/group.controller';
 import { authorize } from '../middleware/auth.middleware';
+import { adminOrManager } from '../middleware/permission.middleware';
 
 const router = Router();
 
 router.get('/', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroups);
-router.post('/', authorize('ADMIN'), createGroup);
+router.post('/', adminOrManager('groups.manage'), createGroup);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroupById);
 router.put('/:id', authorize('ADMIN'), updateGroup);
 router.delete('/:id', authorize('ADMIN'), deleteGroup);
@@ -22,7 +23,7 @@ router.put('/:id/schedules/:scheduleId', authorize('ADMIN'), updateSchedule);
 router.delete('/:id/schedules/:scheduleId', authorize('ADMIN'), deleteSchedule);
 
 // O'quvchi boshqaruvi
-router.post('/:id/students', authorize('ADMIN'), addStudentToGroup);
+router.post('/:id/students', adminOrManager('students.create'), addStudentToGroup);
 router.delete('/:id/students/:studentId', authorize('ADMIN'), removeStudentFromGroup);
 router.post('/:id/students/:studentId/transfer', authorize('ADMIN'), transferStudent);
 

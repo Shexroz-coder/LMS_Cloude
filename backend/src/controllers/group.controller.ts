@@ -42,10 +42,16 @@ export const getGroups = async (req: AuthRequest, res: Response): Promise<void> 
       if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
     }
 
-    // Ustoz faqat o'z guruhlarini ko'radi
+    // Ustoz: filial mas'uli bo'lsa — o'z filialidagi HAMMA guruh;
+    // oddiy ustoz bo'lsa — faqat o'z guruhlari
     if (req.user?.role === 'TEACHER') {
-      const teacher = await prisma.teacher.findUnique({ where: { userId: req.user.id } });
-      if (teacher) where.teacherId = teacher.id;
+      const me = await (prisma as any).user.findUnique({ where: { id: req.user.id }, select: { managedBranchId: true } });
+      if (me?.managedBranchId) {
+        (where as any).branchId = me.managedBranchId;
+      } else {
+        const teacher = await prisma.teacher.findUnique({ where: { userId: req.user.id } });
+        if (teacher) where.teacherId = teacher.id;
+      }
     }
 
     // O'quvchi faqat o'z guruhlarini ko'radi

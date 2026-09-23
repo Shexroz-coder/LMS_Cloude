@@ -280,6 +280,8 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
   if (user.role === 'TEACHER' && managedBranchId) {
     const managerItems: NavItem[] = [
       { to: `/teacher/branch/${managedBranchId}`, icon: Building2, label: 'Filialim' },
+      { to: '/teacher/students', icon: Users, label: "O'quvchilar", perm: 'students.view' },
+      { to: '/teacher/manage-groups', icon: BookOpen, label: 'Guruhlar', perm: 'groups.manage' },
       { to: '/teacher/billing', icon: CreditCard, label: "To'lov & Qarz", perm: 'payments.view' },
     ].filter(it => !it.perm || can(it.perm));
     if (managerItems.length) {

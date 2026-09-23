@@ -21,7 +21,8 @@ export const PERMISSIONS: PermissionDef[] = [
   // ── O'quvchilar ──
   { key: 'students.view',   label: "O'quvchilar ro'yxatini ko'rish",   group: "O'quvchilar", defaults: { TEACHER: true } },
   { key: 'students.edit',   label: "O'quvchi ma'lumotini tahrirlash",  group: "O'quvchilar", defaults: { TEACHER: false } },
-  { key: 'students.create', label: "Yangi o'quvchi qo'shish",          group: "O'quvchilar", defaults: { TEACHER: false } },
+  { key: 'students.create', label: "Yangi o'quvchi / demo qo'shish",   group: "O'quvchilar", defaults: { TEACHER: false } },
+  { key: 'groups.manage',   label: "Guruh yaratish va boshqarish",     group: "O'quvchilar", defaults: { TEACHER: false } },
 
   // ── Davomat ──
   { key: 'attendance.mark', label: 'Davomat belgilash',                group: 'Davomat', defaults: { TEACHER: true } },
