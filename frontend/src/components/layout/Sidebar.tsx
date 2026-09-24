@@ -160,6 +160,47 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
   ];
 };
 
+// ── Filial mas'uli (menejer) uchun nav — admin menyusi, filialga cheklangan ──
+// Super admin funksiyalari (Ustozlar, Filiallar CRUD, Ruxsatlar, global Arxiv,
+// Oyliklar, markaz bo'yicha e'lonlar) bu yerda YO'Q.
+const getManagerNavConfig = (branchId: number, t: (k: string) => string): NavConfig => [
+  { to: '/admin', icon: LayoutDashboard, label: t('nav.dashboard') },
+  {
+    key: 'education', label: "Ta'lim", icon: GraduationCap, items: [
+      { to: '/admin/students', icon: Users, label: t('nav.students'), perm: 'students.view' },
+      { to: '/admin/groups', icon: BookOpen, label: t('nav.groups'), perm: 'groups.manage' },
+      { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
+    ],
+  },
+  {
+    key: 'finance', label: 'Moliya', icon: DollarSign, items: [
+      { to: '/admin/billing',  icon: CreditCard,  label: "To'lov & Qarz", perm: 'payments.view' },
+      { to: '/admin/payments', icon: DollarSign,  label: t('nav.payments'), perm: 'payments.view' },
+      { to: '/admin/debtors',  icon: AlertCircle, label: 'Eslatmalar', perm: 'debtors.view' },
+      { to: '/admin/finance',  icon: BarChart3,   label: t('nav.finance'), perm: 'finance.view' },
+      { to: '/admin/coins',    icon: Coins,       label: t('nav.coins'), perm: 'coins.award' },
+    ],
+  },
+  {
+    key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
+      { to: '/admin/attendance', icon: ClipboardCheck, label: 'Davomat', perm: 'attendance.view' },
+      { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
+    ],
+  },
+  {
+    key: 'settings', label: 'Filialim', icon: Building2, items: [
+      { to: `/admin/branches/${branchId}`, icon: Building2, label: 'Filial ma\'lumoti' },
+      { to: '/admin/inventory', icon: Package, label: 'Inventar' },
+    ],
+  },
+  {
+    key: 'system', label: 'Tizim', icon: Settings2, items: [
+      { to: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
+      { to: '/admin/profile', icon: User, label: t('nav.profile') },
+    ],
+  },
+];
+
 // ── Collapsible group ──────────────────────────────────
 const NavGroupSection = ({
   group, collapsed, defaultOpen = false, onNavigate,
@@ -265,7 +306,15 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
   const filterByPerm = (items: NavItem[]) =>
     items.filter(it => !it.perm || can(it.perm));
 
-  const rawConfig = getNavConfig(user.role, t);
+  // Filial mas'uli (menejer) — TEACHER roli + managedBranchId → to'liq admin menyusi.
+  // managedBranchId permission store (async) yoki auth user (login'dan sync) dan olinadi.
+  const effManagedBranchId = managedBranchId ?? user.managedBranchId ?? null;
+  const isManager = user.role === 'TEACHER' && !!effManagedBranchId;
+
+  const rawConfig = isManager
+    ? getManagerNavConfig(effManagedBranchId as number, t)
+    : getNavConfig(user.role, t);
+
   const navConfig: NavConfig = rawConfig
     .map(item => {
       if (isGroup(item)) {
@@ -275,19 +324,6 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
       return (!item.perm || can(item.perm)) ? item : null;
     })
     .filter(Boolean) as NavConfig;
-
-  // Filial mas'uli (menejer) uchun qo'shimcha bo'lim
-  if (user.role === 'TEACHER' && managedBranchId) {
-    const managerItems: NavItem[] = [
-      { to: `/teacher/branch/${managedBranchId}`, icon: Building2, label: 'Filialim' },
-      { to: '/teacher/students', icon: Users, label: "O'quvchilar", perm: 'students.view' },
-      { to: '/teacher/manage-groups', icon: BookOpen, label: 'Guruhlar', perm: 'groups.manage' },
-      { to: '/teacher/billing', icon: CreditCard, label: "To'lov & Qarz", perm: 'payments.view' },
-    ].filter(it => !it.perm || can(it.perm));
-    if (managerItems.length) {
-      navConfig.splice(1, 0, { key: 'manager', label: 'Filial boshqaruvi', icon: ShieldCheck, items: managerItems });
-    }
-  }
 
   const gradient = ROLE_COLORS[user.role];
 
@@ -386,7 +422,7 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === `/${user.role.toLowerCase()}`}
+                end={item.to === '/admin' || item.to === `/${user.role.toLowerCase()}`}
                 title={item.label}
                 onClick={onClose}
                 className={({ isActive }) =>
@@ -402,7 +438,7 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === `/${user.role.toLowerCase()}`}
+                end={item.to === '/admin' || item.to === `/${user.role.toLowerCase()}`}
                 onClick={onClose}
                 className={({ isActive }) =>
                   clsx(

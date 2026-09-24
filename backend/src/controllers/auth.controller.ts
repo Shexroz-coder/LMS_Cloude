@@ -93,6 +93,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         role: user.role,
         avatarUrl: user.avatarUrl,
         language: user.language,
+        managedBranchId: (user as any).managedBranchId ?? null,
         student: user.student,
         teacher: user.teacher,
       }
@@ -181,7 +182,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      select: {
+      select: ({
         id: true,
         fullName: true,
         phone: true,
@@ -191,6 +192,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         language: true,
         isActive: true,
         createdAt: true,
+        managedBranchId: true,
         student: {
           select: {
             id: true,
@@ -203,7 +205,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         teacher: {
           select: { id: true, specialization: true, salaryType: true }
         }
-      }
+      }) as any
     });
 
     if (!user) {

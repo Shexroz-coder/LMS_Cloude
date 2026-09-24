@@ -65,6 +65,11 @@ import NotificationsPage from './pages/shared/NotificationsPage';
 import ProfilePage from './pages/shared/ProfilePage';
 import StudentCalendarPage from './pages/student/StudentCalendarPage';
 
+// Filial mas'uli (menejer) — TEACHER roli, lekin managedBranchId biriktirilgan.
+// Bunday foydalanuvchi to'liq admin paneliga (o'z filiali doirasida) kiradi.
+const isBranchManager = (user: { role: Role; managedBranchId?: number | null } | null) =>
+  !!user && user.role === 'TEACHER' && !!user.managedBranchId;
+
 // ── Route himoyasi ──────────────────────────────────
 const PrivateRoute = ({
   children,
@@ -77,6 +82,8 @@ const PrivateRoute = ({
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    // Filial mas'uli admin paneliga kira oladi
+    if (allowedRoles.includes('ADMIN') && isBranchManager(user)) return children;
     return <Navigate to="/" replace />;
   }
   return children;
@@ -87,6 +94,9 @@ const RootRedirect = () => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Filial mas'uli — to'liq admin panel
+  if (isBranchManager(user)) return <Navigate to="/admin" replace />;
 
   switch (user?.role) {
     case 'ADMIN': return <Navigate to="/admin" replace />;

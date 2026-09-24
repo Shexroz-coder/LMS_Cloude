@@ -20,7 +20,7 @@ const router = Router();
 // ── Static routes (/:id dan oldin!) ─────────────────────
 // Filial mas'uli ham o'z filiali bo'yicha ko'ra oladi (branchId avtomatik cheklanadi)
 router.get('/billing', adminOrManager('payments.view'), getBillingOverview);
-router.get('/summary', authorize('ADMIN', 'FOUNDER'), getFinanceSummary);
+router.get('/summary', adminOrManager('finance.view', { allowFounder: true }), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
 router.get('/debtors-review', adminOrManager('debtors.view'), getDebtorsReview);
@@ -42,7 +42,7 @@ router.post('/student/:studentId/waive-debt', authorize('ADMIN'), waiveStudentDe
 router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 
 // ── General ──────────────────────────────────────────────
-router.get('/', authorize('ADMIN', 'FOUNDER'), getPayments);
+router.get('/', adminOrManager('payments.view', { allowFounder: true }), getPayments);
 router.post('/', adminOrManager('payments.create'), createPayment);
 router.put('/:id', authorize('ADMIN'), updatePayment);
 router.delete('/:id', authorize('ADMIN'), deletePayment);

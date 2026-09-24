@@ -579,14 +579,18 @@ const AdminDashboard = () => {
 // ─── "Barcha filiallar" taqqoslama ko'rinishi ───
 function BranchComparison() {
   const selectedBranchId = useBranchStore(s => s.selectedBranchId);
+  const user = useAuthStore(s => s.user);
+  // Filial mas'uli (menejer) — barcha filiallar taqqoslamasini ko'rmaydi
+  const isManager = user?.role === 'TEACHER' && !!user?.managedBranchId;
 
   const { data } = useQuery(
     ['branches-comparison'],
     () => api.get('/dashboard/branches-comparison').then(r => r.data?.data),
-    { enabled: selectedBranchId == null, staleTime: 30_000 }
+    { enabled: selectedBranchId == null && !isManager, staleTime: 30_000 }
   );
 
-  // Faqat "Barcha filiallar" tanlanганда va 2+ filial bo'lsa
+  // Faqat "Barcha filiallar" tanlanганda va 2+ filial bo'lsa
+  if (isManager) return null;
   if (selectedBranchId != null) return null;
   const rows = data?.branches ?? [];
   const totals = data?.totals;

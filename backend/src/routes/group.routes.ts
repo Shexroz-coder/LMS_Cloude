@@ -13,18 +13,18 @@ const router = Router();
 router.get('/', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroups);
 router.post('/', adminOrManager('groups.manage'), createGroup);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getGroupById);
-router.put('/:id', authorize('ADMIN'), updateGroup);
-router.delete('/:id', authorize('ADMIN'), deleteGroup);
+router.put('/:id', adminOrManager('groups.manage'), updateGroup);
+router.delete('/:id', adminOrManager('groups.manage'), deleteGroup);
 router.get('/:id/stats', authorize('ADMIN', 'TEACHER'), getGroupStats);
 
-// Jadval
-router.post('/:id/schedules', authorize('ADMIN'), addSchedule);
-router.put('/:id/schedules/:scheduleId', authorize('ADMIN'), updateSchedule);
-router.delete('/:id/schedules/:scheduleId', authorize('ADMIN'), deleteSchedule);
+// Jadval — mas'ul ham qo'sha/tahrirlashi mumkin
+router.post('/:id/schedules', adminOrManager('groups.manage'), addSchedule);
+router.put('/:id/schedules/:scheduleId', adminOrManager('groups.manage'), updateSchedule);
+router.delete('/:id/schedules/:scheduleId', adminOrManager('groups.manage'), deleteSchedule);
 
 // O'quvchi boshqaruvi
 router.post('/:id/students', adminOrManager('students.create'), addStudentToGroup);
-router.delete('/:id/students/:studentId', authorize('ADMIN'), removeStudentFromGroup);
-router.post('/:id/students/:studentId/transfer', authorize('ADMIN'), transferStudent);
+router.delete('/:id/students/:studentId', adminOrManager('students.create'), removeStudentFromGroup);
+router.post('/:id/students/:studentId/transfer', adminOrManager('students.create'), transferStudent);
 
 export default router;

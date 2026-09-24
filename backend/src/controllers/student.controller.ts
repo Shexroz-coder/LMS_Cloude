@@ -66,10 +66,17 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
       if (Number.isFinite(bId) && bId > 0) (where as any).branchId = bId;
     }
 
-    // Filial mas'uli — FAQAT o'z filiali o'quvchilari
+    // Filial mas'uli — FAQAT o'z filiali o'quvchilari.
+    // O'quvchi filiali: student.branchId YOKI faol guruhi filiali (guruhdan olinadi).
     if (req.user?.role === 'TEACHER') {
       const me = await (prisma as any).user.findUnique({ where: { id: req.user.id }, select: { managedBranchId: true } });
-      if (me?.managedBranchId) (where as any).branchId = me.managedBranchId;
+      if (me?.managedBranchId) {
+        const bId = me.managedBranchId as number;
+        (where as any).OR = [
+          { branchId: bId },
+          { groupStudents: { some: { status: 'ACTIVE', group: { branchId: bId } } } },
+        ];
+      }
     }
 
     // Guruh bo'yicha filtr

@@ -25,6 +25,7 @@ export interface User {
   language: Language;
   isActive: boolean;
   createdAt: string;
+  managedBranchId?: number | null;
   student?: StudentInfo | null;
   teacher?: TeacherInfo | null;
 }

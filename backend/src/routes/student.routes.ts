@@ -32,8 +32,8 @@ router.get('/me', authorize('STUDENT'), getMyStudent);
 router.get('/', authorize('ADMIN', 'TEACHER'), getStudents);
 router.post('/', adminOrManager('students.create'), createStudent);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'PARENT'), getStudentById);
-router.put('/:id', authorize('ADMIN'), updateStudent);
-router.delete('/:id', authorize('ADMIN'), deleteStudent);
+router.put('/:id', adminOrManager('students.edit'), updateStudent);
+router.delete('/:id', adminOrManager('students.edit'), deleteStudent);
 
 // Faollashtirish / Nofaol qilish
 router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);

@@ -86,10 +86,13 @@ export const requirePerm = (permKey: string) => {
  *  - Filial mas'uli (managedBranchId bor) → shu permKey ruxsati bo'lsa,
  *    so'rov AVTOMATIK o'z filialiga cheklanadi (branchId majburiy o'rnatiladi).
  */
-export const adminOrManager = (permKey: string) => {
+export const adminOrManager = (permKey: string, opts?: { allowFounder?: boolean }) => {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) { sendError(res, 'Autentifikatsiya talab qilinadi.', 401); return; }
     if (req.user.role === 'ADMIN') { next(); return; }
+    // FOUNDER — faqat o'qish uchun ruxsat berilgan GET routelar (branch cheklovsiz,
+    // o'z branch tanlagichiga bo'ysunadi, xuddi ADMIN kabi)
+    if (opts?.allowFounder && (req.user.role as string) === 'FOUNDER') { next(); return; }
 
     // Filial mas'ulimi?
     let managedBranchId: number | null = null;

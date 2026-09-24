@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useAuthStore } from '../../store/auth.store';
+import { usePermissionStore } from '../../store/permission.store';
 import { format } from 'date-fns';
 import { Users, GraduationCap, BookOpen, X, Plus, Trash2, ArrowRightLeft, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -284,9 +286,23 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   const [transferTarget, setTransferTarget] = useState<{ student: Student; } | null>(null);
   const [transferGroupId, setTransferGroupId] = useState('');
 
+  // Filial mas'uli (menejer) — filiali avtomatik biriktiriladi, o'zgartira olmaydi
+  const authUser = useAuthStore(s => s.user);
+  const pmManagedBranchId = usePermissionStore(s => s.managedBranchId);
+  const effManagedBranchId = pmManagedBranchId ?? authUser?.managedBranchId ?? null;
+  const isManager = authUser?.role === 'TEACHER' && !!effManagedBranchId;
+
   const { data: courses } = useQuery('courses-list', () => api.get('/courses').then(r => r.data.data).catch(() => []));
   const { data: teachers } = useQuery('teachers-list', () => api.get('/teachers').then(r => r.data.data).catch(() => []));
   const { data: branches = [] } = useQuery<any[]>('branches', () => api.get('/branches').then(r => r.data?.data ?? []).catch(() => []));
+
+  // Menejer uchun filialni majburan o'z filialiga o'rnatish
+  useEffect(() => {
+    if (isManager && effManagedBranchId && !form.branchId) {
+      setForm(f => ({ ...f, branchId: String(effManagedBranchId) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManager, effManagedBranchId]);
   const { data: allStudents = [] } = useQuery<Student[]>('students-all', () =>
     api.get('/students?limit=200').then(r => { const d = r.data?.data; return Array.isArray(d) ? d : d?.students || []; }).catch(() => [])
   );
@@ -472,10 +488,18 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                 {branches.length > 0 && (
                   <div className="col-span-2">
                     <label className="label">Filial <span className="text-red-500">*</span></label>
-                    <select value={form.branchId} onChange={e => set('branchId', e.target.value)} className="input">
+                    <select
+                      value={form.branchId}
+                      onChange={e => set('branchId', e.target.value)}
+                      className="input"
+                      disabled={isManager}
+                    >
                       <option value="">— Filialni tanlang —</option>
                       {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
+                    {isManager && (
+                      <p className="text-xs text-gray-400 mt-1">Guruh sizning filialingizga biriktiriladi.</p>
+                    )}
                   </div>
                 )}
                 <div>

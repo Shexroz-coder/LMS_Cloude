@@ -6,17 +6,20 @@ import {
   getBranchesComparison,
 } from '../controllers/dashboard.controller';
 import { authorize } from '../middleware/auth.middleware';
+import { adminOrManager } from '../middleware/permission.middleware';
 
 const router = Router();
 
-router.get('/stats', authorize('ADMIN', 'FOUNDER'), getDashboardStats);
+// Filial mas'uli (menejer) ham o'z filiali bo'yicha dashboard ko'radi
+// (adminOrManager branchId ni avtomatik cheklaydi)
+router.get('/stats', adminOrManager('finance.view', { allowFounder: true }), getDashboardStats);
 router.get('/branches-comparison', authorize('ADMIN', 'FOUNDER'), getBranchesComparison);
-router.get('/income-chart', authorize('ADMIN', 'FOUNDER'), getIncomeChart);
-router.get('/recent-payments', authorize('ADMIN', 'FOUNDER'), getRecentPayments);
+router.get('/income-chart', adminOrManager('finance.view', { allowFounder: true }), getIncomeChart);
+router.get('/recent-payments', adminOrManager('payments.view', { allowFounder: true }), getRecentPayments);
 router.get('/today-lessons', authorize('ADMIN', 'TEACHER', 'FOUNDER'), getTodayLessons);
-router.get('/weekly-attendance', authorize('ADMIN', 'FOUNDER'), getWeeklyAttendance);
+router.get('/weekly-attendance', adminOrManager('attendance.view', { allowFounder: true }), getWeeklyAttendance);
 router.get('/today-schedule', authorize('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), getTodaySchedule);
 router.get('/teacher-debtors', authorize('TEACHER'), getTeacherDebtors);
-router.get('/new-leads', authorize('ADMIN'), getNewLeads);
+router.get('/new-leads', adminOrManager('students.view'), getNewLeads);
 
 export default router;
