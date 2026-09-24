@@ -14,6 +14,8 @@ import { toast } from 'react-hot-toast';
 import api from '../../api/axios';
 import { clsx } from 'clsx';
 import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
+import { useAuthStore } from '../../store/auth.store';
+import { usePermissionStore } from '../../store/permission.store';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -616,6 +618,19 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<FormState>>({});
 
+  // Filial mas'uli (menejer) — o'quvchi avtomatik o'z filialiga biriktiriladi
+  const authUser = useAuthStore(s => s.user);
+  const pmManagedBranchId = usePermissionStore(s => s.managedBranchId);
+  const effManagedBranchId = pmManagedBranchId ?? authUser?.managedBranchId ?? null;
+  const isManager = authUser?.role === 'TEACHER' && !!effManagedBranchId;
+
+  useEffect(() => {
+    if (isManager && effManagedBranchId && !form.branchId) {
+      setForm(f => ({ ...f, branchId: String(effManagedBranchId) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManager, effManagedBranchId]);
+
   const set = (k: keyof FormState, v: string) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: '' }));
@@ -718,7 +733,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
               <label className="label">Tug'ilgan sana</label>
               <input type="date" value={form.birthDate} onChange={e => set('birthDate', e.target.value)} className="input" />
             </div>
-            {branches.length > 0 && (
+            {branches.length > 0 && !isManager && (
               <div className="sm:col-span-2">
                 <label className="label">Filial <span className="text-gray-400 text-xs">(ixtiyoriy — guruhga qo'shilganда avtomatik)</span></label>
                 <select value={form.branchId} onChange={e => set('branchId', e.target.value)} className="input">
