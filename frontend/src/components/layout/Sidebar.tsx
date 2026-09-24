@@ -160,45 +160,18 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
   ];
 };
 
-// ── Filial mas'uli (menejer) uchun nav — admin menyusi, filialga cheklangan ──
-// Super admin funksiyalari (Ustozlar, Filiallar CRUD, Ruxsatlar, global Arxiv,
-// Oyliklar, markaz bo'yicha e'lonlar) bu yerda YO'Q.
+// ── Filial mas'uli (menejer) uchun nav — SODDA, yassi menyu ──
+// Faqat kundalik ish uchun kerakli bo'limlar. Ortiqcha (Ustozlar, Filiallar CRUD,
+// Ruxsatlar, global Arxiv, Oyliklar, e'lonlar, hisobotlar, inventar) YO'Q.
 const getManagerNavConfig = (branchId: number, t: (k: string) => string): NavConfig => [
-  { to: '/admin', icon: LayoutDashboard, label: t('nav.dashboard') },
-  {
-    key: 'education', label: "Ta'lim", icon: GraduationCap, items: [
-      { to: '/admin/students', icon: Users, label: t('nav.students'), perm: 'students.view' },
-      { to: '/admin/groups', icon: BookOpen, label: t('nav.groups'), perm: 'groups.manage' },
-      { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
-    ],
-  },
-  {
-    key: 'finance', label: 'Moliya', icon: DollarSign, items: [
-      { to: '/admin/billing',  icon: CreditCard,  label: "To'lov & Qarz", perm: 'payments.view' },
-      { to: '/admin/payments', icon: DollarSign,  label: t('nav.payments'), perm: 'payments.view' },
-      { to: '/admin/debtors',  icon: AlertCircle, label: 'Eslatmalar', perm: 'debtors.view' },
-      { to: '/admin/finance',  icon: BarChart3,   label: t('nav.finance'), perm: 'finance.view' },
-      { to: '/admin/coins',    icon: Coins,       label: t('nav.coins'), perm: 'coins.award' },
-    ],
-  },
-  {
-    key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
-      { to: '/admin/attendance', icon: ClipboardCheck, label: 'Davomat', perm: 'attendance.view' },
-      { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
-    ],
-  },
-  {
-    key: 'settings', label: 'Filialim', icon: Building2, items: [
-      { to: `/admin/branches/${branchId}`, icon: Building2, label: 'Filial ma\'lumoti' },
-      { to: '/admin/inventory', icon: Package, label: 'Inventar' },
-    ],
-  },
-  {
-    key: 'system', label: 'Tizim', icon: Settings2, items: [
-      { to: '/admin/notifications', icon: Bell, label: t('nav.notifications') },
-      { to: '/admin/profile', icon: User, label: t('nav.profile') },
-    ],
-  },
+  { to: '/admin',            icon: LayoutDashboard, label: 'Bosh sahifa' },
+  { to: '/admin/students',   icon: Users,           label: t('nav.students'), perm: 'students.view' },
+  { to: '/admin/groups',     icon: BookOpen,        label: 'Guruhlar', perm: 'groups.manage' },
+  { to: '/admin/attendance', icon: ClipboardCheck,  label: 'Davomat', perm: 'attendance.view' },
+  { to: '/admin/billing',    icon: CreditCard,      label: "To'lov & Qarz", perm: 'payments.view' },
+  { to: '/admin/finance',    icon: BarChart3,       label: 'Moliya', perm: 'finance.view' },
+  { to: `/admin/branches/${branchId}`, icon: Building2, label: 'Filialim' },
+  { to: '/admin/profile',    icon: User,            label: 'Profil' },
 ];
 
 // ── Collapsible group ──────────────────────────────────
