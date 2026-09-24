@@ -240,4 +240,126 @@
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.2); }
   }
+
+  /* ════════════════════════════════════════════════════════
+     FUTURISTIC / AI · ROBOTICS UI QATLAMI
+     Faqat transform/opacity/filter — GPU-friendly, yengil.
+     ════════════════════════════════════════════════════════ */
+
+  /* Sahifa almashinuvi animatsiyasi (route o'zgarganda) */
+  .page-enter {
+    animation: pageIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+  @keyframes pageIn {
+    0%   { opacity: 0; transform: translateY(10px) scale(0.995); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Subtil "circuit / tech grid" fon qatlami */
+  .cyber-grid {
+    background-image:
+      linear-gradient(to right, rgba(56,189,248,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(139,92,246,0.06) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+  html.dark .cyber-grid {
+    background-image:
+      linear-gradient(to right, rgba(56,189,248,0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(139,92,246,0.10) 1px, transparent 1px);
+  }
+
+  /* Yumshoq aylanuvchi glow "orbs" (dekorativ, pointer-events yo'q) */
+  .glow-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.28;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  /* Neon chegara/soyani hover'da yoqadigan karta */
+  .card-cyber {
+    @apply card transition-all duration-300;
+  }
+  .card-cyber:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px -12px rgba(56,189,248,0.35), 0 0 0 1px rgba(56,189,248,0.20);
+  }
+  html.dark .card-cyber:hover {
+    box-shadow: 0 12px 34px -12px rgba(139,92,246,0.45), 0 0 0 1px rgba(139,92,246,0.30);
+  }
+
+  /* Neon matn akssenti */
+  .text-neon {
+    background: linear-gradient(90deg, #22D3EE, #8B5CF6);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Yupqa yuqori "scanline" akssent chizig'i */
+  .scan-line {
+    position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #22D3EE, #8B5CF6, transparent);
+    opacity: 0.6;
+    animation: scan 3.5s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes scan {
+    0%   { transform: translateY(0); opacity: 0; }
+    12%  { opacity: 0.7; }
+    88%  { opacity: 0.7; }
+    100% { transform: translateY(220px); opacity: 0; }
+  }
+
+  /* Bosilganда yengil "press" reaksiyasi — barcha tugma/link uchun */
+  .btn:active, .card-cyber:active { transform: scale(0.985); }
+
+  /* Primary tugmaga yengil hover ko'tarilish + glow */
+  .btn-primary:hover {
+    box-shadow: 0 6px 20px -8px rgba(225,29,72,0.6);
+    transform: translateY(-1px);
+  }
+
+  /* Faol menyu havolasi — chap tomonда neon indikator */
+  .nav-neon { position: relative; }
+  .nav-neon::before {
+    content: '';
+    position: absolute; left: 1px; top: 50%; transform: translateY(-50%);
+    height: 58%; width: 2px; border-radius: 9999px;
+    background: linear-gradient(to bottom, #22D3EE, #8B5CF6);
+    box-shadow: 0 0 8px rgba(34,211,238,0.85);
+  }
+}
+
+@layer utilities {
+  /* Pulslanuvchi neon glow (logo, "AI" chip va h.k. uchun) */
+  .animate-glow-pulse { animation: glowPulse 2.6s ease-in-out infinite; }
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 2px rgba(34,211,238,0.5)); }
+    50%      { opacity: 1;    filter: drop-shadow(0 0 8px rgba(34,211,238,0.95)); }
+  }
+
+  /* Sekin suzuvchi element */
+  .animate-float-soft { animation: floatSoft 5s ease-in-out infinite; }
+  @keyframes floatSoft {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+  }
+
+  /* Harakatni kamaytirish sozlamasi — hamma futuristic animatsiya o'chadi */
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter,
+    .scan-line,
+    .animate-glow-pulse,
+    .animate-float-soft,
+    .glow-orb {
+      animation: none !important;
+    }
+    .card-cyber:hover, .btn-primary:hover, .btn:active { transform: none; }
+  }
 }

@@ -238,7 +238,7 @@ const NavGroupSection = ({
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                    isActive ? 'bg-white/20 text-white' : 'text-white/65 hover:bg-white/10 hover:text-white'
+                    isActive ? 'nav-neon bg-white/20 text-white ring-1 ring-neon-cyan/30' : 'text-white/65 hover:bg-white/10 hover:text-white'
                   )
                 }
               >
@@ -324,7 +324,7 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
       )}
 
       <div className={clsx(
-        'flex flex-col h-full transition-all duration-300',
+        'flex flex-col h-full transition-all duration-300 relative overflow-hidden',
         `bg-gradient-to-b ${gradient}`,
         // Desktop
         'lg:relative',
@@ -333,6 +333,9 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
         'fixed inset-y-0 left-0 z-50 w-64 lg:translate-x-0',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
+        {/* Neon top akssent + subtil grid */}
+        <div className="scan-line" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-0 cyber-grid opacity-40" aria-hidden="true" />
 
         {/* Collapse toggle — faqat desktop */}
         <button
@@ -343,14 +346,21 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
         </button>
 
         {/* Logo */}
-        <div className={clsx('flex items-center gap-3 px-4 py-4 border-b border-white/10', collapsed && 'lg:justify-center')}>
-          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Bot size={17} className="text-white" />
+        <div className={clsx('relative flex items-center gap-3 px-4 py-4 border-b border-white/10', collapsed && 'lg:justify-center')}>
+          <div className="relative flex-shrink-0">
+            {/* Pulslanuvchi neon halqa */}
+            <span className="absolute -inset-1 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-violet opacity-60 blur-[6px] animate-glow-pulse" aria-hidden="true" />
+            <div className="relative w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-neon-cyan/30 to-neon-violet/30 ring-1 ring-neon-cyan/40">
+              <Bot size={17} className="text-white" />
+            </div>
           </div>
           {!collapsed && (
-            <div>
-              <div className="font-bold text-white text-sm leading-tight">Robotic Edu</div>
-              <div className="text-white/45 text-[10px]">Learning Management</div>
+            <div className="min-w-0">
+              <div className="font-bold text-white text-sm leading-tight flex items-center gap-1.5">
+                Robotic Edu
+                <span className="text-[8px] font-bold px-1 py-[1px] rounded bg-neon-cyan/20 text-neon-cyan ring-1 ring-neon-cyan/30 tracking-wider">AI</span>
+              </div>
+              <div className="text-white/45 text-[10px] tracking-wide">Learning · Robotics · AI</div>
             </div>
           )}
         </div>
@@ -416,7 +426,7 @@ const Sidebar = ({ mobileOpen = false, onClose }: SidebarProps) => {
                 className={({ isActive }) =>
                   clsx(
                     'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200',
-                    isActive ? 'bg-white/25 text-white shadow-sm' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    isActive ? 'nav-neon bg-white/25 text-white shadow-sm ring-1 ring-neon-cyan/30' : 'text-white/70 hover:bg-white/10 hover:text-white'
                   )
                 }
               >

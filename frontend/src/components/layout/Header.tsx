@@ -52,7 +52,9 @@ const Header = ({ title, onMenuClick }: HeaderProps) => {
   }, [accessToken, qc]);
 
   return (
-    <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-3 sm:px-5 gap-2 sm:gap-4 flex-shrink-0 transition-colors duration-300">
+    <header className="relative h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-3 sm:px-5 gap-2 sm:gap-4 flex-shrink-0 transition-colors duration-300">
+      {/* Neon pastki akssent chizig'i */}
+      <span aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/60 to-transparent dark:via-neon-violet/60" />
       {/* Mobil hamburger */}
       <button
         onClick={onMenuClick}

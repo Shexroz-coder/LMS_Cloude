@@ -56,19 +56,29 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4 transition-colors duration-300">
+    <div className="relative min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4 transition-colors duration-300 overflow-hidden">
+
+      {/* Futuristic ambient fon */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="cyber-grid absolute inset-0 opacity-60" />
+        <div className="glow-orb animate-float-soft" style={{ width: 380, height: 380, top: -100, left: -80, background: '#22D3EE' }} />
+        <div className="glow-orb animate-float-soft" style={{ width: 340, height: 340, bottom: -90, right: -70, background: '#8B5CF6', animationDelay: '1.8s' }} />
+      </div>
 
       {/* Top controls */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
         <ThemeToggle variant="light" />
         <LanguageSwitcher variant="light" />
       </div>
 
-      <div className="w-full max-w-md animate-fade-in">
+      <div className="relative z-10 w-full max-w-md animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-2xl mb-4">
-            <Bot className="w-10 h-10 text-white" />
+          <div className="relative inline-flex items-center justify-center w-20 h-20 mb-4">
+            <span className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-violet opacity-70 blur-lg animate-glow-pulse" aria-hidden="true" />
+            <span className="relative inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur rounded-2xl ring-1 ring-neon-cyan/40">
+              <Bot className="w-10 h-10 text-white" />
+            </span>
           </div>
           <h1 className="text-3xl font-bold text-white">{t('app.name')}</h1>
           <p className="text-primary-200 dark:text-gray-400 mt-1 text-sm">{t('app.tagline')}</p>
