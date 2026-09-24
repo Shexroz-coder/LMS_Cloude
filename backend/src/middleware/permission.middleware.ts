@@ -107,8 +107,18 @@ export const adminOrManager = (permKey: string, opts?: { allowFounder?: boolean 
       sendError(res, 'Ruxsat yo\'q. Siz filial mas\'uli emassiz.', 403);
       return;
     }
-    const allowed = await hasUserPermission(req.user.id, req.user.role, permKey);
-    if (!allowed) {
+
+    // Filial mas'uli — o'z filiali doirasida BARCHA filial-admin funksiyalariga
+    // DEFAULT ruxsatga ega. Faqat super admin aniq "o'chirib qo'ygan" (UserPermission
+    // allowed=false) bo'lsagina taqiqlanadi.
+    let denied = false;
+    try {
+      const up = await (prisma as any).userPermission.findUnique({
+        where: { userId_permKey: { userId: req.user.id, permKey } },
+      });
+      if (up && up.allowed === false) denied = true;
+    } catch { /* jadval yo'q bo'lsa — ruxsat beriladi */ }
+    if (denied) {
       sendError(res, "Bu funksiya siz uchun o'chirilgan.", 403);
       return;
     }

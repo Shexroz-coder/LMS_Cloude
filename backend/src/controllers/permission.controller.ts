@@ -109,8 +109,16 @@ export const getMyPermissions = async (req: AuthRequest, res: Response): Promise
 
     const perms: Record<string, boolean> = {};
     for (const def of PERMISSIONS) {
-      // Per-user ustunlik qiladi, keyin rol
-      perms[def.key] = userPermMap.has(def.key) ? !!userPermMap.get(def.key) : await hasPermission(role, def.key);
+      if (userPermMap.has(def.key)) {
+        // Aniq per-user sozlама eng yuqori ustunlikka ega
+        perms[def.key] = !!userPermMap.get(def.key);
+      } else if (managedBranchId) {
+        // Filial mas'uli — barcha filial-admin funksiyalariga DEFAULT ruxsat
+        perms[def.key] = true;
+      } else {
+        // Oddiy rol standarti
+        perms[def.key] = await hasPermission(role, def.key);
+      }
     }
 
     // Mas'ul boshqaradigan filial nomi
