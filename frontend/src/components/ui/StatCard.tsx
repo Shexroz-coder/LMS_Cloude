@@ -39,12 +39,12 @@ const StatCard = ({
     <div
       onClick={to ? () => navigate(to) : undefined}
       className={clsx(
-        'card hover:shadow-card-hover transition-all duration-200',
-        to && 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+        'card-cyber',
+        to && 'cursor-pointer'
       )}
     >
       <div className="flex items-start gap-4">
-        <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+        <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ring-1 ring-black/5 dark:ring-white/10', iconBg)}>
           <Icon className={clsx('w-6 h-6', iconColor)} />
         </div>
         <div className="flex-1 min-w-0">

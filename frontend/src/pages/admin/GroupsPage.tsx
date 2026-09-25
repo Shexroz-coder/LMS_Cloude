@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useBranchManager } from '../../hooks/useBranchManager';
+import Modal from '../../components/ui/Modal';
 import { format } from 'date-fns';
 import { Users, GraduationCap, BookOpen, X, Plus, Trash2, ArrowRightLeft, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -170,24 +171,25 @@ const GroupsPage = () => {
           onEdit={() => { setEditGroup(viewGroup); setViewGroup(null); }} />
       )}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-2">Guruhni yopish</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">
-              <span className="font-semibold text-gray-700 dark:text-gray-300">{deleteConfirm.name}</span> guruhi yopiladi.
-            </p>
-            {deleteConfirm._count.groupStudents > 0 && (
-              <p className="text-amber-600 text-sm mb-3">⚠️ {deleteConfirm._count.groupStudents} ta o'quvchi bor!</p>
-            )}
-            <div className="flex gap-3 mt-4">
+        <Modal title="Guruhni yopish" onClose={() => setDeleteConfirm(null)} maxWidth="max-w-sm"
+          footer={
+            <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="flex-1 btn-secondary">Bekor</button>
               <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isLoading}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-xl transition">
                 {deleteMutation.isLoading ? 'Yopilmoqda...' : 'Yopish'}
               </button>
             </div>
+          }>
+          <div className="px-6 py-4">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{deleteConfirm.name}</span> guruhi yopiladi.
+            </p>
+            {deleteConfirm._count.groupStudents > 0 && (
+              <p className="text-amber-600 text-sm">⚠️ {deleteConfirm._count.groupStudents} ta o'quvchi bor!</p>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
