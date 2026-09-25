@@ -38,10 +38,10 @@ router.delete('/:id', adminOrManager('students.edit'), deleteStudent);
 // Faollashtirish / Nofaol qilish
 router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);
 router.patch('/:id/reactivate', authorize('ADMIN'), reactivateStudent);
-// Yangi arizani qabul qilish (LEAD → DEMO)
-router.patch('/:id/accept-lead', authorize('ADMIN'), acceptLead);
+// Yangi arizani qabul qilish (LEAD → DEMO) — filial mas'uli ham qila oladi
+router.patch('/:id/accept-lead', adminOrManager('students.create'), acceptLead);
 // Yangi arizani rad etish (LEAD → INACTIVE)
-router.patch('/:id/reject-lead', authorize('ADMIN'), rejectLead);
+router.patch('/:id/reject-lead', adminOrManager('students.create'), rejectLead);
 // Eski INACTIVE o'quvchilarni tozalash (bir martalik migratsiya)
 router.post('/cleanup-inactive', authorize('ADMIN'), cleanupInactiveStudents);
 
