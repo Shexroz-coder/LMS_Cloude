@@ -14,8 +14,7 @@ import { toast } from 'react-hot-toast';
 import api from '../../api/axios';
 import { clsx } from 'clsx';
 import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
-import { useAuthStore } from '../../store/auth.store';
-import { usePermissionStore } from '../../store/permission.store';
+import { useBranchManager } from '../../hooks/useBranchManager';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -619,10 +618,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
   const [errors, setErrors] = useState<Partial<FormState>>({});
 
   // Filial mas'uli (menejer) — o'quvchi avtomatik o'z filialiga biriktiriladi
-  const authUser = useAuthStore(s => s.user);
-  const pmManagedBranchId = usePermissionStore(s => s.managedBranchId);
-  const effManagedBranchId = pmManagedBranchId ?? authUser?.managedBranchId ?? null;
-  const isManager = authUser?.role === 'TEACHER' && !!effManagedBranchId;
+  const { isManager, managedBranchId: effManagedBranchId } = useBranchManager();
 
   useEffect(() => {
     if (isManager && effManagedBranchId && !form.branchId) {

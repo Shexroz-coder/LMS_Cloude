@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useAuthStore } from '../../store/auth.store';
-import { usePermissionStore } from '../../store/permission.store';
+import { useBranchManager } from '../../hooks/useBranchManager';
 import { format } from 'date-fns';
 import { Users, GraduationCap, BookOpen, X, Plus, Trash2, ArrowRightLeft, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -287,10 +286,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   const [transferGroupId, setTransferGroupId] = useState('');
 
   // Filial mas'uli (menejer) — filiali avtomatik biriktiriladi, o'zgartira olmaydi
-  const authUser = useAuthStore(s => s.user);
-  const pmManagedBranchId = usePermissionStore(s => s.managedBranchId);
-  const effManagedBranchId = pmManagedBranchId ?? authUser?.managedBranchId ?? null;
-  const isManager = authUser?.role === 'TEACHER' && !!effManagedBranchId;
+  const { isManager, managedBranchId: effManagedBranchId } = useBranchManager();
 
   const { data: courses } = useQuery('courses-list', () => api.get('/courses').then(r => r.data.data).catch(() => []));
   const { data: teachers } = useQuery('teachers-list', () => api.get('/teachers').then(r => r.data.data).catch(() => []));
@@ -346,24 +342,22 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.courseId || !form.teacherId) { toast.error('Nom, kurs va ustoz shart'); return; }
-    if (branches.length > 0 && !form.branchId) { toast.error('Filial tanlanishi shart'); return; }
+    if (!form.name || !form.courseId || !form.teacherId) { toast.error('Nom, kurs va ustoz shart'); setTab('info'); return; }
+    if (branches.length > 0 && !form.branchId) { toast.error('Filial tanlanishi shart'); setTab('info'); return; }
     setLoading(true);
     try {
-      const payload = { ...form, branchId: form.branchId ? parseInt(form.branchId) : undefined };
+      const payload: Record<string, unknown> = { ...form, branchId: form.branchId ? parseInt(form.branchId) : undefined };
       if (isEdit) {
         await api.put(`/groups/${group!.id}`, payload);
         toast.success('Guruh yangilandi!');
       } else {
-        const r = await api.post('/groups', payload);
-        const newGroup = r.data?.data;
-        if (newGroup?.id) {
-          // Switch to schedule tab after create
-          group = newGroup;
-          toast.success('Guruh yaratildi! Endi jadval qo\'shing.');
-          setTab('schedule');
-          return;
-        }
+        // Bir martada: guruh + jadval + o'quvchilar
+        payload.schedules = schedules.map(s => ({
+          daysOfWeek: s.daysOfWeek, startTime: s.startTime, endTime: s.endTime, room: s.room || form.room || undefined,
+        }));
+        payload.studentIds = groupStudents.map(gs => gs.student.id);
+        await api.post('/groups', payload);
+        toast.success('Guruh yaratildi!');
       }
       onSuccess();
     } catch (err: unknown) {
@@ -372,9 +366,26 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   };
 
   const handleAddSchedule = async () => {
-    if (!group?.id) { toast.error("Avval guruhni saqlang"); return; }
     if (scheduleForm.daysOfWeek.length === 0) { toast.error("Kamida 1 kun tanlang"); return; }
     if (!scheduleForm.startTime || !scheduleForm.duration) { toast.error("Vaqt va davomiylik kiriting"); return; }
+
+    // CREATE (draft) — jadval lokal saqlanadi, guruh bilan birga yuboriladi
+    if (!isEdit) {
+      const endTime = calcEndTime(scheduleForm.startTime, scheduleForm.duration);
+      const draft = {
+        id: editingSchedule ? editingSchedule.id : -Date.now(),
+        daysOfWeek: scheduleForm.daysOfWeek,
+        startTime: scheduleForm.startTime,
+        endTime,
+        room: scheduleForm.room || form.room || '',
+      } as Schedule;
+      setSchedules(prev => editingSchedule ? prev.map(s => s.id === editingSchedule.id ? draft : s) : [...prev, draft]);
+      setEditingSchedule(null);
+      setScheduleForm({ daysOfWeek: [], startTime: '09:00', duration: '90', room: form.room });
+      return;
+    }
+
+    if (!group?.id) { toast.error("Avval guruhni saqlang"); return; }
     try {
       const r = editingSchedule
         ? await api.put(`/groups/${group.id}/schedules/${editingSchedule.id}`, scheduleForm)
@@ -396,6 +407,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   };
 
   const handleDeleteSchedule = async (sc: Schedule) => {
+    if (!isEdit) { setSchedules(prev => prev.filter(s => s.id !== sc.id)); return; }
     if (!group?.id) return;
     try {
       await api.delete(`/groups/${group.id}/schedules/${sc.id}`);
@@ -406,10 +418,15 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   };
 
   const handleAddStudent = async (studentId: number) => {
+    const student = allStudents.find(s => s.id === studentId);
+    // CREATE (draft) — o'quvchi lokal ro'yxatga qo'shiladi
+    if (!isEdit) {
+      if (student) setGroupStudents(prev => [...prev, { id: -Date.now(), student, joinedAt: new Date().toISOString(), status: 'ACTIVE' } as GroupStudent]);
+      return;
+    }
     if (!group?.id) return;
     try {
       await api.post(`/groups/${group.id}/students`, { studentId });
-      const student = allStudents.find(s => s.id === studentId);
       if (student) setGroupStudents(prev => [...prev, { id: Date.now(), student, joinedAt: new Date().toISOString(), status: 'ACTIVE' }]);
       toast.success("O'quvchi qo'shildi!");
       qc.invalidateQueries('groups');
@@ -419,6 +436,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
   };
 
   const handleRemoveStudent = async (gs: GroupStudent) => {
+    if (!isEdit) { setGroupStudents(prev => prev.filter(s => s.id !== gs.id)); return; }
     if (!group?.id) return;
     try {
       await api.delete(`/groups/${group.id}/students/${gs.student.id}`);
@@ -560,7 +578,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={onClose} className="btn-secondary flex-1">Bekor</button>
                 <button type="submit" disabled={loading} className="btn-primary flex-1">
-                  {loading ? 'Saqlanmoqda...' : isEdit ? 'Saqlash' : 'Guruh yaratish →'}
+                  {loading ? 'Saqlanmoqda...' : isEdit ? 'Saqlash' : '✓ Guruhni yaratish'}
                 </button>
               </div>
             </form>
@@ -570,8 +588,8 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
           {tab === 'schedule' && (
             <div className="px-6 py-4 space-y-5">
               {!isEdit && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm">
-                  ⚠️ Jadval qo'shish uchun avval guruhni saqlang
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl text-sm">
+                  📅 Jadvalni shu yerda qo'shing — guruh saqlanganda birga yoziladi.
                 </div>
               )}
 
@@ -681,7 +699,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                     <button type="button" onClick={() => { setEditingSchedule(null); setScheduleForm({ daysOfWeek: [], startTime: '09:00', duration: '90', room: form.room }); }}
                       className="btn-secondary flex-1">Bekor</button>
                   )}
-                  <button type="button" onClick={handleAddSchedule} disabled={!isEdit}
+                  <button type="button" onClick={handleAddSchedule}
                     className="btn-primary flex-1">
                     {editingSchedule ? '✓ Saqlash' : '+ Qo\'shish'}
                   </button>
@@ -694,8 +712,8 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
           {tab === 'students' && (
             <div className="px-6 py-4 space-y-4">
               {!isEdit && (
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm">
-                  ⚠️ O'quvchi qo'shish uchun avval guruhni saqlang
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl text-sm">
+                  👥 O'quvchilarni shu yerda tanlang — guruh saqlanganda birga qo'shiladi.
                 </div>
               )}
 
@@ -760,7 +778,7 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
               )}
 
               {/* Search + Add students */}
-              {isEdit && (
+              {(
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">O'quvchi qo'shish</h3>
                   <input className="input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 mb-2" placeholder="🔍 Ism yoki telefon..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
@@ -790,8 +808,17 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
 
         {/* Footer */}
         {tab !== 'info' && (
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-            <button onClick={onSuccess} className="btn-primary w-full">Yopish</button>
+          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+            {isEdit ? (
+              <button onClick={onSuccess} className="btn-primary w-full">Yopish</button>
+            ) : (
+              <>
+                <button onClick={onClose} className="btn-secondary flex-1">Bekor</button>
+                <button onClick={() => handleSaveInfo({ preventDefault: () => {} } as React.FormEvent)} disabled={loading} className="btn-primary flex-[2]">
+                  {loading ? 'Saqlanmoqda...' : `✓ Guruhni yaratish${groupStudents.length ? ` (${groupStudents.length} o'quvchi)` : ''}`}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

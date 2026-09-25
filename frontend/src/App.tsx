@@ -1,69 +1,65 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { useAuthStore } from './store/auth.store';
 import { Role } from './types';
 
-// Pages — Auth
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-
-// Pages — Admin
+// Layoutlar + Login — eager (ilovaning asosiy qobig'i, tez ochilishi kerak)
 import AdminLayout from './components/layout/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import StudentsPage from './pages/admin/StudentsPage';
-import StudentDetailPage from './pages/admin/StudentDetailPage';
-import TeachersPage from './pages/admin/TeachersPage';
-import GroupsPage from './pages/admin/GroupsPage';
-import SchedulePage from './pages/admin/SchedulePage';
-import PaymentsPage from './pages/admin/PaymentsPage';
-import FinancePage from './pages/admin/FinancePage';
-import SalariesPage from './pages/admin/SalariesPage';
-import AnnouncementsPage from './pages/admin/AnnouncementsPage';
-import CoursesPage from './pages/admin/CoursesPage';
-import ReportsPage from './pages/admin/ReportsPage';
-import AttendanceExportPage from './pages/admin/AttendanceExportPage';
-import AdminCoinsPage from './pages/admin/AdminCoinsPage';
-import HolidaysPage from './pages/admin/HolidaysPage';
-import AdminAttendancePage from './pages/admin/AdminAttendancePage';
-import AdminDebtorsPage from './pages/admin/AdminDebtorsPage';
-import AdminBillingPage from './pages/admin/AdminBillingPage';
-import BranchesPage from './pages/admin/BranchesPage';
-import BranchDetailPage from './pages/admin/BranchDetailPage';
-import InventoryPage from './pages/admin/InventoryPage';
-import ArchivesPage from './pages/admin/ArchivesPage';
-import PermissionsPage from './pages/admin/PermissionsPage';
-
-// Pages — Founder
-import FounderDashboard from './pages/founder/FounderDashboard';
-import FounderFinance from './pages/founder/FounderFinance';
-import FounderPayments from './pages/founder/FounderPayments';
-
-// Pages — Teacher
 import TeacherLayout from './components/layout/TeacherLayout';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import TeacherGroupsPage from './pages/teacher/TeacherGroupsPage';
-import AttendancePage from './pages/teacher/AttendancePage';
-import CoinsPage from './pages/teacher/CoinsPage';
-import TeacherSchedulePage from './pages/teacher/TeacherSchedulePage';
-
-// Pages — Student
 import StudentLayout from './components/layout/StudentLayout';
-import StudentDashboard from './pages/student/StudentDashboard';
-import StudentSchedulePage from './pages/student/StudentSchedulePage';
-import StudentCoinsPage from './pages/student/StudentCoinsPage';
-import StudentPaymentsPage from './pages/student/StudentPaymentsPage';
-
-// Pages — Parent
 import ParentLayout from './components/layout/ParentLayout';
-import ParentDashboard from './pages/parent/ParentDashboard';
-import ParentPaymentsPage from './pages/parent/ParentPaymentsPage';
-
-// Founder layout (umumiy AppLayout ishlatiladi)
 import AppLayout from './components/layout/AppLayout';
+import LoginPage from './pages/auth/LoginPage';
 
-// Shared
-import NotificationsPage from './pages/shared/NotificationsPage';
-import ProfilePage from './pages/shared/ProfilePage';
-import StudentCalendarPage from './pages/student/StudentCalendarPage';
+// Sahifalar — lazy (route-level code-splitting: boshlang'ich bundle kichrayadi,
+// har bir sahifa faqat kerak bo'lganda yuklanadi)
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const StudentsPage = lazy(() => import('./pages/admin/StudentsPage'));
+const StudentDetailPage = lazy(() => import('./pages/admin/StudentDetailPage'));
+const TeachersPage = lazy(() => import('./pages/admin/TeachersPage'));
+const GroupsPage = lazy(() => import('./pages/admin/GroupsPage'));
+const SchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
+const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'));
+const FinancePage = lazy(() => import('./pages/admin/FinancePage'));
+const SalariesPage = lazy(() => import('./pages/admin/SalariesPage'));
+const AnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage'));
+const CoursesPage = lazy(() => import('./pages/admin/CoursesPage'));
+const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
+const AttendanceExportPage = lazy(() => import('./pages/admin/AttendanceExportPage'));
+const AdminCoinsPage = lazy(() => import('./pages/admin/AdminCoinsPage'));
+const HolidaysPage = lazy(() => import('./pages/admin/HolidaysPage'));
+const AdminAttendancePage = lazy(() => import('./pages/admin/AdminAttendancePage'));
+const AdminDebtorsPage = lazy(() => import('./pages/admin/AdminDebtorsPage'));
+const AdminBillingPage = lazy(() => import('./pages/admin/AdminBillingPage'));
+const BranchesPage = lazy(() => import('./pages/admin/BranchesPage'));
+const BranchDetailPage = lazy(() => import('./pages/admin/BranchDetailPage'));
+const InventoryPage = lazy(() => import('./pages/admin/InventoryPage'));
+const ArchivesPage = lazy(() => import('./pages/admin/ArchivesPage'));
+const PermissionsPage = lazy(() => import('./pages/admin/PermissionsPage'));
+
+const FounderDashboard = lazy(() => import('./pages/founder/FounderDashboard'));
+const FounderFinance = lazy(() => import('./pages/founder/FounderFinance'));
+const FounderPayments = lazy(() => import('./pages/founder/FounderPayments'));
+
+const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
+const TeacherGroupsPage = lazy(() => import('./pages/teacher/TeacherGroupsPage'));
+const AttendancePage = lazy(() => import('./pages/teacher/AttendancePage'));
+const CoinsPage = lazy(() => import('./pages/teacher/CoinsPage'));
+const TeacherSchedulePage = lazy(() => import('./pages/teacher/TeacherSchedulePage'));
+
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
+const StudentSchedulePage = lazy(() => import('./pages/student/StudentSchedulePage'));
+const StudentCoinsPage = lazy(() => import('./pages/student/StudentCoinsPage'));
+const StudentPaymentsPage = lazy(() => import('./pages/student/StudentPaymentsPage'));
+
+const ParentDashboard = lazy(() => import('./pages/parent/ParentDashboard'));
+const ParentPaymentsPage = lazy(() => import('./pages/parent/ParentPaymentsPage'));
+
+const NotificationsPage = lazy(() => import('./pages/shared/NotificationsPage'));
+const ProfilePage = lazy(() => import('./pages/shared/ProfilePage'));
+const StudentCalendarPage = lazy(() => import('./pages/student/StudentCalendarPage'));
 
 // Filial mas'uli (menejer) — TEACHER roli, lekin managedBranchId biriktirilgan.
 // Bunday foydalanuvchi to'liq admin paneliga (o'z filiali doirasida) kiradi.
@@ -108,9 +104,17 @@ const RootRedirect = () => {
   }
 };
 
+// Lazy sahifalar yuklanayotganda ko'rsatiladigan yengil fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full min-h-[40vh]">
+    <div className="w-8 h-8 rounded-full border-2 border-neon-cyan/40 border-t-neon-cyan animate-spin" />
+  </div>
+);
+
 // ── Asosiy App ──────────────────────────────────────
 const App = () => {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Public */}
       <Route path="/login" element={<LoginPage />} />
@@ -215,6 +219,7 @@ const App = () => {
       {/* 404 */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 };
 

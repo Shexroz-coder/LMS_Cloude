@@ -142,7 +142,8 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
   try {
     const {
       name, courseId, teacherId, maxStudents = 15,
-      startDate, endDate, room, schedules // [{dayOfWeek, startTime, endTime}]
+      startDate, endDate, room, schedules, // [{daysOfWeek, startTime, endTime}]
+      studentIds // [number] — guruhga darhol qo'shiladigan o'quvchilar
     } = req.body;
 
     if (!name || !courseId || !teacherId) {
@@ -182,7 +183,7 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
       });
 
       // Jadval yaratish
-      if (schedules && Array.isArray(schedules)) {
+      if (schedules && Array.isArray(schedules) && schedules.length) {
         await tx.schedule.createMany({
           data: schedules.map((sc: { daysOfWeek: number[]; startTime: string; endTime: string; room?: string }) => ({
             groupId: g.id,
@@ -192,6 +193,24 @@ export const createGroup = async (req: AuthRequest, res: Response): Promise<void
             room: sc.room || room || undefined,
           }))
         });
+      }
+
+      // O'quvchilarni darhol qo'shish + ularning filialini guruh filialiga tenglash
+      if (studentIds && Array.isArray(studentIds) && studentIds.length) {
+        const ids = studentIds.map((x: any) => parseInt(String(x))).filter((n: number) => Number.isFinite(n));
+        if (ids.length) {
+          await tx.groupStudent.createMany({
+            data: ids.map((sid: number) => ({ groupId: g.id, studentId: sid })),
+            skipDuplicates: true,
+          });
+          const gBranchId = (g as any).branchId;
+          if (gBranchId) {
+            await (tx.student as any).updateMany({
+              where: { id: { in: ids } },
+              data: { branchId: gBranchId },
+            });
+          }
+        }
       }
 
       return g;

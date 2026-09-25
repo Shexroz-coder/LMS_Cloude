@@ -15,6 +15,7 @@ import {
 import api from '../../api/axios';
 import StatCard from '../../components/ui/StatCard';
 import { useAuthStore } from '../../store/auth.store';
+import { useBranchManager } from '../../hooks/useBranchManager';
 import { useBranchStore } from '../../store/branch.store';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -579,9 +580,8 @@ const AdminDashboard = () => {
 // ─── "Barcha filiallar" taqqoslama ko'rinishi ───
 function BranchComparison() {
   const selectedBranchId = useBranchStore(s => s.selectedBranchId);
-  const user = useAuthStore(s => s.user);
   // Filial mas'uli (menejer) — barcha filiallar taqqoslamasini ko'rmaydi
-  const isManager = user?.role === 'TEACHER' && !!user?.managedBranchId;
+  const { isManager } = useBranchManager();
 
   const { data } = useQuery(
     ['branches-comparison'],
