@@ -36,7 +36,7 @@ const AppLayout = ({ showAI = true }: { showAI?: boolean }) => {
         <Header onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto p-3 sm:p-5 relative">
           {/* ── Futuristic ambient fon (dekorativ, yengil) ── */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden -z-0" aria-hidden="true">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden z-0" aria-hidden="true">
             <div className="cyber-grid absolute inset-0" />
             <div className="glow-orb animate-float-soft" style={{ width: 320, height: 320, top: -80, right: -60, background: '#22D3EE' }} />
             <div className="glow-orb animate-float-soft" style={{ width: 260, height: 260, bottom: -60, left: -40, background: '#8B5CF6', animationDelay: '1.5s' }} />

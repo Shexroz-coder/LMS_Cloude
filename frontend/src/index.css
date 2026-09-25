@@ -246,14 +246,16 @@
      Faqat transform/opacity/filter — GPU-friendly, yengil.
      ════════════════════════════════════════════════════════ */
 
-  /* Sahifa almashinuvi animatsiyasi (route o'zgarganda) */
+  /* Sahifa almashinuvi animatsiyasi (route o'zgarganda).
+     MUHIM: `both`/`will-change` ISHLATILMAYDI — aks holda animatsiyadan keyin
+     ham elementda transform qolib, ichidagi `position: fixed` modallar
+     noto'g'ri joylashadi. Animatsiya tugagach transform butunlay yo'qoladi. */
   .page-enter {
-    animation: pageIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
-    will-change: transform, opacity;
+    animation: pageIn 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   }
   @keyframes pageIn {
-    0%   { opacity: 0; transform: translateY(10px) scale(0.995); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0%   { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
   /* Subtil "circuit / tech grid" fon qatlami */
