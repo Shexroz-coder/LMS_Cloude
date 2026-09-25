@@ -15,6 +15,7 @@ import api from '../../api/axios';
 import { clsx } from 'clsx';
 import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
 import { useBranchManager } from '../../hooks/useBranchManager';
+import EmptyState from '../../components/ui/EmptyState';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -59,7 +60,7 @@ const StudentsPage = () => {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(() => searchParams.get('status') || '');
   const [showFilter, setShowFilter] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(() => searchParams.get('new') === '1');
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Student | null>(null);
@@ -290,12 +291,14 @@ const StudentsPage = () => {
                 ))
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-16">
-                    <Users className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                    <p className="text-gray-400">O'quvchilar topilmadi</p>
-                    <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-primary-600 hover:underline">
-                      + Birinchi o'quvchini qo'shish
-                    </button>
+                  <td colSpan={8}>
+                    <EmptyState
+                      icon={Users}
+                      title="Hozircha o'quvchi yo'q"
+                      description="Birinchi o'quvchini qo'shing yoki lidlarni dashboarddan qabul qiling."
+                      actionLabel="+ O'quvchi qo'shish"
+                      onAction={() => setShowAddModal(true)}
+                    />
                   </td>
                 </tr>
               ) : (

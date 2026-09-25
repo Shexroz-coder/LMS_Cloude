@@ -75,11 +75,9 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
       {
         key: 'education', label: "Ta'lim", icon: GraduationCap, items: [
           { to: '/admin/students', icon: Users, label: t('nav.students') },
-          { to: '/admin/teachers', icon: UserCheck, label: t('nav.teachers') },
           { to: '/admin/groups', icon: BookOpen, label: t('nav.groups') },
-          { to: '/admin/courses', icon: BookOpen, label: t('nav.courses') },
+          { to: '/admin/teachers', icon: UserCheck, label: t('nav.teachers') },
           { to: '/admin/schedule', icon: Calendar, label: t('nav.schedule') },
-          { to: '/admin/holidays', icon: CalendarOff, label: 'Bayramlar' },
         ]
       },
 
@@ -90,7 +88,6 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/admin/debtors',  icon: AlertCircle,  label: 'Eslatmalar' },
           { to: '/admin/finance',  icon: BarChart3,    label: t('nav.finance') },
           { to: '/admin/salaries', icon: Wallet,       label: t('nav.salaries') },
-          { to: '/admin/coins',    icon: Coins,        label: t('nav.coins') },
         ]
       },
 
@@ -99,16 +96,25 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/admin/attendance', icon: ClipboardCheck, label: 'Davomat' },
           { to: '/admin/announcements', icon: Megaphone, label: t('nav.announcements') },
           { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
-          { to: '/admin/attendance-export', icon: ClipboardCheck, label: 'Davomat export' },
         ]
       },
 
       {
         key: 'settings', label: 'Sozlamalar', icon: Settings2, items: [
           { to: '/admin/branches', icon: Building2, label: 'Filiallar' },
-          { to: '/admin/inventory', icon: Package, label: 'Inventar' },
-          { to: '/admin/archives', icon: Archive, label: 'Arxiv' },
           { to: '/admin/permissions', icon: ShieldCheck, label: 'Ruxsatlar' },
+          { to: '/admin/archives', icon: Archive, label: 'Arxiv' },
+        ]
+      },
+
+      // Kamdan-kam ishlatiladigan — "Ko'proq" ostида yig'ilgan
+      {
+        key: 'more', label: "Ko'proq", icon: Package, items: [
+          { to: '/admin/courses', icon: BookOpen, label: t('nav.courses') },
+          { to: '/admin/coins', icon: Coins, label: t('nav.coins') },
+          { to: '/admin/holidays', icon: CalendarOff, label: 'Bayramlar' },
+          { to: '/admin/inventory', icon: Package, label: 'Inventar' },
+          { to: '/admin/attendance-export', icon: ClipboardCheck, label: 'Davomat export' },
         ]
       },
 

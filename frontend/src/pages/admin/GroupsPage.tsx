@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useBranchManager } from '../../hooks/useBranchManager';
 import Modal from '../../components/ui/Modal';
+import EmptyState from '../../components/ui/EmptyState';
 import { format } from 'date-fns';
 import { Users, GraduationCap, BookOpen, X, Plus, Trash2, ArrowRightLeft, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -61,7 +63,8 @@ const DAY_PRESETS = [
 // ══════════════════════════════════════════════════════════
 const GroupsPage = () => {
   const qc = useQueryClient();
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [showAddModal, setShowAddModal] = useState(() => searchParams.get('new') === '1');
   const [editGroup, setEditGroup] = useState<Group | null>(null);
   const [viewGroup, setViewGroup] = useState<Group | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Group | null>(null);
@@ -145,10 +148,14 @@ const GroupsPage = () => {
           <p className="text-gray-400 dark:text-gray-500 text-sm">Yuklanmoqda...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="card dark:bg-gray-800 text-center py-16">
-          <div className="text-5xl mb-4">👥</div>
-          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Guruh topilmadi</h2>
-          <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 hover:underline">+ Yangi guruh yaratish</button>
+        <div className="card dark:bg-gray-800">
+          <EmptyState
+            icon={BookOpen}
+            title="Hozircha guruh yo'q"
+            description="Birinchi guruhingizni yarating — nom, ustoz, jadval va o'quvchilarni bir joyда kiritasiz."
+            actionLabel="+ Yangi guruh yaratish"
+            onAction={() => setShowAddModal(true)}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

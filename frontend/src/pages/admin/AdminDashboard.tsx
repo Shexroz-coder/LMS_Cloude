@@ -16,6 +16,7 @@ import api from '../../api/axios';
 import StatCard from '../../components/ui/StatCard';
 import { useAuthStore } from '../../store/auth.store';
 import { useBranchManager } from '../../hooks/useBranchManager';
+import QuickActions from '../../components/ui/QuickActions';
 import { useBranchStore } from '../../store/branch.store';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -168,6 +169,9 @@ const AdminDashboard = () => {
           Tizim ishlayapti
         </div>
       </div>
+
+      {/* ── Tez amallar — eng ko'p ishlatiladigan amallar bir bosishда ── */}
+      <QuickActions />
 
       {/* ── "Barcha filiallar" tanlanганда — filiallar taqqoslamasi ── */}
       <BranchComparison />
