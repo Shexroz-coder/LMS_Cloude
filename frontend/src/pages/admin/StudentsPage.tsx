@@ -16,6 +16,8 @@ import { clsx } from 'clsx';
 import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
 import { useBranchManager } from '../../hooks/useBranchManager';
 import EmptyState from '../../components/ui/EmptyState';
+import SetPasswordModal from '../../components/ui/SetPasswordModal';
+import { KeyRound } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -68,6 +70,8 @@ const StudentsPage = () => {
   const [deactivateReason, setDeactivateReason] = useState('');
   const [reactivateConfirm, setReactivateConfirm] = useState<Student | null>(null);
   const [permanentConfirm, setPermanentConfirm] = useState<Student | null>(null);
+  const [pwdUser, setPwdUser] = useState<{ id: number; name: string } | null>(null);
+  const { isManager } = useBranchManager(); // super admin bo'lmasa parol tugmasи yashirin
   const [dueDayStudent, setDueDayStudent] = useState<Student | null>(null);
 
   // Debounce effect
@@ -400,6 +404,12 @@ const StudentsPage = () => {
                               <Calendar className="w-4 h-4" />
                             </button>
                           )}
+                          {!isManager && s.user?.id && (
+                            <button onClick={() => setPwdUser({ id: s.user.id, name: s.user.fullName })} title="Parol o'rnatish"
+                              className="p-1.5 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition-colors">
+                              <KeyRound className="w-4 h-4" />
+                            </button>
+                          )}
                           {s.status === 'INACTIVE' ? (
                             <button
                               onClick={() => setReactivateConfirm(s)}
@@ -505,6 +515,11 @@ const StudentsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Parol o'rnatish modali ─── */}
+      {pwdUser && (
+        <SetPasswordModal userId={pwdUser.id} userName={pwdUser.name} onClose={() => setPwdUser(null)} />
       )}
 
       {/* ── Butunlay o'chirish (permanent) modali ─── */}

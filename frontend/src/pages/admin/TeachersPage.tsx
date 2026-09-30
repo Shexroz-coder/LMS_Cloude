@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
   UserCheck, Plus, Search, Edit2, Trash2, X,
-  Phone, BookOpen, Percent, DollarSign, Eye, BarChart3
+  Phone, BookOpen, Percent, DollarSign, Eye, BarChart3, KeyRound
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../api/axios';
 import { clsx } from 'clsx';
 import TeacherAttendanceReport from '../../components/TeacherAttendanceReport';
+import SetPasswordModal from '../../components/ui/SetPasswordModal';
 
 interface Teacher {
   id: number; userId: number;
@@ -26,6 +27,7 @@ const TeachersPage = () => {
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Teacher | null>(null);
   const [showAttendanceReport, setShowAttendanceReport] = useState(false);
+  const [pwdUser, setPwdUser] = useState<{ id: number; name: string } | null>(null);
 
   const { data, isLoading } = useQuery(
     ['teachers', search],
@@ -115,6 +117,9 @@ const TeachersPage = () => {
                   <button onClick={() => setEditTeacher(teacher)} className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
+                  <button onClick={() => setPwdUser({ id: teacher.user.id, name: teacher.user.fullName })} title="Parol o'rnatish" className="p-1.5 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition-colors">
+                    <KeyRound className="w-3.5 h-3.5" />
+                  </button>
                   <button onClick={() => setDeleteConfirm(teacher)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -186,6 +191,10 @@ const TeachersPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {pwdUser && (
+        <SetPasswordModal userId={pwdUser.id} userName={pwdUser.name} onClose={() => setPwdUser(null)} />
       )}
     </div>
   );

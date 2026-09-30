@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { login, logout, refreshToken, getMe, changePassword, updateProfile, register } from '../controllers/auth.controller';
-import { authenticate } from '../middleware/auth.middleware';
+import { login, logout, refreshToken, getMe, changePassword, updateProfile, register, adminResetPassword } from '../controllers/auth.controller';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -22,5 +22,8 @@ router.get('/me', authenticate, getMe);
 // PUT /api/v1/auth/change-password
 router.put('/profile', authenticate, updateProfile);
 router.put('/change-password', authenticate, changePassword);
+
+// PATCH /api/v1/auth/admin/reset-password — faqat super admin
+router.patch('/admin/reset-password', authenticate, authorize('ADMIN'), adminResetPassword);
 
 export default router;

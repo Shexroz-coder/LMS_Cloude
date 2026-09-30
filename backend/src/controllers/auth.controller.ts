@@ -282,6 +282,44 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
+// =====================
+// PATCH /auth/admin/reset-password — Super admin istalgan userga yangi parol o'rnatadi
+// Body: { userId, newPassword? }. newPassword bo'lmasa — tasodifiy generatsiya.
+// Javobда o'rnatilgan parol OCHIQ qaytadi (admin ko'rib/ulashishи uchun).
+// Eslatma: eski parol bcrypt bo'lgani uchun qaytarib bo'lmaydi — bu YANGI parol.
+// =====================
+export const adminResetPassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId, newPassword } = req.body as { userId?: number; newPassword?: string };
+    if (!userId) { sendError(res, 'userId kiritilishi shart.', 400); return; }
+
+    const target = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { id: true, fullName: true, role: true },
+    });
+    if (!target) { sendError(res, 'Foydalanuvchi topilmadi.', 404); return; }
+
+    // Parol berilmasa — o'qishга oson tasodifiy parol yaratamiz
+    const genPassword = () => {
+      const digits = Math.floor(1000 + Math.random() * 9000);
+      return `edu${digits}`; // masalan: edu5821
+    };
+    const plain = (newPassword && String(newPassword).length >= 4)
+      ? String(newPassword)
+      : genPassword();
+
+    const hash = await hashPassword(plain);
+    await prisma.user.update({ where: { id: target.id }, data: { passwordHash: hash } });
+    // Xavfsizlik: eski sessiyalarni yopamiz
+    await prisma.refreshToken.deleteMany({ where: { userId: target.id } });
+
+    sendSuccess(res, { userId: target.id, fullName: target.fullName, password: plain }, 'Yangi parol o\'rnatildi.');
+  } catch (err) {
+    console.error('adminResetPassword error:', err);
+    sendError(res, 'Parolni o\'rnatishda xato.', 500);
+  }
+};
+
 // PUT /auth/profile
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
