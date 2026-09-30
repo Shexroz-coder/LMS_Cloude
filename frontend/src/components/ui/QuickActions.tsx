@@ -17,7 +17,7 @@ interface QuickAction {
 const ACTIONS: QuickAction[] = [
   { label: "O'quvchi qo'shish", icon: UserPlus,       to: '/admin/students?new=1', perm: 'students.create', color: 'bg-neon-cyan/15 text-neon-cyan ring-neon-cyan/30' },
   { label: 'Guruh yaratish',    icon: BookOpen,       to: '/admin/groups?new=1',   perm: 'groups.manage',   color: 'bg-neon-violet/15 text-neon-violet ring-neon-violet/30' },
-  { label: "To'lov qabul qilish", icon: CreditCard,   to: '/admin/billing',        perm: 'payments.create', color: 'bg-emerald-500/15 text-emerald-500 ring-emerald-500/30' },
+  { label: "To'lov qabul qilish", icon: CreditCard,   to: '/admin/finance?tab=billing', perm: 'payments.create', color: 'bg-emerald-500/15 text-emerald-500 ring-emerald-500/30' },
   { label: 'Davomat',           icon: ClipboardCheck, to: '/admin/attendance',     perm: 'attendance.view', color: 'bg-amber-500/15 text-amber-500 ring-amber-500/30' },
 ];
 

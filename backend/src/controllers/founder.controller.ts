@@ -21,16 +21,32 @@ export const getFounderOverview = async (req: AuthRequest, res: Response): Promi
   try {
     const { from, to } = readRange(req);
 
+    // Filial filtri (?branchId=N). Bo'sh/all → barcha filiallar.
+    const bRaw = (req.query as Record<string, string>).branchId;
+    const branchId = bRaw && bRaw !== 'all' && Number.isFinite(parseInt(bRaw)) ? parseInt(bRaw) : null;
+
+    // Filialга bog'liq shartlar
+    const groupWhere: any = { status: 'ACTIVE', ...(branchId ? { branchId } : {}) };
+    // Faol o'quvchilar: shu filialдаги faol guruhда bo'lganlar (yoki umumiy)
+    const studentWhere: any = {
+      status: 'ACTIVE', user: { isActive: true },
+      ...(branchId ? { groupStudents: { some: { status: 'ACTIVE', group: { branchId } } } } : {}),
+    };
+    // Darslar filtri (o'qituvchi soatlari uchun)
+    const lessonGroupFilter = branchId ? { branchId } : {};
+
     const [studentsCount, groupsCount, teachersCount, branchesCount] = await Promise.all([
-      prisma.student.count({ where: { status: 'ACTIVE', user: { isActive: true } } }),
-      prisma.group.count({ where: { status: 'ACTIVE' } }),
-      prisma.teacher.count(),
+      prisma.student.count({ where: studentWhere }),
+      prisma.group.count({ where: groupWhere }),
+      branchId
+        ? prisma.group.findMany({ where: groupWhere, select: { teacherId: true } }).then(gs => new Set(gs.map(g => g.teacherId).filter(Boolean)).size)
+        : prisma.teacher.count(),
       (prisma as any).branch.count(),
     ]);
 
-    // Faol guruhlar bo'yicha o'qituvchi → guruh soni
+    // Faol guruhlar bo'yicha o'qituvchi → guruh soni (filialга cheklangan)
     const activeGroups = await prisma.group.findMany({
-      where: { status: 'ACTIVE' },
+      where: groupWhere,
       select: { id: true, teacherId: true },
     });
     const groupsByTeacher = new Map<number, number>();
@@ -40,7 +56,7 @@ export const getFounderOverview = async (req: AuthRequest, res: Response): Promi
 
     // O'tilgan darslar (COMPLETED) — soatlar. group.teacherId orqali o'qituvchiga bog'lanadi.
     const completed = await prisma.lesson.findMany({
-      where: { status: 'COMPLETED' },
+      where: { status: 'COMPLETED', group: { is: lessonGroupFilter } } as any,
       select: { durationHours: true, date: true, group: { select: { teacherId: true } } },
     });
     const totalHoursByTeacher = new Map<number, number>();
@@ -59,13 +75,15 @@ export const getFounderOverview = async (req: AuthRequest, res: Response): Promi
     const teachers = await prisma.teacher.findMany({
       select: { id: true, user: { select: { fullName: true } } },
     });
-    const teacherRows = teachers.map(t => ({
+    let teacherRows = teachers.map(t => ({
       id: t.id,
       name: t.user?.fullName || '—',
       groupsCount: groupsByTeacher.get(t.id) || 0,
       totalHours: Math.round((totalHoursByTeacher.get(t.id) || 0) * 10) / 10,
       monthHours: Math.round((monthHoursByTeacher.get(t.id) || 0) * 10) / 10,
     })).sort((a, b) => b.monthHours - a.monthHours);
+    // Filial tanlanganда — faqat shu filialда guruhи/soati bor o'qituvchilar
+    if (branchId) teacherRows = teacherRows.filter(t => t.groupsCount > 0 || t.totalHours > 0);
 
     const monthHoursTotal = teacherRows.reduce((s, t) => s + t.monthHours, 0);
     const totalHoursAll = teacherRows.reduce((s, t) => s + t.totalHours, 0);

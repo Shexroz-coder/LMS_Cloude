@@ -1,22 +1,22 @@
 /**
- * Ta'sischi (Founder) dashboardi — asosiy ko'rsatkichlar.
- * Mobil-birinchi: raqamlar ixcham (mln/mlrd), kartalar kichik ekranда ham sig'adi.
+ * Ta'sischi (Founder) dashboardi — filialга bog'liq, mobil-birinchi, sodda.
+ * Chap tarafдаги filial selektorига qarab hamma ko'rsatkichlar avtomatik yangilanadi.
  */
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, TrendingUp, TrendingDown, AlertCircle, CreditCard,
-  BookOpen, CheckCircle2, Wallet, GraduationCap, Clock, ChevronDown, Building2,
+  BookOpen, CheckCircle2, Wallet, GraduationCap, ChevronDown, Building2,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
+import { useBranchStore } from '../../store/branch.store';
 
 const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
-// Mobilда sig'ishi uchun ixcham son: 1 250 000 → "1.25 mln"
 const fmtShort = (v: number) => {
   const n = Math.round(v || 0);
   if (Math.abs(n) >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + ' mlrd';
@@ -28,45 +28,60 @@ const fmtShort = (v: number) => {
 export default function FounderDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const selectedBranchId = useBranchStore(s => s.selectedBranchId);
   const [teachersOpen, setTeachersOpen] = useState(false);
 
-  const { data: stats } = useQuery(['founder-stats'],
+  // Barcha so'rovlar selectedBranchId'ga bog'liq — filial o'zgarганда qayta yuklanadi.
+  const bKey = selectedBranchId ?? 'all';
+
+  const { data: stats } = useQuery(['founder-stats', bKey],
     () => api.get('/dashboard/stats').then(r => r.data?.data), { staleTime: 30_000 });
 
-  const { data: chart = [] } = useQuery(['founder-income-chart'],
+  const { data: chart = [] } = useQuery(['founder-income-chart', bKey],
     () => api.get('/dashboard/income-chart').then(r => r.data?.data ?? []), { staleTime: 60_000 });
 
-  const { data: overview } = useQuery(['founder-overview'],
-    () => api.get('/founder/overview').then(r => r.data?.data), { staleTime: 60_000 });
+  const { data: overview } = useQuery(['founder-overview', bKey],
+    () => api.get('/founder/overview', { params: { branchId: selectedBranchId ?? undefined } }).then(r => r.data?.data), { staleTime: 60_000 });
 
   const { data: comparison } = useQuery(['founder-branches'],
-    () => api.get('/dashboard/branches-comparison').then(r => r.data?.data), { staleTime: 60_000 });
+    () => api.get('/dashboard/branches-comparison').then(r => r.data?.data),
+    { staleTime: 60_000, enabled: selectedBranchId == null });
 
-  // Pul kartalari (ixcham son) + sanoq kartalari
+  const { data: branches = [] } = useQuery<any[]>(['branches'],
+    () => api.get('/branches').then(r => r.data?.data ?? []).catch(() => []));
+
+  const branchName = selectedBranchId == null
+    ? 'Barcha filiallar'
+    : (branches.find((b: any) => b.id === selectedBranchId)?.name || 'Filial');
+
   const moneyCards = [
     { label: 'Oylik tushum', value: fmtShort(stats?.monthlyIncome ?? 0), unit: "so'm", icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { label: 'Umumiy qarz', value: fmtShort(stats?.totalDebt ?? 0), unit: "so'm", icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
     { label: 'Sof foyda', value: fmtShort(stats?.netProfit ?? 0), unit: "so'm", icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
   ];
   const countCards = [
-    { label: "O'quvchilar", value: overview?.totals?.studentsCount ?? stats?.studentsCount ?? 0, unit: 'ta', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { label: 'Faol o\'quvchilar', value: overview?.totals?.studentsCount ?? stats?.studentsCount ?? 0, unit: 'ta', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: 'Guruhlar', value: overview?.totals?.groupsCount ?? stats?.activeGroups ?? 0, unit: 'ta', icon: BookOpen, color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
     { label: "O'qituvchilar", value: overview?.totals?.teachersCount ?? 0, unit: 'ta', icon: GraduationCap, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/20' },
     { label: 'Davomat', value: stats?.attendanceRate ?? 0, unit: '%', icon: CheckCircle2, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-900/20' },
   ];
 
-  const branches: any[] = comparison?.branches ?? [];
+  const branchRows: any[] = comparison?.branches ?? [];
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="mb-5">
-        <h1 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100">
-          Assalomu alaykum, {user?.fullName?.split(' ')[0]} 👋
-        </h1>
-        <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">Biznesning asosiy ko'rsatkichlari</p>
+      <div className="mb-4 flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            Assalomu alaykum, {user?.fullName?.split(' ')[0]} 👋
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5 flex items-center gap-1">
+            <Building2 className="w-3.5 h-3.5" /> {branchName}
+          </p>
+        </div>
       </div>
 
-      {/* Pul ko'rsatkichlari — ixcham */}
+      {/* Pul ko'rsatkichlari */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
         {moneyCards.map(c => (
           <div key={c.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 p-3">
@@ -94,7 +109,7 @@ export default function FounderDashboard() {
         ))}
       </div>
 
-      {/* ── O'qituvchilar bo'limi (ochib ko'rish mumkin) ── */}
+      {/* O'qituvchilar — dars soatlari (ochib ko'rish) */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 mb-4 overflow-hidden">
         <button onClick={() => setTeachersOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3">
           <span className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
@@ -136,23 +151,23 @@ export default function FounderDashboard() {
         )}
       </div>
 
-      {/* ── Filiallar bo'yicha kirim (ichiga kirib ko'rish) ── */}
-      {branches.length > 0 && (
+      {/* Filiallar bo'yicha kirim — faqat "Barcha filiallar" tanlanганда */}
+      {selectedBranchId == null && branchRows.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 p-4 mb-4">
           <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 mb-3 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-indigo-500" /> Filiallar bo'yicha kirim
+            <Building2 className="w-4 h-4 text-indigo-500" /> Filiallar bo'yicha
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {branches.map((b: any) => (
+            {branchRows.map((b: any) => (
               <button key={b.id ?? b.name}
                 onClick={() => navigate(`/founder/payments?branchId=${b.id}`)}
                 className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-gray-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition text-left">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-zinc-800 dark:text-zinc-100 truncate">{b.name}</div>
-                  <div className="text-[11px] text-zinc-400">{b.studentsCount ?? b.students ?? 0} o'quvchi · {b.groupsCount ?? b.groups ?? 0} guruh</div>
+                  <div className="text-[11px] text-zinc-400">{b.students ?? 0} o'quvchi · {b.groups ?? 0} guruh</div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-2">
-                  <div className="text-sm font-bold text-emerald-600 tabular-nums">{fmtShort(b.monthIncome ?? b.income ?? 0)}</div>
+                  <div className="text-sm font-bold text-emerald-600 tabular-nums">{fmtShort(b.monthIncome ?? 0)}</div>
                   <div className="text-[10px] text-zinc-400">so'm →</div>
                 </div>
               </button>
@@ -189,7 +204,7 @@ export default function FounderDashboard() {
         <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-700 dark:text-red-300">
-            Jami qarzdorlik: <b>{fmt(stats.totalDebt)} so'm</b>. Batafsil "Moliya" bo'limida.
+            Jami qarzdorlik: <b>{fmt(stats.totalDebt)} so'm</b>. Batafsil "Moliya" bo'limида.
           </p>
         </div>
       )}

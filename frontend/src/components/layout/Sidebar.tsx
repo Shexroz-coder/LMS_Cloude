@@ -81,15 +81,9 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
         ]
       },
 
-      {
-        key: 'finance', label: 'Moliya', icon: DollarSign, items: [
-          { to: '/admin/billing',  icon: CreditCard,   label: "To'lov & Qarz" },
-          { to: '/admin/payments', icon: DollarSign,   label: t('nav.payments') },
-          { to: '/admin/debtors',  icon: AlertCircle,  label: 'Eslatmalar' },
-          { to: '/admin/finance',  icon: BarChart3,    label: t('nav.finance') },
-          { to: '/admin/salaries', icon: Wallet,       label: t('nav.salaries') },
-        ]
-      },
+      // Moliya — bitta markaz (ichida tab'lar: Hisobot, To'lovlar, Qarzdorlar,
+      // To'lov boshqaruvi, Oyliklar). Avval 5 ta alohida menyu edi.
+      { to: '/admin/finance', icon: DollarSign, label: 'Moliya' },
 
       {
         key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
@@ -175,8 +169,7 @@ const getManagerNavConfig = (branchId: number, t: (k: string) => string): NavCon
   { to: '/admin/students',   icon: Users,           label: t('nav.students'), perm: 'students.view' },
   { to: '/admin/groups',     icon: BookOpen,        label: 'Guruhlar', perm: 'groups.manage' },
   { to: '/admin/attendance', icon: ClipboardCheck,  label: 'Davomat', perm: 'attendance.view' },
-  { to: '/admin/billing',    icon: CreditCard,      label: "To'lov & Qarz", perm: 'payments.view' },
-  { to: '/admin/finance',    icon: BarChart3,       label: 'Moliya', perm: 'finance.view' },
+  { to: '/admin/finance',    icon: DollarSign,      label: 'Moliya', perm: 'finance.view' },
   { to: `/admin/branches/${branchId}`, icon: Building2, label: 'Filialim' },
   { to: '/admin/profile',    icon: User,            label: 'Profil' },
 ];

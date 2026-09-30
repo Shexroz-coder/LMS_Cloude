@@ -23,6 +23,7 @@ const GroupsPage = lazy(() => import('./pages/admin/GroupsPage'));
 const SchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
 const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'));
 const FinancePage = lazy(() => import('./pages/admin/FinancePage'));
+const FinanceHub = lazy(() => import('./pages/admin/FinanceHub'));
 const SalariesPage = lazy(() => import('./pages/admin/SalariesPage'));
 const AnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage'));
 const CoursesPage = lazy(() => import('./pages/admin/CoursesPage'));
@@ -136,16 +137,18 @@ const App = () => {
         <Route path="courses" element={<CoursesPage />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="holidays" element={<HolidaysPage />} />
-        <Route path="payments" element={<PaymentsPage />} />
-        <Route path="finance" element={<FinancePage />} />
-        <Route path="salaries" element={<SalariesPage />} />
+        {/* Moliya markazi — bitta joyda barcha moliya tab'lari */}
+        <Route path="finance" element={<FinanceHub />} />
+        {/* Eski havolalar hub'ga yo'naltiriladi (deep-link uzilmasin) */}
+        <Route path="payments" element={<Navigate to="/admin/finance?tab=payments" replace />} />
+        <Route path="salaries" element={<Navigate to="/admin/finance?tab=salaries" replace />} />
+        <Route path="billing" element={<Navigate to="/admin/finance?tab=billing" replace />} />
+        <Route path="debtors" element={<Navigate to="/admin/finance?tab=debtors" replace />} />
         <Route path="coins" element={<AdminCoinsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="attendance" element={<AdminAttendancePage />} />
         <Route path="attendance-export" element={<AttendanceExportPage />} />
-        <Route path="debtors" element={<AdminDebtorsPage />} />
-        <Route path="billing" element={<AdminBillingPage />} />
         <Route path="branches" element={<BranchesPage />} />
         <Route path="branches/:id" element={<BranchDetailPage />} />
         <Route path="inventory" element={<InventoryPage />} />

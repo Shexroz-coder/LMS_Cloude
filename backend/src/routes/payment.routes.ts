@@ -36,8 +36,8 @@ router.get('/student/:studentId/calculate', authorize('ADMIN', 'TEACHER', 'PAREN
 router.get('/student/:studentId', authorize('ADMIN', 'TEACHER', 'PARENT', 'STUDENT'), getStudentPayments);
 router.patch('/student/:studentId/due-day', authorize('ADMIN'), setPaymentDueDay);
 router.patch('/student/:studentId/promise', authorize('ADMIN'), setPaymentPromise);
-router.patch('/student/:studentId/adjust-debt', authorize('ADMIN'), adjustStudentDebt);
-router.patch('/student/:studentId/billing-config', authorize('ADMIN'), updateBillingConfig);
+router.patch('/student/:studentId/adjust-debt', adminOrManager('payments.create'), adjustStudentDebt);
+router.patch('/student/:studentId/billing-config', adminOrManager('payments.create'), updateBillingConfig);
 router.post('/student/:studentId/waive-debt', authorize('ADMIN'), waiveStudentDebt);
 router.delete('/student/:studentId/promise', authorize('ADMIN'), clearPaymentPromise);
 

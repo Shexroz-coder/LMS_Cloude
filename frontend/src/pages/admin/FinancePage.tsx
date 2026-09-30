@@ -269,9 +269,7 @@ export default function FinancePage() {
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         {[
           { key: 'overview',  label: "Ko'rinish",     accent: 'indigo' },
-          { key: 'income',    label: `💳 Kirimlar (${payments.length})`, accent: 'emerald' },
           { key: 'expenses',  label: `💸 Xarajatlar (${expensesList.length})`, accent: 'red' },
-          { key: 'salaries',  label: `👨‍🏫 Ish haqi (${salaryData.salaries.length})`, accent: 'blue' },
           { key: 'archive',   label: `📦 Arxiv (${allTime?.expenseCount || 0})`, accent: 'amber' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as typeof tab)}

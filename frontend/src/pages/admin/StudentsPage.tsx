@@ -17,7 +17,8 @@ import PhoneInput, { validatePhone } from '../../components/ui/PhoneInput';
 import { useBranchManager } from '../../hooks/useBranchManager';
 import EmptyState from '../../components/ui/EmptyState';
 import SetPasswordModal from '../../components/ui/SetPasswordModal';
-import { KeyRound } from 'lucide-react';
+import StudentFinanceModal from '../../components/ui/StudentFinanceModal';
+import { KeyRound, Wallet } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────
 interface StudentUser {
@@ -71,6 +72,7 @@ const StudentsPage = () => {
   const [reactivateConfirm, setReactivateConfirm] = useState<Student | null>(null);
   const [permanentConfirm, setPermanentConfirm] = useState<Student | null>(null);
   const [pwdUser, setPwdUser] = useState<{ id: number; name: string } | null>(null);
+  const [financeStudent, setFinanceStudent] = useState<Student | null>(null);
   const { isManager } = useBranchManager(); // super admin bo'lmasa parol tugmasи yashirin
   const [dueDayStudent, setDueDayStudent] = useState<Student | null>(null);
 
@@ -403,9 +405,9 @@ const StudentsPage = () => {
                             </button>
                           )}
                           {!isDeleted && (
-                            <button onClick={() => setDueDayStudent(s)} title="To'lov kuni"
+                            <button onClick={() => setFinanceStudent(s)} title="Moliya (to'lov / qarz)"
                               className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
-                              <Calendar className="w-4 h-4" />
+                              <Wallet className="w-4 h-4" />
                             </button>
                           )}
                           {!isManager && s.user?.id && (
@@ -519,6 +521,18 @@ const StudentsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Moliya modali ─── */}
+      {financeStudent && (
+        <StudentFinanceModal
+          studentId={financeStudent.id}
+          studentName={financeStudent.user.fullName}
+          debt={Number(financeStudent.balance?.debt || 0)}
+          balance={Number(financeStudent.balance?.balance || 0)}
+          onClose={() => setFinanceStudent(null)}
+          onSaved={() => { qc.invalidateQueries('students'); setFinanceStudent(null); }}
+        />
       )}
 
       {/* ── Parol o'rnatish modali ─── */}
