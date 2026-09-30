@@ -771,8 +771,14 @@ export const getStudentObligations = async (req: AuthRequest, res: Response): Pr
   try {
     const { search } = req.query as { search?: string };
 
+    // Reja faqat FAOL o'quvchilar bo'yicha: groupStudent ACTIVE + student ACTIVE + user faol.
+    // Filial tanlangan bo'lsa — o'sha filialга cheklanadi.
+    const _obBranch = getBranchId(req);
     const activeStudents = await prisma.groupStudent.findMany({
-      where: { status: 'ACTIVE' },
+      where: {
+        status: 'ACTIVE',
+        student: { status: 'ACTIVE', user: { isActive: true }, ...(_obBranch ? { branchId: _obBranch } : {}) },
+      } as any,
       include: {
         student: {
           include: {
