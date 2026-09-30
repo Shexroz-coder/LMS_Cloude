@@ -3,7 +3,7 @@ import {
   getDashboardStats, getIncomeChart,
   getRecentPayments, getTodayLessons, getWeeklyAttendance,
   getTodaySchedule, getTeacherDebtors, getNewLeads,
-  getBranchesComparison,
+  getBranchesComparison, getFinanceOverview,
 } from '../controllers/dashboard.controller';
 import { authorize } from '../middleware/auth.middleware';
 import { adminOrManager } from '../middleware/permission.middleware';
@@ -13,6 +13,7 @@ const router = Router();
 // Filial mas'uli (menejer) ham o'z filiali bo'yicha dashboard ko'radi
 // (adminOrManager branchId ni avtomatik cheklaydi)
 router.get('/stats', adminOrManager('finance.view', { allowFounder: true }), getDashboardStats);
+router.get('/finance-overview', adminOrManager('finance.view', { allowFounder: true }), getFinanceOverview);
 router.get('/branches-comparison', authorize('ADMIN', 'FOUNDER'), getBranchesComparison);
 router.get('/income-chart', adminOrManager('finance.view', { allowFounder: true }), getIncomeChart);
 router.get('/recent-payments', adminOrManager('payments.view', { allowFounder: true }), getRecentPayments);

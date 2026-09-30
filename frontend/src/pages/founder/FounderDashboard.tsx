@@ -16,6 +16,7 @@ import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { useBranchStore } from '../../store/branch.store';
 import { formatMoney as fmt, fmtShort } from '../../utils/format';
+import FinanceKpis from '../../components/ui/FinanceKpis';
 
 export default function FounderDashboard() {
   const { user } = useAuthStore();
@@ -46,11 +47,6 @@ export default function FounderDashboard() {
     ? 'Barcha filiallar'
     : (branches.find((b: any) => b.id === selectedBranchId)?.name || 'Filial');
 
-  const moneyCards = [
-    { label: 'Oylik tushum', value: fmtShort(stats?.monthlyIncome ?? 0), unit: "so'm", icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { label: 'Umumiy qarz', value: fmtShort(stats?.totalDebt ?? 0), unit: "so'm", icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
-    { label: 'Sof foyda', value: fmtShort(stats?.netProfit ?? 0), unit: "so'm", icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-  ];
   const countCards = [
     { label: 'Faol o\'quvchilar', value: overview?.totals?.studentsCount ?? stats?.studentsCount ?? 0, unit: 'ta', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: 'Guruhlar', value: overview?.totals?.groupsCount ?? stats?.activeGroups ?? 0, unit: 'ta', icon: BookOpen, color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
@@ -73,17 +69,9 @@ export default function FounderDashboard() {
         </div>
       </div>
 
-      {/* Pul ko'rsatkichlari */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
-        {moneyCards.map(c => (
-          <div key={c.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-zinc-200 dark:border-gray-700 p-3">
-            <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center mb-2`}>
-              <c.icon className={`w-4 h-4 ${c.color}`} />
-            </div>
-            <div className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-tight tabular-nums truncate">{c.value}</div>
-            <div className="text-[10px] sm:text-xs text-zinc-400 mt-0.5 truncate">{c.label} <span className="opacity-60">{c.unit}</span></div>
-          </div>
-        ))}
+      {/* Moliya KPI — Reja/Kirim/Qarzdorlik/Xarajat/Qoldiq (bosilса ro'yxat) */}
+      <div className="mb-3">
+        <FinanceKpis />
       </div>
 
       {/* Sanoq ko'rsatkichlari */}

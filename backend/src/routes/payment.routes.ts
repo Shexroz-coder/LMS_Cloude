@@ -23,7 +23,7 @@ router.get('/billing', adminOrManager('payments.view'), getBillingOverview);
 router.get('/summary', adminOrManager('finance.view', { allowFounder: true }), getFinanceSummary);
 router.get('/upcoming-dues', authorize('ADMIN'), getUpcomingDues);
 router.get('/student-obligations', authorize('ADMIN'), getStudentObligations);
-router.get('/debtors-review', adminOrManager('debtors.view'), getDebtorsReview);
+router.get('/debtors-review', adminOrManager('debtors.view', { allowFounder: true }), getDebtorsReview);
 router.post('/notify-debtors', authorize('ADMIN'), notifyDebtors);
 router.get('/archive', authorize('ADMIN'), getArchivedPayments);
 router.post('/generate-fees', authorize('ADMIN'), generateMonthlyFees);

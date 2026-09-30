@@ -12,7 +12,7 @@ const router = Router();
 // Mas'ul admin ham o'z filiali moliyasini boshqaradi (branchId avtomatik cheklanadi)
 router.get('/summary', adminOrManager('finance.view'), getFinanceSummary);
 router.get('/all-time', adminOrManager('finance.view'), getAllTimeBalance);
-router.get('/', adminOrManager('finance.view'), getExpenses);
+router.get('/', adminOrManager('finance.view', { allowFounder: true }), getExpenses);
 router.post('/', adminOrManager('finance.view'), createExpense);
 router.put('/:id', adminOrManager('finance.view'), updateExpense);
 router.delete('/:id', adminOrManager('finance.view'), deleteExpense);

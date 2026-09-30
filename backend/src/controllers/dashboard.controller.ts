@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
-import { getFinanceTotals } from '../services/finance.service';
+import { getFinanceTotals, getTotalIncome, getTotalExpenses } from '../services/finance.service';
 import { getBranchId } from '../utils/branch.utils';
 
 
@@ -82,6 +82,68 @@ export const getDashboardStats = async (req: AuthRequest, res: Response): Promis
   } catch (err) {
     console.error('getDashboardStats error:', err);
     sendError(res, 'Dashboard ma\'lumotlarini olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /dashboard/finance-overview — Soddalashtirilgan moliya KPI
+//  reja(plan), kirim(income), qarz(debt)+qarzdorlar soni, xarajat(expenses),
+//  qoldiq(balance = kirim − xarajat). Filialга bog'liq. Founder ham ko'radi.
+// ══════════════════════════════════════════════
+export const getFinanceOverview = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const branchId = getBranchId(req);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Reja: faol o'quvchilar bu oy to'lashi kerak bo'lgan umumiy summa
+    // (guruh kurs narxи − o'quvchи chegirmasi).
+    const activeEnroll = await prisma.groupStudent.findMany({
+      where: {
+        status: 'ACTIVE',
+        student: { status: 'ACTIVE', user: { isActive: true }, ...(branchId ? { branchId } : {}) } as any,
+      },
+      select: {
+        student: { select: { id: true, discountType: true, discountValue: true } },
+        group: { select: { course: { select: { monthlyPrice: true } } } },
+      },
+    });
+    // O'quvchi bo'yicha jamlab, chegirma qo'llaymiz
+    const priceByStudent = new Map<number, { price: number; dType: string | null; dVal: number }>();
+    for (const e of activeEnroll) {
+      const sid = e.student.id;
+      const cur = priceByStudent.get(sid) || { price: 0, dType: (e.student.discountType as any) || null, dVal: Number(e.student.discountValue || 0) };
+      cur.price += Number(e.group.course?.monthlyPrice || 0);
+      priceByStudent.set(sid, cur);
+    }
+    let plan = 0;
+    for (const { price, dType, dVal } of priceByStudent.values()) {
+      let due = price;
+      if (dType === 'PERCENTAGE') due = price * (1 - dVal / 100);
+      else if (dType === 'FIXED_AMOUNT') due = price - dVal;
+      plan += Math.max(0, Math.round(due));
+    }
+
+    const [income, expenses, finance, debtorsCount] = await Promise.all([
+      getTotalIncome(monthStart, now, branchId),
+      getTotalExpenses(monthStart, now, branchId),
+      getFinanceTotals(branchId),
+      prisma.student.count({
+        where: { status: 'ACTIVE', user: { isActive: true }, balance: { debt: { gt: 0 } }, ...(branchId ? { branchId } : {}) } as any,
+      }),
+    ]);
+
+    sendSuccess(res, {
+      plan,
+      income,
+      expenses,
+      balance: income - expenses,      // qoldiq
+      debt: finance.totalDebt,
+      debtorsCount,
+    });
+  } catch (err) {
+    console.error('getFinanceOverview error:', err);
+    sendError(res, 'Moliya ko\'rsatkichlarини olishda xato.', 500);
   }
 };
 

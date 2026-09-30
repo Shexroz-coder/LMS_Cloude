@@ -898,20 +898,20 @@ export const getDebtorsReview = async (req: AuthRequest, res: Response): Promise
             parent:  { select: { id: true, fullName: true, phone: true, telegramChatId: true } },
           }
         },
-        group: { include: { course: true } },
+        group: { include: { course: true, branch: { select: { id: true, name: true } } } },
       },
       orderBy: { joinedAt: 'asc' },
-    });
+    } as any);
 
     // Bir o'quvchi bir necha guruhda bo'lishi mumkin — birinchisini olamiz
     const seen = new Set<number>();
-    const result = activeStudents
-      .filter(gs => {
+    const result = (activeStudents as any[])
+      .filter((gs: any) => {
         if (seen.has(gs.student.id)) return false;
         seen.add(gs.student.id);
         return true;
       })
-      .map(gs => {
+      .map((gs: any) => {
         const student   = gs.student;
         const course    = gs.group.course;
         const joinedAt  = new Date(gs.joinedAt);
@@ -946,6 +946,7 @@ export const getDebtorsReview = async (req: AuthRequest, res: Response): Promise
           parentTelegram: !!student.parent?.telegramChatId,
           groupId:        gs.group.id,
           groupName:      gs.group.name,
+          branchName:     (gs.group as any).branch?.name ?? null,
           courseName:     course.name,
           joinedAt:       gs.joinedAt,
           dueDay,
