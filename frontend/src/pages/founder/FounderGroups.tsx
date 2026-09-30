@@ -6,8 +6,7 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { BookOpen, ChevronDown, Users, Building2 } from 'lucide-react';
 import api from '../../api/axios';
-
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
+import { formatMoney as fmt } from '../../utils/format';
 
 export default function FounderGroups() {
   const [branchId, setBranchId] = useState<string>('');
@@ -50,7 +49,7 @@ export default function FounderGroups() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-zinc-400 text-sm">Yuklanmoqда...</div>
+        <div className="text-center py-12 text-zinc-400 text-sm">Yuklanmoqda...</div>
       ) : groups.length === 0 ? (
         <div className="text-center py-12 text-zinc-400 text-sm">Guruh topilmadi</div>
       ) : (

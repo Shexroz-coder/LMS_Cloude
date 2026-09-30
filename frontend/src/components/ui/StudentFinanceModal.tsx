@@ -3,6 +3,7 @@ import { Wallet, HandCoins, Pencil, Settings2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import Modal from './Modal';
+import { formatMoney as fmt } from '../../utils/format';
 
 interface Props {
   studentId: number;
@@ -13,7 +14,6 @@ interface Props {
   onSaved?: () => void;
 }
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 const METHODS = [
   { v: 'CASH', l: 'Naqd' },
   { v: 'CARD', l: 'Karta' },

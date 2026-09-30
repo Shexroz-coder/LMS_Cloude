@@ -15,12 +15,17 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Tanlangan filialni har GET so'roviga qo'shish (agar tanlangan bo'lsa)
+  // Tanlangan filialni har GET so'roviga qo'shish (agar tanlangan bo'lsa).
+  // MUHIM: agar so'rovда branchId ALLAQACHON aniq berilgan bo'lsa — uni
+  // ustidan yozmaymiz (masalan Founder drill-down: bitta filialni ochish).
   const branchId = useBranchStore.getState().selectedBranchId;
   if (branchId != null) {
     const method = (config.method || 'get').toLowerCase();
     if (method === 'get') {
-      config.params = { ...(config.params || {}), branchId };
+      const existing = (config.params || {}) as Record<string, unknown>;
+      if (existing.branchId === undefined || existing.branchId === null) {
+        config.params = { ...existing, branchId };
+      }
     }
   }
   return config;

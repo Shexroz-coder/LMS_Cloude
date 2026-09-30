@@ -5,9 +5,8 @@ import { useQuery } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 import { CreditCard } from 'lucide-react';
 import api from '../../api/axios';
-
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
-const METHODS: Record<string, string> = { CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online' };
+import { formatMoney as fmt } from '../../utils/format';
+import { PAYMENT_METHODS as METHODS } from '../../utils/constants';
 
 export default function FounderPayments() {
   const [searchParams] = useSearchParams();

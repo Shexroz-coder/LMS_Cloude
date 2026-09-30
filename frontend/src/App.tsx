@@ -21,10 +21,7 @@ const StudentDetailPage = lazy(() => import('./pages/admin/StudentDetailPage'));
 const TeachersPage = lazy(() => import('./pages/admin/TeachersPage'));
 const GroupsPage = lazy(() => import('./pages/admin/GroupsPage'));
 const SchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
-const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'));
-const FinancePage = lazy(() => import('./pages/admin/FinancePage'));
 const FinanceHub = lazy(() => import('./pages/admin/FinanceHub'));
-const SalariesPage = lazy(() => import('./pages/admin/SalariesPage'));
 const AnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage'));
 const CoursesPage = lazy(() => import('./pages/admin/CoursesPage'));
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
@@ -32,7 +29,6 @@ const AttendanceExportPage = lazy(() => import('./pages/admin/AttendanceExportPa
 const AdminCoinsPage = lazy(() => import('./pages/admin/AdminCoinsPage'));
 const HolidaysPage = lazy(() => import('./pages/admin/HolidaysPage'));
 const AdminAttendancePage = lazy(() => import('./pages/admin/AdminAttendancePage'));
-const AdminDebtorsPage = lazy(() => import('./pages/admin/AdminDebtorsPage'));
 const AdminBillingPage = lazy(() => import('./pages/admin/AdminBillingPage'));
 const BranchesPage = lazy(() => import('./pages/admin/BranchesPage'));
 const BranchDetailPage = lazy(() => import('./pages/admin/BranchDetailPage'));

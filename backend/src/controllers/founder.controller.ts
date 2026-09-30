@@ -54,21 +54,31 @@ export const getFounderOverview = async (req: AuthRequest, res: Response): Promi
       if (g.teacherId != null) groupsByTeacher.set(g.teacherId, (groupsByTeacher.get(g.teacherId) || 0) + 1);
     }
 
-    // O'tilgan darslar (COMPLETED) — soatlar. group.teacherId orqali o'qituvchiga bog'lanadi.
-    const completed = await prisma.lesson.findMany({
-      where: { status: 'COMPLETED', group: { is: lessonGroupFilter } } as any,
-      select: { durationHours: true, date: true, group: { select: { teacherId: true } } },
-    });
+    // O'tilgan darslar (COMPLETED) — soatlar. Perf: har bir darsни emas,
+    // guruh bo'yicha DB'да yig'amiz (groupBy), keyin guruh→o'qituvchi bog'laymiz.
+    const baseLessonWhere: any = { status: 'COMPLETED', group: { is: lessonGroupFilter } };
+    const [totalByGroup, monthByGroup] = await Promise.all([
+      prisma.lesson.groupBy({ by: ['groupId'], where: baseLessonWhere, _sum: { durationHours: true } }),
+      prisma.lesson.groupBy({ by: ['groupId'], where: { ...baseLessonWhere, date: { gte: from, lte: to } }, _sum: { durationHours: true } }),
+    ]);
+    // Kerakli guruhlar → o'qituvchi xaritasi
+    const involvedGroupIds = Array.from(new Set([...totalByGroup, ...monthByGroup].map(r => r.groupId)));
+    const groupTeacherRows = involvedGroupIds.length
+      ? await prisma.group.findMany({ where: { id: { in: involvedGroupIds } }, select: { id: true, teacherId: true } })
+      : [];
+    const teacherOfGroup = new Map<number, number | null>(groupTeacherRows.map(g => [g.id, g.teacherId]));
+
     const totalHoursByTeacher = new Map<number, number>();
     const monthHoursByTeacher = new Map<number, number>();
-    for (const l of completed) {
-      const tid = l.group?.teacherId;
+    for (const r of totalByGroup) {
+      const tid = teacherOfGroup.get(r.groupId);
       if (tid == null) continue;
-      const h = Number(l.durationHours || 0);
-      totalHoursByTeacher.set(tid, (totalHoursByTeacher.get(tid) || 0) + h);
-      if (l.date >= from && l.date <= to) {
-        monthHoursByTeacher.set(tid, (monthHoursByTeacher.get(tid) || 0) + h);
-      }
+      totalHoursByTeacher.set(tid, (totalHoursByTeacher.get(tid) || 0) + Number(r._sum.durationHours || 0));
+    }
+    for (const r of monthByGroup) {
+      const tid = teacherOfGroup.get(r.groupId);
+      if (tid == null) continue;
+      monthHoursByTeacher.set(tid, (monthHoursByTeacher.get(tid) || 0) + Number(r._sum.durationHours || 0));
     }
 
     // O'qituvchilar ro'yxati

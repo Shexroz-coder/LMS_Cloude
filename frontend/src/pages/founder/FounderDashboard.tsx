@@ -15,15 +15,7 @@ import {
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { useBranchStore } from '../../store/branch.store';
-
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
-const fmtShort = (v: number) => {
-  const n = Math.round(v || 0);
-  if (Math.abs(n) >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '') + ' mlrd';
-  if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + ' mln';
-  if (Math.abs(n) >= 1_000) return (n / 1_000).toFixed(1).replace(/\.?0+$/, '') + ' ming';
-  return String(n);
-};
+import { formatMoney as fmt, fmtShort } from '../../utils/format';
 
 export default function FounderDashboard() {
   const { user } = useAuthStore();
