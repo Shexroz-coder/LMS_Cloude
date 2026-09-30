@@ -89,17 +89,13 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
         key: 'management', label: 'Boshqaruv', icon: Megaphone, items: [
           { to: '/admin/attendance', icon: ClipboardCheck, label: 'Davomat' },
           { to: '/admin/announcements', icon: Megaphone, label: t('nav.announcements') },
-          { to: '/admin/reports', icon: FileText, label: t('nav.reports') },
+          // Hisobotlar markazi (ichida: Hisobotlar + Davomat export)
+          { to: '/admin/reports', icon: FileText, label: 'Hisobotlar' },
         ]
       },
 
-      {
-        key: 'settings', label: 'Sozlamalar', icon: Settings2, items: [
-          { to: '/admin/branches', icon: Building2, label: 'Filiallar' },
-          { to: '/admin/permissions', icon: ShieldCheck, label: 'Ruxsatlar' },
-          { to: '/admin/archives', icon: Archive, label: 'Arxiv' },
-        ]
-      },
+      // Sozlamalar markazi (ichida: Filiallar, Inventar, Arxiv, Ruxsatlar)
+      { to: '/admin/settings', icon: Settings2, label: 'Sozlamalar' },
 
       // Kamdan-kam ishlatiladigan — "Ko'proq" ostида yig'ilgan
       {
@@ -107,8 +103,6 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
           { to: '/admin/courses', icon: BookOpen, label: t('nav.courses') },
           { to: '/admin/coins', icon: Coins, label: t('nav.coins') },
           { to: '/admin/holidays', icon: CalendarOff, label: 'Bayramlar' },
-          { to: '/admin/inventory', icon: Package, label: 'Inventar' },
-          { to: '/admin/attendance-export', icon: ClipboardCheck, label: 'Davomat export' },
         ]
       },
 

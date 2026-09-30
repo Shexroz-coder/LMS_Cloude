@@ -3,6 +3,119 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { sendSuccess, sendError } from '../utils/response.utils';
 import { isHolidayDate } from '../utils/schedule.utils';
+import { getBranchId } from '../utils/branch.utils';
+
+// ══════════════════════════════════════════════
+// GET /attendance/day?date=YYYY-MM-DD — o'sha kuni darsи bor guruhlar
+//  (guruh jadvalидаги daysOfWeek bo'yicha). Filialга bog'liq.
+// ══════════════════════════════════════════════
+export const getAttendanceDay = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const q = req.query as Record<string, string>;
+    const dateStr = q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date) ? q.date : new Date().toISOString().slice(0, 10);
+    const weekday = new Date(dateStr + 'T00:00:00.000Z').getUTCDay(); // 0=Yak..6=Shan
+    const branchId = getBranchId(req);
+
+    // Filial mas'uli — o'z filialига; oddiy ustoz — faqat o'z guruhlari
+    let effBranch = branchId;
+    let ownTeacherId: number | null = null;
+    if (req.user?.role === 'TEACHER') {
+      const me = await (prisma as any).user.findUnique({ where: { id: req.user!.id }, select: { managedBranchId: true } });
+      if (me?.managedBranchId) {
+        effBranch = me.managedBranchId;
+      } else {
+        const teacher = await prisma.teacher.findUnique({ where: { userId: req.user!.id }, select: { id: true } });
+        ownTeacherId = teacher?.id ?? -1; // -1 → hech narsa chiqmaydi (ustoz topilmasa)
+      }
+    }
+
+    const groups = await prisma.group.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(effBranch ? { branchId: effBranch } : {}),
+        ...(ownTeacherId != null ? { teacherId: ownTeacherId } : {}),
+      } as any,
+      select: {
+        id: true, name: true,
+        course: { select: { name: true } },
+        branch: { select: { name: true } },
+        teacher: { select: { user: { select: { fullName: true } } } },
+        schedules: { select: { daysOfWeek: true, startTime: true, endTime: true, room: true } },
+        _count: { select: { groupStudents: { where: { status: 'ACTIVE' } } } },
+      } as any,
+    });
+
+    const dayStart = new Date(dateStr + 'T00:00:00.000Z');
+    const dayEnd = new Date(dateStr + 'T23:59:59.999Z');
+
+    const todays = [];
+    for (const g of groups as any[]) {
+      const sc = (g.schedules || []).find((s: any) => Array.isArray(s.daysOfWeek) && s.daysOfWeek.includes(weekday));
+      if (!sc) continue;
+      const lesson = await prisma.lesson.findFirst({
+        where: { groupId: g.id, date: { gte: dayStart, lt: dayEnd } },
+        select: { id: true },
+      });
+      todays.push({
+        groupId: g.id,
+        name: g.name,
+        courseName: g.course?.name || '—',
+        branchName: g.branch?.name || null,
+        teacherName: g.teacher?.user?.fullName || '—',
+        startTime: sc.startTime,
+        endTime: sc.endTime,
+        room: sc.room || null,
+        studentsCount: g._count?.groupStudents || 0,
+        marked: !!lesson,
+      });
+    }
+    todays.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    sendSuccess(res, { date: dateStr, weekday, groups: todays });
+  } catch (err) {
+    console.error('getAttendanceDay error:', err);
+    sendError(res, 'Kunlik guruhlarni olishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// GET /attendance/group/:groupId/day?date=YYYY-MM-DD — guruh o'quvchilari + o'sha kun statusi
+// ══════════════════════════════════════════════
+export const getGroupDayAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    const q = req.query as Record<string, string>;
+    const dateStr = q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date) ? q.date : new Date().toISOString().slice(0, 10);
+    const dayStart = new Date(dateStr + 'T00:00:00.000Z');
+    const dayEnd = new Date(dateStr + 'T23:59:59.999Z');
+
+    const enrollments = await prisma.groupStudent.findMany({
+      where: { groupId, status: 'ACTIVE' },
+      select: { student: { select: { id: true, user: { select: { fullName: true, phone: true } } } } },
+      orderBy: { student: { user: { fullName: 'asc' } } } as any,
+    });
+
+    const lesson = await prisma.lesson.findFirst({
+      where: { groupId, date: { gte: dayStart, lt: dayEnd } },
+      select: { id: true, topic: true },
+    });
+    const existing = lesson
+      ? await prisma.attendance.findMany({ where: { lessonId: lesson.id }, select: { studentId: true, status: true } })
+      : [];
+    const statusMap = new Map(existing.map(a => [a.studentId, a.status]));
+
+    const students = (enrollments as any[]).map(e => ({
+      studentId: e.student.id,
+      fullName: e.student.user.fullName,
+      phone: e.student.user.phone,
+      status: statusMap.get(e.student.id) || null,
+    }));
+
+    sendSuccess(res, { date: dateStr, marked: !!lesson, topic: lesson?.topic || null, students });
+  } catch (err) {
+    console.error('getGroupDayAttendance error:', err);
+    sendError(res, 'Guruh davomatини olishda xato.', 500);
+  }
+};
 
 // Telegram xabarlari va per-dars to'lov yechish O'CHIRILDI.
 // Qarzdorlik faqat oylik cron orqali hisoblanadi (har oy o'quvchi kelgan sana).
@@ -42,14 +155,17 @@ export const markAttendance = async (req: AuthRequest, res: Response): Promise<v
 
     const parsedGroupId = parseInt(groupId);
 
-    // Ustozni tekshirish
+    // Ustozni tekshirish — o'z guruhи, YOKI filial mas'uli o'z filiali guruhи
     if (req.user?.role === 'TEACHER') {
       const teacher = await prisma.teacher.findUnique({ where: { userId: req.user.id } });
       if (!teacher) { sendError(res, 'Ustoz topilmadi.', 403); return; }
 
-      const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
-      if (!group || group.teacherId !== teacher.id) {
-        sendError(res, "Bu guruh sizning guruhingiz emas.", 403);
+      const me = await (prisma as any).user.findUnique({ where: { id: req.user.id }, select: { managedBranchId: true } });
+      const grp = await prisma.group.findUnique({ where: { id: parsedGroupId }, select: { teacherId: true, branchId: true } as any }) as any;
+      const isOwnGroup = grp && grp.teacherId === teacher.id;
+      const isManagerGroup = me?.managedBranchId && grp && grp.branchId === me.managedBranchId;
+      if (!grp || (!isOwnGroup && !isManagerGroup)) {
+        sendError(res, "Bu guruhга davomat qilish huquqingiz yo'q.", 403);
         return;
       }
     }

@@ -22,6 +22,8 @@ const TeachersPage = lazy(() => import('./pages/admin/TeachersPage'));
 const GroupsPage = lazy(() => import('./pages/admin/GroupsPage'));
 const SchedulePage = lazy(() => import('./pages/admin/SchedulePage'));
 const FinanceHub = lazy(() => import('./pages/admin/FinanceHub'));
+const SettingsHub = lazy(() => import('./pages/admin/SettingsHub'));
+const ReportsHub = lazy(() => import('./pages/admin/ReportsHub'));
 const AnnouncementsPage = lazy(() => import('./pages/admin/AnnouncementsPage'));
 const CoursesPage = lazy(() => import('./pages/admin/CoursesPage'));
 const ReportsPage = lazy(() => import('./pages/admin/ReportsPage'));
@@ -142,14 +144,17 @@ const App = () => {
         <Route path="debtors" element={<Navigate to="/admin/finance?tab=debtors" replace />} />
         <Route path="coins" element={<AdminCoinsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
-        <Route path="reports" element={<ReportsPage />} />
         <Route path="attendance" element={<AdminAttendancePage />} />
-        <Route path="attendance-export" element={<AttendanceExportPage />} />
-        <Route path="branches" element={<BranchesPage />} />
+        {/* Hisobotlar markazi */}
+        <Route path="reports" element={<ReportsHub />} />
+        <Route path="attendance-export" element={<Navigate to="/admin/reports?tab=attendance" replace />} />
+        {/* Sozlamalar markazi */}
+        <Route path="settings" element={<SettingsHub />} />
+        <Route path="branches" element={<Navigate to="/admin/settings?tab=branches" replace />} />
         <Route path="branches/:id" element={<BranchDetailPage />} />
-        <Route path="inventory" element={<InventoryPage />} />
-        <Route path="archives" element={<ArchivesPage />} />
-        <Route path="permissions" element={<PermissionsPage />} />
+        <Route path="inventory" element={<Navigate to="/admin/settings?tab=inventory" replace />} />
+        <Route path="archives" element={<Navigate to="/admin/settings?tab=archives" replace />} />
+        <Route path="permissions" element={<Navigate to="/admin/settings?tab=permissions" replace />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

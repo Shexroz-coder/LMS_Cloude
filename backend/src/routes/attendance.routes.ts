@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import {
   markAttendance, getGroupAttendance, getAttendanceCalendar,
-  getTodayAttendance, getAttendanceStats, getStudentAttendance, getTeacherAttendanceReport
+  getTodayAttendance, getAttendanceStats, getStudentAttendance, getTeacherAttendanceReport,
+  getAttendanceDay, getGroupDayAttendance,
 } from '../controllers/attendance.controller';
 import {
   exportByGroup, exportByStudent, exportMonthly,
@@ -13,6 +14,9 @@ import { requirePerm } from '../middleware/permission.middleware';
 const router = Router();
 
 router.post('/lesson', authorize('ADMIN', 'TEACHER'), requirePerm('attendance.mark'), markAttendance);
+// Yagona davomat oqimi: kun → guruhlar → guruh davomati
+router.get('/day', authorize('ADMIN', 'TEACHER'), getAttendanceDay);
+router.get('/group/:groupId/day', authorize('ADMIN', 'TEACHER'), getGroupDayAttendance);
 router.get('/today', authorize('ADMIN', 'TEACHER'), getTodayAttendance);
 router.get('/stats', authorize('ADMIN', 'TEACHER'), getAttendanceStats);
 router.get('/teacher-report', authorize('ADMIN'), getTeacherAttendanceReport);
