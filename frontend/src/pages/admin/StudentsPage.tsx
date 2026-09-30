@@ -67,6 +67,7 @@ const StudentsPage = () => {
   const [deactivateConfirm, setDeactivateConfirm] = useState<Student | null>(null);
   const [deactivateReason, setDeactivateReason] = useState('');
   const [reactivateConfirm, setReactivateConfirm] = useState<Student | null>(null);
+  const [permanentConfirm, setPermanentConfirm] = useState<Student | null>(null);
   const [dueDayStudent, setDueDayStudent] = useState<Student | null>(null);
 
   // Debounce effect
@@ -139,6 +140,21 @@ const StudentsPage = () => {
         setReactivateConfirm(null);
       },
       onError: () => { void toast.error("Xato yuz berdi"); }
+    }
+  );
+
+  // Butunlay o'chirish mutation (raqamni bo'shatadi)
+  const permanentMutation = useMutation(
+    (id: number) => api.delete(`/students/${id}/permanent`),
+    {
+      onSuccess: () => {
+        void toast.success("Butunlay o'chirildi. Bu raqam bilan qayta ro'yxatdan o'tish mumkin.");
+        qc.invalidateQueries('students');
+        setPermanentConfirm(null);
+      },
+      onError: (err: unknown) => {
+        void toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Xato yuz berdi");
+      }
     }
   );
 
@@ -401,7 +417,9 @@ const StudentsPage = () => {
                               <UserX className="w-4 h-4" />
                             </button>
                           )}
-                          <button onClick={() => setDeleteConfirm(s)} title="Butunlay o'chirish"
+                          <button
+                            onClick={() => s.status === 'INACTIVE' ? setPermanentConfirm(s) : setDeleteConfirm(s)}
+                            title={s.status === 'INACTIVE' ? "Butunlay o'chirish (raqamni bo'shatish)" : "O'chirish"}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -473,16 +491,39 @@ const StudentsPage = () => {
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Butunlay o'chirishni tasdiqlang</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">O'chirishni tasdiqlang</h3>
             <p className="text-sm text-gray-500 mb-1">
-              <strong>{deleteConfirm.user.fullName}</strong> o'quvchini tizimdan butunlay o'chirmoqchimisiz?
+              <strong>{deleteConfirm.user.fullName}</strong> o'quvchi <b>Ketgan</b> holatiga o'tkaziladi.
             </p>
-            <p className="text-xs text-red-500 mb-5">⚠️ Bu amal qaytarib bo'lmaydi. Barcha ma'lumotlar o'chadi.</p>
+            <p className="text-xs text-gray-400 mb-5">Ma'lumotlar saqlanadi — keyinroq "Ketgan" filtridan tiklashingiz mumkin.</p>
             <div className="flex gap-2">
               <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">Bekor</button>
               <button onClick={() => deleteMutation.mutate(deleteConfirm.id)} disabled={deleteMutation.isLoading}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-60">
                 {deleteMutation.isLoading ? 'Jarayonda...' : "O'chirish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Butunlay o'chirish (permanent) modali ─── */}
+      {permanentConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-6 h-6 text-red-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Butunlay o'chirish</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+              <strong>{permanentConfirm.user.fullName}</strong> butunlay o'chiriladi.
+            </p>
+            <p className="text-xs text-red-500 mb-5">⚠️ Telefon raqam bo'shatiladi — shu raqam bilan qayta ro'yxatdan o'tish mumkin bo'ladi. Bu amalни qaytarib bo'lmaydi.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPermanentConfirm(null)} className="btn-secondary flex-1">Bekor</button>
+              <button onClick={() => permanentMutation.mutate(permanentConfirm.id)} disabled={permanentMutation.isLoading}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-60">
+                {permanentMutation.isLoading ? 'Jarayonda...' : "Butunlay o'chirish"}
               </button>
             </div>
           </div>

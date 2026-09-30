@@ -46,10 +46,14 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
 
+    // O'chirilgan (nofaol) o'quvchilarni ko'rsatish rejimi:
+    //  status=INACTIVE tanlanса — faqat nofaollarни (isActive=false) ko'rsatamiz.
+    const wantInactive = status === 'INACTIVE';
+
     // Qidiruv filtr
     const where: Record<string, unknown> = {
       user: {
-        isActive: true,
+        isActive: !wantInactive,
         ...(search && {
           OR: [
             { fullName: { contains: search, mode: 'insensitive' } },
@@ -489,6 +493,43 @@ export const deleteStudent = async (req: AuthRequest, res: Response): Promise<vo
   } catch (err) {
     console.error('deleteStudent error:', err);
     sendError(res, 'O\'quvchini o\'chirishda xato.', 500);
+  }
+};
+
+// ══════════════════════════════════════════════
+// DELETE /students/:id/permanent — Butunlay o'chirish
+// Moliyaviy tarix (to'lovlar, davomat) saqlanib qoladi, lekin telefon raqam
+// BO'SHATILADI — shu raqam bilan qayta ro'yxatdan o'tish mumkin bo'ladi.
+// (To'g'ridan-to'g'ri DELETE FK cheklovlariга uchraydi, shuning uchun raqam
+//  "tombstone"ga o'zgartiriladi va yozuv nofaol qilinadi.)
+// ══════════════════════════════════════════════
+export const permanentDeleteStudent = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id);
+    const student = await prisma.student.findUnique({
+      where: { id },
+      include: { user: { select: { id: true, phone: true, fullName: true } } },
+    });
+    if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
+
+    const oldPhone = student.user.phone;
+    // Telefon uzunligi cheklovi (VarChar 20) — qisqa, unikal tombstone
+    const tombstone = `del_${id}`.slice(0, 20);
+
+    await prisma.$transaction(async (tx) => {
+      // Telegram sessiyalari (OTP) — telefonga bog'liq, avval tozalaymiz
+      await (tx as any).telegramSession.deleteMany({ where: { phone: oldPhone } });
+      // Guruhlardan chiqarish
+      await tx.groupStudent.updateMany({ where: { studentId: id, status: 'ACTIVE' }, data: { status: 'LEFT' } });
+      // Raqamni bo'shatish + yozuvni butunlay nofaol qilish
+      await tx.user.update({ where: { id: student.user.id }, data: { phone: tombstone, isActive: false } });
+      await tx.student.update({ where: { id }, data: { status: 'INACTIVE', leftAt: new Date(), leftReason: "Butunlay o'chirildi" } });
+    });
+
+    sendSuccess(res, null, `${student.user.fullName} butunlay o'chirildi. Bu raqam bilan qayta ro'yxatdan o'tish mumkin.`);
+  } catch (err) {
+    console.error('permanentDeleteStudent error:', err);
+    sendError(res, "Butunlay o'chirishda xato.", 500);
   }
 };
 

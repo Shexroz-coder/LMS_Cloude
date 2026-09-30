@@ -126,6 +126,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
     // Ta'sischi — faqat asosiy ko'rsatkichlar (o'qish rejimi)
     return [
       { to: '/founder', icon: LayoutDashboard, label: 'Asosiy ko\'rsatkichlar' },
+      { to: '/founder/groups', icon: BookOpen, label: 'Guruhlar' },
       { to: '/founder/finance', icon: BarChart3, label: 'Moliya' },
       { to: '/founder/payments', icon: CreditCard, label: "To'lovlar" },
       { to: '/founder/archives', icon: Archive, label: 'Arxiv' },

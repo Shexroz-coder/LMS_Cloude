@@ -2,6 +2,7 @@
  * Ta'sischi — So'nggi to'lovlar (faqat ko'rish).
  */
 import { useQuery } from 'react-query';
+import { useSearchParams } from 'react-router-dom';
 import { CreditCard } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -9,9 +10,12 @@ const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v ||
 const METHODS: Record<string, string> = { CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online' };
 
 export default function FounderPayments() {
+  const [searchParams] = useSearchParams();
+  const branchId = searchParams.get('branchId') || '';
+
   const { data, isLoading } = useQuery(
-    ['founder-payments'],
-    () => api.get('/payments?limit=50').then(r => r.data?.data),
+    ['founder-payments', branchId],
+    () => api.get('/payments', { params: { limit: 50, branchId: branchId || undefined } }).then(r => r.data?.data),
     { staleTime: 30_000 }
   );
 

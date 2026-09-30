@@ -11,6 +11,7 @@ import {
   cleanupInactiveStudents,
   acceptLead,
   rejectLead,
+  permanentDeleteStudent,
   addToGroup,
   removeFromGroup,
   getAttendanceStats,
@@ -34,6 +35,8 @@ router.post('/', adminOrManager('students.create'), createStudent);
 router.get('/:id', authorize('ADMIN', 'TEACHER', 'PARENT'), getStudentById);
 router.put('/:id', adminOrManager('students.edit'), updateStudent);
 router.delete('/:id', adminOrManager('students.edit'), deleteStudent);
+// Butunlay o'chirish — faqat super admin
+router.delete('/:id/permanent', authorize('ADMIN'), permanentDeleteStudent);
 
 // Faollashtirish / Nofaol qilish
 router.patch('/:id/deactivate', authorize('ADMIN'), deactivateStudent);

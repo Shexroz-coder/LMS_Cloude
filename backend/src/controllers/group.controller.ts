@@ -9,11 +9,12 @@ const groupInclude = {
   teacher: {
     include: { user: { select: { id: true, fullName: true, phone: true, avatarUrl: true } } }
   },
+  branch: { select: { id: true, name: true } },
   schedules: { orderBy: { id: 'asc' as const } },
   _count: {
     select: { groupStudents: { where: { status: 'ACTIVE' as const } }, lessons: true }
   }
-};
+} as any;
 
 // ══════════════════════════════════════════════
 // GET /groups
@@ -473,37 +474,15 @@ export const removeStudentFromGroup = async (req: AuthRequest, res: Response): P
     });
     if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
 
+    // FAQAT guruhdan chiqarish — o'quvchi tizimда faol qoladi.
+    // (Avval avtomatik nofaol qilinardi; endi bu olib tashlandi — o'quvchini
+    //  o'chirish faqat alohida "o'chirish" amali orqali amalga oshiriladi.)
     await prisma.groupStudent.updateMany({
       where: { groupId, studentId },
       data: { status: 'LEFT' },
     });
 
-    // Boshqa faol guruhlar bormi tekshirish
-    const remainingActive = await prisma.groupStudent.count({
-      where: { studentId, status: 'ACTIVE' },
-    });
-
-    let autoDeactivated = false;
-    if (remainingActive === 0 && student.status === 'ACTIVE') {
-      // Hech qanday faol guruh qolmadi — avtomatik nofaol qilish
-      await prisma.$transaction([
-        prisma.student.update({
-          where: { id: studentId },
-          data: { status: 'INACTIVE', leftAt: new Date() },
-        }),
-        prisma.user.update({
-          where: { id: student.userId },
-          data: { isActive: false },
-        }),
-      ]);
-      autoDeactivated = true;
-    }
-
-    const msg = autoDeactivated
-      ? `${student.user.fullName} guruhdan chiqarildi va nofaol holatga o'tkazildi (boshqa guruh yo'q).`
-      : `${student.user.fullName} guruhdan chiqarildi.`;
-
-    sendSuccess(res, { autoDeactivated }, msg);
+    sendSuccess(res, { autoDeactivated: false }, `${student.user.fullName} guruhdan chiqarildi.`);
   } catch (err) {
     console.error('removeStudentFromGroup error:', err);
     sendError(res, 'O\'quvchini chiqarishda xato.', 500);
@@ -526,6 +505,8 @@ export const transferStudent = async (req: AuthRequest, res: Response): Promise<
       sendError(res, `"${toGroup.name}" guruhi to'lgan.`, 400); return;
     }
 
+    const toBranchId = (toGroup as any).branchId as number | null;
+
     await prisma.$transaction(async (tx) => {
       await tx.groupStudent.updateMany({ where: { groupId: fromGroupId, studentId, status: 'ACTIVE' }, data: { status: 'LEFT' } });
       const existing = await tx.groupStudent.findUnique({ where: { groupId_studentId: { groupId: parseInt(toGroupId), studentId } } });
@@ -533,6 +514,11 @@ export const transferStudent = async (req: AuthRequest, res: Response): Promise<
         await tx.groupStudent.update({ where: { id: existing.id }, data: { status: 'ACTIVE', joinedAt: new Date() } });
       } else {
         await tx.groupStudent.create({ data: { groupId: parseInt(toGroupId), studentId, joinedAt: new Date() } });
+      }
+      // Boshqa filial guruhiga o'tkazilса — o'quvchi filiali ham yangilanadi
+      // (kelgusi to'lovlar yangi filialга yoziladi; eski to'lovlar o'z filialида qoladi)
+      if (toBranchId) {
+        await (tx.student as any).update({ where: { id: studentId }, data: { branchId: toBranchId } });
       }
     });
 

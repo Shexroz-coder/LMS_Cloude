@@ -774,11 +774,19 @@ const GroupFormModal = ({ group, onClose, onSuccess }: {
                     {transferTarget.student.user.fullName} → boshqa guruhga o'tkazish
                   </p>
                   <select value={transferGroupId} onChange={e => setTransferGroupId(e.target.value)} className="input">
-                    <option value="">Guruh tanlang</option>
-                    {(allGroups as Group[]).filter(g => g.id !== group?.id).map(g => (
-                      <option key={g.id} value={g.id}>{g.name} ({g._count?.groupStudents}/{g.maxStudents})</option>
-                    ))}
+                    <option value="">Guruh tanlang (boshqa filial ham bo'lishi mumkin)</option>
+                    {(allGroups as Group[]).filter(g => g.id !== group?.id).map(g => {
+                      const br = (g as any).branch?.name;
+                      return (
+                        <option key={g.id} value={g.id}>
+                          {g.name}{br ? ` — ${br}` : ''} ({g._count?.groupStudents}/{g.maxStudents})
+                        </option>
+                      );
+                    })}
                   </select>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Boshqa filial guruhi tanlansa, o'quvchi o'sha filialga o'tadi.
+                  </p>
                   <div className="flex gap-2">
                     <button onClick={() => { setTransferTarget(null); setTransferGroupId(''); }} className="btn-secondary flex-1 text-sm">Bekor</button>
                     <button onClick={handleTransfer} disabled={!transferGroupId} className="btn-primary flex-1 text-sm">O'tkazish</button>

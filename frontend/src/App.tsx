@@ -42,6 +42,7 @@ const PermissionsPage = lazy(() => import('./pages/admin/PermissionsPage'));
 const FounderDashboard = lazy(() => import('./pages/founder/FounderDashboard'));
 const FounderFinance = lazy(() => import('./pages/founder/FounderFinance'));
 const FounderPayments = lazy(() => import('./pages/founder/FounderPayments'));
+const FounderGroups = lazy(() => import('./pages/founder/FounderGroups'));
 
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const TeacherGroupsPage = lazy(() => import('./pages/teacher/TeacherGroupsPage'));
@@ -161,6 +162,7 @@ const App = () => {
         </PrivateRoute>
       }>
         <Route index element={<FounderDashboard />} />
+        <Route path="groups" element={<FounderGroups />} />
         <Route path="finance" element={<FounderFinance />} />
         <Route path="payments" element={<FounderPayments />} />
         <Route path="archives" element={<ArchivesPage />} />
