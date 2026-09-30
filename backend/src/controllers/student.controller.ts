@@ -88,8 +88,11 @@ export const getStudents = async (req: AuthRequest, res: Response): Promise<void
       where.groupStudents = { some: { groupId: parseInt(groupId), status: 'ACTIVE' } };
     }
 
-    // Status bo'yicha filtr
-    if (status) {
+    // Status bo'yicha filtr.
+    // "INACTIVE" (Ketgan/o'chirilgan) — student.status'ga bog'lanmaymiz, chunki
+    // eski o'chirilgan o'quvchilarда status hali ACTIVE bo'lishi mumkin; ular faqat
+    // user.isActive=false bilan aniqlanadi (yuqorида wantInactive orqali).
+    if (status && !wantInactive) {
       where.status = status;
     }
 
@@ -477,17 +480,12 @@ export const deleteStudent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // Soft delete — faqat isActive = false qilamiz
-    await prisma.user.update({
-      where: { id: student.userId },
-      data: { isActive: false }
-    });
-
-    // Barcha guruhlardan chiqarish
-    await prisma.groupStudent.updateMany({
-      where: { studentId: id, status: 'ACTIVE' },
-      data: { status: 'LEFT' }
-    });
+    // Soft delete — user nofaol + student status INACTIVE (izchil bo'lishi uchun)
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: student.userId }, data: { isActive: false } }),
+      prisma.student.update({ where: { id }, data: { status: 'INACTIVE', leftAt: new Date() } }),
+      prisma.groupStudent.updateMany({ where: { studentId: id, status: 'ACTIVE' }, data: { status: 'LEFT' } }),
+    ]);
 
     sendSuccess(res, null, 'O\'quvchi o\'chirildi.');
   } catch (err) {
@@ -757,7 +755,11 @@ export const reactivateStudent = async (req: AuthRequest, res: Response): Promis
     });
 
     if (!student) { sendError(res, "O'quvchi topilmadi.", 404); return; }
-    if (student.status === 'ACTIVE') { sendError(res, "O'quvchi allaqachon faol.", 400); return; }
+    // "Faol" deb faqat user.isActive=true VA status ACTIVE bo'lgan holni hisoblaymiz.
+    // Eski o'chirilganlarда status ACTIVE, lekin user.isActive=false — ularни tiklaymiz.
+    if (student.status === 'ACTIVE' && student.user.isActive) {
+      sendError(res, "O'quvchi allaqachon faol.", 400); return;
+    }
 
     await prisma.$transaction([
       // Status ACTIVE ga qaytarish

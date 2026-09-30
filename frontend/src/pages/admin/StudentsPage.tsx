@@ -270,7 +270,7 @@ const StudentsPage = () => {
               <option value="LEAD">Lid</option>
               <option value="DEMO">Demo</option>
               <option value="ACTIVE">Faol</option>
-              <option value="INACTIVE">Ketgan</option>
+              <option value="INACTIVE">Ketgan / O'chirilgan</option>
             </select>
             {(filterDebt || selectedGroupId || selectedStatus) && (
               <button
@@ -325,8 +325,10 @@ const StudentsPage = () => {
                 students.map((s, i) => {
                   const debt = Number(s.balance?.debt || 0);
                   const bal = Number(s.balance?.balance || 0);
+                  // "O'chirilgan" — status INACTIVE YOKI user nofaol (eski o'chirilganlar)
+                  const isDeleted = s.status === 'INACTIVE' || (s.user as any)?.isActive === false;
                   return (
-                    <tr key={s.id} className={`hover:bg-gray-50/70 transition-colors ${s.status === 'INACTIVE' ? 'opacity-60 bg-gray-50/50' : ''}`}>
+                    <tr key={s.id} className={`hover:bg-gray-50/70 transition-colors ${isDeleted ? 'opacity-60 bg-gray-50/50' : ''}`}>
                       <td className="text-gray-400 text-xs">{(page - 1) * 15 + i + 1}</td>
                       <td>
                         <div
@@ -372,7 +374,9 @@ const StudentsPage = () => {
                         </span>
                       </td>
                       <td>
-                        {s.status === 'LEAD' ? (
+                        {isDeleted ? (
+                          <span className="badge bg-gray-100 text-gray-700 dark:text-gray-300 text-xs">Ketgan</span>
+                        ) : s.status === 'LEAD' ? (
                           <span className="badge bg-blue-100 text-blue-700 text-xs">Lid</span>
                         ) : s.status === 'DEMO' ? (
                           <span className="badge bg-amber-100 text-amber-700 text-xs">Demo</span>
@@ -392,13 +396,13 @@ const StudentsPage = () => {
                             className="p-1.5 rounded-lg hover:bg-primary-50 text-gray-400 hover:text-primary-600 transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
-                          {s.status !== 'INACTIVE' && (
+                          {!isDeleted && (
                             <button onClick={() => setEditStudent(s)} title="Tahrirlash"
                               className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors">
                               <Edit2 className="w-4 h-4" />
                             </button>
                           )}
-                          {s.status !== 'INACTIVE' && (
+                          {!isDeleted && (
                             <button onClick={() => setDueDayStudent(s)} title="To'lov kuni"
                               className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
                               <Calendar className="w-4 h-4" />
@@ -410,10 +414,10 @@ const StudentsPage = () => {
                               <KeyRound className="w-4 h-4" />
                             </button>
                           )}
-                          {s.status === 'INACTIVE' ? (
+                          {isDeleted ? (
                             <button
                               onClick={() => setReactivateConfirm(s)}
-                              title="Qayta faollashtirish"
+                              title="Qayta tiklash"
                               className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors"
                             >
                               <RotateCcw className="w-4 h-4" />
@@ -428,8 +432,8 @@ const StudentsPage = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => s.status === 'INACTIVE' ? setPermanentConfirm(s) : setDeleteConfirm(s)}
-                            title={s.status === 'INACTIVE' ? "Butunlay o'chirish (raqamni bo'shatish)" : "O'chirish"}
+                            onClick={() => isDeleted ? setPermanentConfirm(s) : setDeleteConfirm(s)}
+                            title={isDeleted ? "Butunlay o'chirish (raqamni bo'shatish)" : "O'chirish"}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -827,7 +831,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
                 <option value="LEAD">Lid</option>
                 <option value="DEMO">Demo</option>
                 <option value="ACTIVE">Faol</option>
-                <option value="INACTIVE">Ketgan</option>
+                <option value="INACTIVE">Ketgan / O'chirilgan</option>
               </select>
             </div>
 
