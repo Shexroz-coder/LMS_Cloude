@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery, useMutation } from 'react-query';
 import api from '../../api/axios';
@@ -5,7 +6,6 @@ import { useAuthStore } from '../../store/auth.store';
 import clsx from 'clsx';
 import { Wallet, TrendingUp, Banknote, Briefcase } from 'lucide-react';
 
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: '👑 Admin', TEACHER: '👨‍🏫 Ustoz', STUDENT: '🎓 O\'quvchi', PARENT: '👨‍👩‍👧 Ota-ona',

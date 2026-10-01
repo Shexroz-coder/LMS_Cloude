@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -37,7 +38,6 @@ interface Student {
   _count: { attendance: number; grades: number; payments: number; coinTransactions: number };
 }
 
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
 // Xavfsiz sana formatlash — yaroqsiz sana React'ni yiqitmasligi uchun

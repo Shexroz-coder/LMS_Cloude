@@ -1,3 +1,4 @@
+import { formatSom as fmt } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
@@ -8,7 +9,6 @@ import {
   ExternalLink, Users, Info, Clock, Calculator,
 } from 'lucide-react';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 const METHOD_LABELS: Record<string, string> = {
   CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online',

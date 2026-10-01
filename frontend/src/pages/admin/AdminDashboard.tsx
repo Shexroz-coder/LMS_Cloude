@@ -1,3 +1,4 @@
+import { formatMoney as money } from '../../utils/format';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -577,7 +578,6 @@ function BranchComparison() {
   const totals = data?.totals;
   if (rows.length < 2) return null;
 
-  const money = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">

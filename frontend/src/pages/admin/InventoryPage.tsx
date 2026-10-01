@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 /**
  * Inventar / Jihozlar — har filial bo'yicha.
  * Filial selektori (chapdan) tanlangan filial jihozlarini ko'rsatadi.
@@ -10,7 +11,6 @@ import clsx from 'clsx';
 import api from '../../api/axios';
 import { useBranchStore } from '../../store/branch.store';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 
 const CATEGORIES: { value: string; label: string; icon: string }[] = [
   { value: 'ROBOTICS', label: 'Robototexnika', icon: '🤖' },

@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
@@ -76,7 +77,6 @@ const ReportsPage = () => {
     setDownloading(null);
   };
 
-  const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
 
   return (
     <div className="space-y-5 animate-fade-in">

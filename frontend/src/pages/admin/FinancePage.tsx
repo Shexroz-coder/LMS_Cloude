@@ -1,3 +1,4 @@
+import { formatSom as fmt } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { format } from 'date-fns';
@@ -83,7 +84,6 @@ const PAYMENT_METHODS: Record<string, string> = {
   CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online'
 };
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 const catInfo = (val: string) => EXPENSE_CATEGORIES.find(c => c.value === val) || EXPENSE_CATEGORIES[7];
 
 function getMonthOptions() {

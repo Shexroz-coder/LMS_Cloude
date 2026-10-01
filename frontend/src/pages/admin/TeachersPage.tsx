@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -18,7 +19,6 @@ interface Teacher {
 }
 
 const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(v) + " so'm";
 
 const TeachersPage = () => {
   const qc = useQueryClient();

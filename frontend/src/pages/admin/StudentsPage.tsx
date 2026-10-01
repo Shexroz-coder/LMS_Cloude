@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -44,7 +45,6 @@ interface Student {
 interface Pagination { total: number; page: number; limit: number; totalPages: number; }
 
 // ── Helpers ────────────────────────────────────────
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(v) + " so'm";
 const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
 // ══════════════════════════════════════════════════

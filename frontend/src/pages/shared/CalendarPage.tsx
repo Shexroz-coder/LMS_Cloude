@@ -1,3 +1,4 @@
+import { formatSom as fmt } from '../../utils/format';
 import { useState, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
@@ -9,7 +10,6 @@ const MONTH_NAMES = [
   'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'
 ];
 const DAYS_SHORT = ['Ya', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 interface CalendarDay {
   date: string;

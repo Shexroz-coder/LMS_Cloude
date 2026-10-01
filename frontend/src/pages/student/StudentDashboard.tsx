@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
@@ -9,7 +10,6 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
 const DAYS = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
 const DAYS_FULL = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
 

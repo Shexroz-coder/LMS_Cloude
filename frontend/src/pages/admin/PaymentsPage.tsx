@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import {
@@ -30,7 +31,6 @@ interface Summary {
   byMethod: { method: string; total: number; count: number }[];
 }
 
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 const methodLabel: Record<string, string> = { CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", ONLINE: 'Online' };
 const methodIcon: Record<string, React.ElementType> = { CASH: Banknote, CARD: CreditCard, TRANSFER: Building2, ONLINE: Smartphone };
 const methodColor: Record<string, string> = { CASH: 'text-emerald-600 bg-emerald-50', CARD: 'text-blue-600 bg-blue-50', TRANSFER: 'text-violet-600 bg-violet-50', ONLINE: 'text-orange-600 bg-orange-50' };

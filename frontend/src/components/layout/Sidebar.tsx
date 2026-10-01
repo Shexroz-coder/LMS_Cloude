@@ -126,7 +126,7 @@ const getNavConfig = (role: Role, t: (k: string) => string): NavConfig => {
     return [
       { to: '/teacher',            icon: LayoutDashboard, label: 'Bosh sahifa'     },
       { to: '/teacher/attendance', icon: ClipboardCheck,  label: 'Davomat', perm: 'attendance.mark' },
-      { to: '/teacher/groups',     icon: Users,           label: "O'quvchilar", perm: 'students.view' },
+      { to: '/teacher/groups',     icon: Users,           label: "Guruhlarim", perm: 'students.view' },
       { to: '/teacher/schedule',   icon: Calendar,        label: 'Jadval', perm: 'schedule.view' },
       { to: '/teacher/coins',      icon: Coins,           label: 'Coinlar', perm: 'coins.award' },
       { to: '/teacher/notifications', icon: Bell,         label: 'Bildirishnomalar'},

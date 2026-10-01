@@ -1,3 +1,4 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -48,7 +49,6 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   PAUSED: { label: "To'xtatilgan", cls: 'bg-amber-100 text-amber-700' },
   COMPLETED: { label: 'Tugagan', cls: 'bg-gray-100 text-gray-600' },
 };
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 // ── ODD/EVEN day presets ───────────────────────────────────
 const DAY_PRESETS = [

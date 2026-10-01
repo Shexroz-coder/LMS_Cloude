@@ -169,24 +169,6 @@ export async function calculateMonthlyDebts() {
 
       if (studentFee <= 0) continue;
 
-      // ── MonthlyFee yozuvlarini yaratish ──
-      for (const row of feeRows) {
-        try {
-          await (prisma.monthlyFee as any).create({
-            data: {
-              studentId: student.id,
-              groupId: row.groupId,
-              month: monthStart,
-              baseAmount: row.baseAmount,
-              discountAmount: row.discountAmount,
-              finalAmount: row.finalAmount,
-            },
-          });
-        } catch (e: any) {
-          if (e.code !== 'P2002') console.error('  ⚠️ MonthlyFee yaratishda xato:', e.message);
-        }
-      }
-
       // ── Balansdan yechish yoki qarzga qo'shish ──
       const currentBalance = Math.round(Number(student.balance?.balance || 0));
       const currentDebt = Math.round(Number(student.balance?.debt || 0));
@@ -202,11 +184,31 @@ export async function calculateMonthlyDebts() {
         newDebt = currentDebt + shortfall;
       }
 
-      await prisma.studentBalance.upsert({
-        where: { studentId: student.id },
-        update: { balance: newBalance, debt: newDebt, lastUpdated: new Date() },
-        create: { studentId: student.id, balance: 0, debt: studentFee, lastUpdated: new Date() },
-      });
+      // ── MonthlyFee yaratish + balans yangilash — BITTA tranzaksiyada (atomik) ──
+      // skipDuplicates: noyob cheklov (studentId,groupId,month) ikki baravar yozmaydi.
+      try {
+        await prisma.$transaction(async (tx) => {
+          await (tx.monthlyFee as any).createMany({
+            data: feeRows.map(row => ({
+              studentId: student.id,
+              groupId: row.groupId,
+              month: monthStart,
+              baseAmount: row.baseAmount,
+              discountAmount: row.discountAmount,
+              finalAmount: row.finalAmount,
+            })),
+            skipDuplicates: true,
+          });
+          await tx.studentBalance.upsert({
+            where: { studentId: student.id },
+            update: { balance: newBalance, debt: newDebt, lastUpdated: new Date() },
+            create: { studentId: student.id, balance: 0, debt: studentFee, lastUpdated: new Date() },
+          });
+        });
+      } catch (e: any) {
+        console.error('  ⚠️ Oylik hisob (tranzaksiya) xatosi:', e.message);
+        continue;
+      }
 
       // ── O'quvchiga tizim bildirishnomasi ──
       const dueLabel = isFirstMonth

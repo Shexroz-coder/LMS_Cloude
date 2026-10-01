@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 /**
  * AdminDebtorsPage — Qarzdorlar ro'yxati va eslatma yuborish
  *
@@ -39,7 +40,6 @@ interface DebtorEntry {
   isDueSoon:      boolean;
 }
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v));
 
 // ─── Asosiy komponent ─────────────────────────────────────────────────────────
 export default function AdminDebtorsPage() {

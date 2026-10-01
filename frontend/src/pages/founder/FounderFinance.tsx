@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 /**
  * Ta'sischi — Moliya (faqat ko'rish).
  * Yagona moliya manbai (/payments/summary) dan.
@@ -6,7 +7,6 @@ import { useQuery } from 'react-query';
 import { TrendingUp, TrendingDown, Wallet, AlertCircle, Users } from 'lucide-react';
 import api from '../../api/axios';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 
 export default function FounderFinance() {
   const { data: summary, isLoading } = useQuery(

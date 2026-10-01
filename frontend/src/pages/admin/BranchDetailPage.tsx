@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 /**
  * Filial batafsil — Xonalar → Guruhlar → O'quvchilar + alohida moliya.
  * Har filialni alohida kuzatish. Mobil-moslashuvchan.
@@ -15,7 +16,6 @@ import clsx from 'clsx';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 
 interface GroupRow { id: number; name: string; courseName: string; teacherName: string; studentsCount: number; roomId: number | null }
 interface RoomRow { id: number; name: string; capacity: number | null; isActive: boolean; groups: GroupRow[]; studentsCount: number }

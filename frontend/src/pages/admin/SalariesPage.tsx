@@ -1,3 +1,4 @@
+import { formatSom as fmt } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import api from '../../api/axios';
@@ -5,7 +6,6 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { Users, TrendingUp, Wallet, ChevronDown, ChevronRight, CheckCircle, Clock, UserCheck, Plus, X } from 'lucide-react';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 function getMonthOptions() {
   const months = [];

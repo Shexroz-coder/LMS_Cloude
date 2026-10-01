@@ -1,10 +1,10 @@
+import { formatSom as formatMoney } from '../../utils/format';
 import { useQuery } from 'react-query';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
 import { Link } from 'react-router-dom';
 
 const DAYS_FULL = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
-const formatMoney = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 
 interface TodayEntry {
   scheduleId: number;

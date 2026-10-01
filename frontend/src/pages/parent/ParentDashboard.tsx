@@ -1,3 +1,4 @@
+import { formatSom as fmt } from '../../utils/format';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -9,7 +10,6 @@ import {
   ChevronRight, BookOpen,
 } from 'lucide-react';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v)) + " so'm";
 const DAYS = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh'];
 
 // ─── Child data hook ─────────────────────────────────────────────────────────

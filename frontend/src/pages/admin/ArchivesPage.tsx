@@ -1,3 +1,4 @@
+import { formatMoney as fmt } from '../../utils/format';
 /**
  * Arxivlash sahifasi
  *
@@ -11,7 +12,6 @@ import { Archive, Plus, X, Eye, AlertTriangle, TrendingUp, TrendingDown, RotateC
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 
-const fmt = (v: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(v || 0));
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('uz-UZ');
 
 interface ArchiveRow {
