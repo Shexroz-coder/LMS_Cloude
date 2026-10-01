@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { useBranchManager } from '../../hooks/useBranchManager';
 import QuickActions from '../../components/ui/QuickActions';
 import FinanceKpis from '../../components/ui/FinanceKpis';
+import MonthTabs, { currentMonth } from '../../components/ui/MonthTabs';
 import { useBranchStore } from '../../store/branch.store';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -46,6 +47,7 @@ const AdminDashboard = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [month, setMonth] = useState(currentMonth());
 
   // ── Real stats ────────────────────────────────
   const { data: stats, isLoading: statsLoading } = useQuery(
@@ -174,8 +176,11 @@ const AdminDashboard = () => {
       {/* ── Tez amallar — eng ko'p ishlatiladigan amallar bir bosishда ── */}
       <QuickActions />
 
-      {/* ── Moliya KPI — Reja/Kirim/Qarzdorlik/Xarajat/Qoldiq (bosilса ro'yxat) ── */}
-      <FinanceKpis />
+      {/* ── Oylar — qaysiga bossa o'sha oy raqamlari ── */}
+      <MonthTabs value={month} onChange={setMonth} />
+
+      {/* ── Moliya KPI — tanlangan oy bo'yicha (bosilса ro'yxat) ── */}
+      <FinanceKpis month={month} />
 
       {/* ── "Barcha filiallar" tanlanганда — filiallar taqqoslamasi ── */}
       <BranchComparison />
@@ -324,8 +329,8 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ── Stat Cards ───────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* ── Sanoq ko'rsatkichlari (pul raqamlari yuqorида FinanceKpis'да) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title={t('dashboard.totalStudents')}
           value={s.studentsCount}
@@ -333,14 +338,6 @@ const AdminDashboard = () => {
           iconColor="text-primary-600"
           iconBg="bg-primary-50"
           to="/admin/students"
-        />
-        <StatCard
-          title={t('dashboard.totalTeachers')}
-          value={s.teachersCount}
-          icon={UserCheck}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-50"
-          to="/admin/teachers"
         />
         <StatCard
           title="Faol guruhlar"
@@ -351,28 +348,12 @@ const AdminDashboard = () => {
           to="/admin/groups"
         />
         <StatCard
-          title={t('dashboard.monthlyIncome')}
-          value={formatMoney(s.monthlyIncome)}
-          icon={CreditCard}
-          iconColor="text-violet-600"
-          iconBg="bg-violet-50"
-          to="/admin/payments"
-        />
-        <StatCard
-          title={t('dashboard.totalDebt')}
-          value={formatMoney(s.totalDebt)}
-          icon={AlertCircle}
-          iconColor="text-red-500"
-          iconBg="bg-red-50"
-          to="/admin/payments"
-        />
-        <StatCard
-          title={t('dashboard.netProfit')}
-          value={formatMoney(s.netProfit)}
-          icon={TrendingUp}
-          iconColor="text-teal-600"
-          iconBg="bg-teal-50"
-          to="/admin/finance"
+          title={t('dashboard.totalTeachers')}
+          value={s.teachersCount}
+          icon={UserCheck}
+          iconColor="text-emerald-600"
+          iconBg="bg-emerald-50"
+          to="/admin/teachers"
         />
         <StatCard
           title={t('dashboard.attendanceRate')}
@@ -382,14 +363,6 @@ const AdminDashboard = () => {
           iconBg="bg-green-50"
           suffix="%"
           to="/admin/reports"
-        />
-        <StatCard
-          title="Bugungi darslar"
-          value={s.todayLessonsCount}
-          icon={BookOpen}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50"
-          to="/admin/schedule"
         />
       </div>
 

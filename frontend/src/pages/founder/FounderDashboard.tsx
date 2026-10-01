@@ -17,12 +17,14 @@ import { useAuthStore } from '../../store/auth.store';
 import { useBranchStore } from '../../store/branch.store';
 import { formatMoney as fmt, fmtShort } from '../../utils/format';
 import FinanceKpis from '../../components/ui/FinanceKpis';
+import MonthTabs, { currentMonth } from '../../components/ui/MonthTabs';
 
 export default function FounderDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const selectedBranchId = useBranchStore(s => s.selectedBranchId);
   const [teachersOpen, setTeachersOpen] = useState(false);
+  const [month, setMonth] = useState(currentMonth());
 
   // Barcha so'rovlar selectedBranchId'ga bog'liq — filial o'zgarганда qayta yuklanadi.
   const bKey = selectedBranchId ?? 'all';
@@ -69,9 +71,10 @@ export default function FounderDashboard() {
         </div>
       </div>
 
-      {/* Moliya KPI — Reja/Kirim/Qarzdorlik/Xarajat/Qoldiq (bosilса ro'yxat) */}
-      <div className="mb-3">
-        <FinanceKpis />
+      {/* Oylar + Moliya KPI (tanlangan oy bo'yicha) */}
+      <div className="mb-3 space-y-3">
+        <MonthTabs value={month} onChange={setMonth} />
+        <FinanceKpis month={month} />
       </div>
 
       {/* Sanoq ko'rsatkichlari */}

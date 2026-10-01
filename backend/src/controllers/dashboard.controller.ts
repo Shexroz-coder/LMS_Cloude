@@ -94,7 +94,19 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
   try {
     const branchId = getBranchId(req);
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    // ?month=YYYY-MM — tanlangan oy. Bo'lmasa joriy oy.
+    const mParam = (req.query as Record<string, string>).month;
+    let monthStart: Date, monthEnd: Date;
+    if (mParam && /^\d{4}-\d{2}$/.test(mParam)) {
+      const [y, m] = mParam.split('-').map(Number);
+      monthStart = new Date(y, m - 1, 1);
+      const endOfMonth = new Date(y, m, 0, 23, 59, 59);
+      // Joriy oy bo'lsa — hozirgacha; aks holda oy oxirigacha
+      monthEnd = endOfMonth > now ? now : endOfMonth;
+    } else {
+      monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      monthEnd = now;
+    }
 
     // Reja: faol o'quvchilar bu oy to'lashi kerak bo'lgan umumiy summa
     // (guruh kurs narxи − o'quvchи chegirmasi).
@@ -125,8 +137,8 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
     }
 
     const [income, expenses, finance, debtorsCount] = await Promise.all([
-      getTotalIncome(monthStart, now, branchId),
-      getTotalExpenses(monthStart, now, branchId),
+      getTotalIncome(monthStart, monthEnd, branchId),
+      getTotalExpenses(monthStart, monthEnd, branchId),
       getFinanceTotals(branchId),
       prisma.student.count({
         where: { status: 'ACTIVE', user: { isActive: true }, balance: { debt: { gt: 0 } }, ...(branchId ? { branchId } : {}) } as any,

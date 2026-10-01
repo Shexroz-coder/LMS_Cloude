@@ -14,12 +14,12 @@ import { useBranchStore } from '../../store/branch.store';
 
 type Drill = 'plan' | 'income' | 'debt' | 'expenses' | null;
 
-export default function FinanceKpis() {
+export default function FinanceKpis({ month }: { month?: string }) {
   const branchId = useBranchStore(s => s.selectedBranchId);
   const [drill, setDrill] = useState<Drill>(null);
 
-  const { data: o } = useQuery(['finance-overview', branchId ?? 'all'],
-    () => api.get('/dashboard/finance-overview').then(r => r.data?.data), { staleTime: 30_000 });
+  const { data: o } = useQuery(['finance-overview', branchId ?? 'all', month ?? 'current'],
+    () => api.get('/dashboard/finance-overview', { params: { month } }).then(r => r.data?.data), { staleTime: 30_000 });
 
   const cards = [
     { key: 'plan',     label: 'Reja',        hint: 'Bu oy kutilayotgan', value: o?.plan,    icon: CalendarClock, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20', drill: 'plan' as Drill },
@@ -51,14 +51,14 @@ export default function FinanceKpis() {
         })}
       </div>
 
-      {drill && <DrillModal type={drill} onClose={() => setDrill(null)} />}
+      {drill && <DrillModal type={drill} month={month} onClose={() => setDrill(null)} />}
     </>
   );
 }
 
 // ── Drill-down ro'yxati ──────────────────────────────
-function DrillModal({ type, onClose }: { type: Exclude<Drill, null>; onClose: () => void }) {
-  const month = new Date().toISOString().slice(0, 7);
+function DrillModal({ type, month: monthProp, onClose }: { type: Exclude<Drill, null>; month?: string; onClose: () => void }) {
+  const month = monthProp || new Date().toISOString().slice(0, 7);
 
   const cfg = {
     plan:     { title: 'Reja — kim qancha to\'lashi kerak', fetch: () => api.get('/payments/student-obligations').then(r => r.data?.data ?? []) },
