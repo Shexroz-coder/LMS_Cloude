@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { CalendarClock, TrendingUp, AlertCircle, Receipt, Wallet, X } from 'lucide-react';
+import { CalendarClock, TrendingUp, AlertCircle, Receipt, Wallet, X, Hourglass } from 'lucide-react';
 import api from '../../api/axios';
 import { formatMoney as fmt } from '../../utils/format';
 import { PAYMENT_METHODS } from '../../utils/constants';
@@ -22,16 +22,17 @@ export default function FinanceKpis() {
     () => api.get('/dashboard/finance-overview').then(r => r.data?.data), { staleTime: 30_000 });
 
   const cards = [
-    { key: 'plan',     label: 'Reja',       hint: 'Bu oy kutilayotgan', value: o?.plan,    icon: CalendarClock, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20', drill: 'plan' as Drill },
-    { key: 'income',   label: 'Kirim',      hint: "Hisobga tushgan",    value: o?.income,  icon: TrendingUp,    color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', drill: 'income' as Drill },
-    { key: 'debt',     label: 'Qarzdorlik', hint: `${o?.debtorsCount ?? 0} kishidan`, value: o?.debt, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20', drill: 'debt' as Drill, badge: o?.debtorsCount },
-    { key: 'expenses', label: 'Xarajatlar', hint: 'Bu oy sarflangan',   value: o?.expenses, icon: Receipt,      color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20', drill: 'expenses' as Drill },
-    { key: 'balance',  label: 'Qoldiq',     hint: 'Kirim − Xarajat',    value: o?.balance, icon: Wallet,       color: (o?.balance ?? 0) >= 0 ? 'text-teal-600' : 'text-red-600', bg: 'bg-teal-50 dark:bg-teal-900/20', drill: null as Drill },
+    { key: 'plan',     label: 'Reja',        hint: 'Bu oy kutilayotgan', value: o?.plan,    icon: CalendarClock, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20', drill: 'plan' as Drill },
+    { key: 'income',   label: 'Kirim',       hint: "Hisobga tushgan",    value: o?.income,  icon: TrendingUp,    color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', drill: 'income' as Drill },
+    { key: 'monthRem', label: 'Bu oy qoldi', hint: 'Reja − Kirim',       value: o?.monthRemaining, icon: Hourglass, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20', drill: null as Drill },
+    { key: 'debt',     label: 'Umumiy qarz', hint: `${o?.debtorsCount ?? 0} kishidan (jami)`, value: o?.debt, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20', drill: 'debt' as Drill, badge: o?.debtorsCount },
+    { key: 'expenses', label: 'Xarajatlar',  hint: 'Bu oy sarflangan',   value: o?.expenses, icon: Receipt,      color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20', drill: 'expenses' as Drill },
+    { key: 'balance',  label: 'Qoldiq',      hint: 'Kirim − Xarajat',    value: o?.balance, icon: Wallet,       color: (o?.balance ?? 0) >= 0 ? 'text-teal-600' : 'text-red-600', bg: 'bg-teal-50 dark:bg-teal-900/20', drill: null as Drill },
   ];
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3">
         {cards.map(c => {
           const clickable = !!c.drill;
           return (

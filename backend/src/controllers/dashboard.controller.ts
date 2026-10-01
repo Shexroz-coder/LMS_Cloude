@@ -137,8 +137,9 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
       plan,
       income,
       expenses,
-      balance: income - expenses,      // qoldiq
-      debt: finance.totalDebt,
+      balance: income - expenses,            // qoldiq (kirim − xarajat)
+      monthRemaining: Math.max(0, plan - income), // bu oy qoldi (reja − kirim)
+      debt: finance.totalDebt,               // umumiy real qarz (to'plangan)
       debtorsCount,
     });
   } catch (err) {
