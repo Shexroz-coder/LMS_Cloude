@@ -108,32 +108,46 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
       monthEnd = now;
     }
 
-    // Reja: faol o'quvchilar bu oy to'lashi kerak bo'lgan umumiy summa
-    // (guruh kurs narxи − o'quvchи chegirmasi).
-    const activeEnroll = await prisma.groupStudent.findMany({
+    const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+
+    // ── REJA (o'sha oy uchun) ──
+    // Avval o'sha oyning MonthlyFee yozuvlaridан olamiz (real tarix).
+    // Agar yo'q bo'lsa (masalan joriy oy cron ishlamagan) — faol o'quvchilar
+    // oylik narxidан jonli hisoblaymiz.
+    const feeAgg = await (prisma as any).monthlyFee.aggregate({
       where: {
-        status: 'ACTIVE',
-        student: { status: 'ACTIVE', user: { isActive: true }, ...(branchId ? { branchId } : {}) } as any,
+        month: { gte: monthStart, lt: nextMonthStart },
+        ...(branchId ? { student: { branchId } } : {}),
       },
-      select: {
-        student: { select: { id: true, discountType: true, discountValue: true } },
-        group: { select: { course: { select: { monthlyPrice: true } } } },
-      },
+      _sum: { finalAmount: true },
     });
-    // O'quvchi bo'yicha jamlab, chegirma qo'llaymiz
-    const priceByStudent = new Map<number, { price: number; dType: string | null; dVal: number }>();
-    for (const e of activeEnroll) {
-      const sid = e.student.id;
-      const cur = priceByStudent.get(sid) || { price: 0, dType: (e.student.discountType as any) || null, dVal: Number(e.student.discountValue || 0) };
-      cur.price += Number(e.group.course?.monthlyPrice || 0);
-      priceByStudent.set(sid, cur);
-    }
-    let plan = 0;
-    for (const { price, dType, dVal } of priceByStudent.values()) {
-      let due = price;
-      if (dType === 'PERCENTAGE') due = price * (1 - dVal / 100);
-      else if (dType === 'FIXED_AMOUNT') due = price - dVal;
-      plan += Math.max(0, Math.round(due));
+    let plan = Math.round(Number(feeAgg?._sum?.finalAmount || 0));
+
+    if (plan === 0) {
+      // Fallback — jonli hisob (faol o'quvchilar)
+      const activeEnroll = await prisma.groupStudent.findMany({
+        where: {
+          status: 'ACTIVE',
+          student: { status: 'ACTIVE', user: { isActive: true }, ...(branchId ? { branchId } : {}) } as any,
+        },
+        select: {
+          student: { select: { id: true, discountType: true, discountValue: true } },
+          group: { select: { course: { select: { monthlyPrice: true } } } },
+        },
+      });
+      const priceByStudent = new Map<number, { price: number; dType: string | null; dVal: number }>();
+      for (const e of activeEnroll) {
+        const sid = e.student.id;
+        const cur = priceByStudent.get(sid) || { price: 0, dType: (e.student.discountType as any) || null, dVal: Number(e.student.discountValue || 0) };
+        cur.price += Number(e.group.course?.monthlyPrice || 0);
+        priceByStudent.set(sid, cur);
+      }
+      for (const { price, dType, dVal } of priceByStudent.values()) {
+        let due = price;
+        if (dType === 'PERCENTAGE') due = price * (1 - dVal / 100);
+        else if (dType === 'FIXED_AMOUNT') due = price - dVal;
+        plan += Math.max(0, Math.round(due));
+      }
     }
 
     const [income, expenses, finance, debtorsCount] = await Promise.all([
@@ -146,12 +160,13 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
     ]);
 
     sendSuccess(res, {
-      plan,
-      income,
-      expenses,
-      balance: income - expenses,            // qoldiq (kirim − xarajat)
-      monthRemaining: Math.max(0, plan - income), // bu oy qoldi (reja − kirim)
-      debt: finance.totalDebt,               // umumiy real qarz (to'plangan)
+      plan,                                    // o'sha oy rejasi
+      income,                                  // o'sha oy kirimi
+      expenses,                                // o'sha oy xarajati
+      balance: income - expenses,              // o'sha oy qoldig'i (kirim − xarajat)
+      monthDebt: Math.max(0, plan - income),   // o'sha oydan qolgan qarz (reja − kirim)
+      monthRemaining: Math.max(0, plan - income),
+      debt: finance.totalDebt,                 // umumiy real qarz (jami, hozirgi)
       debtorsCount,
     });
   } catch (err) {
