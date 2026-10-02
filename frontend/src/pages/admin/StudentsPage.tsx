@@ -704,6 +704,7 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isManager, effManagedBranchId]);
 
+  const modalNavigate = useNavigate();
   const set = (k: keyof FormState, v: string) => {
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: '' }));
@@ -743,8 +744,22 @@ const StudentFormModal = ({ student, onClose, onSuccess }: {
       }
       onSuccess();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Xato yuz berdi';
-      toast.error(msg);
+      const resp = (err as { response?: { data?: any } })?.response?.data;
+      // Takror telefon — xato o'rniga mavjud yozuvni ochishni taklif qilamiz
+      if (resp?.code === 'DUPLICATE_PHONE') {
+        const d = resp.data || {};
+        const name = d.fullName || 'Foydalanuvchi';
+        if (d.studentId) {
+          if (window.confirm(`Bu raqam bilan "${name}" allaqachon mavjud.\nMavjud ma'lumotlarini ochib tahrirlaysizmi?`)) {
+            onClose();
+            modalNavigate(`/admin/students/${d.studentId}`);
+          }
+        } else {
+          toast.error(`Bu raqam "${name}" (${d.role || 'foydalanuvchi'}) tomonidan band — u o'quvchi emas.`);
+        }
+        return;
+      }
+      toast.error(resp?.message || 'Xato yuz berdi');
     } finally {
       setLoading(false);
     }

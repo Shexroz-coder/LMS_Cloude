@@ -14,6 +14,7 @@ import LoginPage from './pages/auth/LoginPage';
 // Sahifalar — lazy (route-level code-splitting: boshlang'ich bundle kichrayadi,
 // har bir sahifa faqat kerak bo'lganda yuklanadi)
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const StudentsPage = lazy(() => import('./pages/admin/StudentsPage'));
@@ -89,7 +90,8 @@ const PrivateRoute = ({
 const RootRedirect = () => {
   const { isAuthenticated, user } = useAuthStore();
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // Mehmon (kirmagan) — landing page ko'rsatiladi
+  if (!isAuthenticated) return <LandingPage />;
 
   // Filial mas'uli — to'liq admin panel
   if (isBranchManager(user)) return <Navigate to="/admin" replace />;

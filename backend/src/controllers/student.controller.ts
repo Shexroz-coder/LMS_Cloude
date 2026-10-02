@@ -276,10 +276,26 @@ export const createStudent = async (req: AuthRequest, res: Response): Promise<vo
     const normalizedPhone = normalizePhone(phone);
     const normalizedParentPhone = parentPhone ? normalizePhone(parentPhone) : undefined;
 
-    // Telefon unikal tekshirish
-    const existing = await prisma.user.findFirst({ where: { phone: { in: phoneVariants(normalizedPhone) } } });
+    // Telefon unikal tekshirish — band bo'lsa, xato o'rniga MAVJUD ma'lumotni qaytaramiz
+    const existing = await prisma.user.findFirst({
+      where: { phone: { in: phoneVariants(normalizedPhone) } },
+      include: { student: { select: { id: true, status: true } } },
+    });
     if (existing) {
-      sendError(res, 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan.', 409);
+      res.status(409).json({
+        success: false,
+        code: 'DUPLICATE_PHONE',
+        message: 'Bu telefon raqam allaqachon mavjud.',
+        data: {
+          userId: existing.id,
+          fullName: existing.fullName,
+          phone: existing.phone,
+          role: existing.role,
+          isActive: existing.isActive,
+          studentId: existing.student?.id ?? null,
+          studentStatus: existing.student?.status ?? null,
+        },
+      });
       return;
     }
 
