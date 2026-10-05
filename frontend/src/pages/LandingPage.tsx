@@ -1,42 +1,34 @@
 /**
- * Landing page — roboticedu.uz bosh sahifasi (ro'yxatdan o'tmagan mehmonlar uchun).
- * Kurslar, yutuqlar, o'quvchilar haqida ma'lumot + yuqori o'ngда Kirish / Ro'yxatdan o'tish.
+ * Landing page — roboticedu.uz bosh sahifasi (mehmonlar uchun).
+ * Kurslar/yo'nalishlar, nega biz, Instagram. Yuqori o'ngда Kirish / Ro'yxatdan o'tish.
+ * Yolg'on statistika YO'Q. Rasmlar: frontend/public/landing/ ichiga qo'ysangiz avtomatik chiqadi.
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Bot, Cpu, Code2, Rocket, Trophy, Users, GraduationCap, Star,
-  CheckCircle2, Menu, X, ArrowRight, Sparkles, Phone, MapPin, Send,
+  Bot, Cpu, Code2, Plane, Trophy, CheckCircle2, Menu, X,
+  ArrowRight, Sparkles, Instagram, Send, GraduationCap, Users, Wrench,
 } from 'lucide-react';
+import RoboDecor from '../components/ui/RoboDecor';
+
+const IG_URL = 'https://www.instagram.com/robotic_edu/';
 
 const COURSES = [
-  { icon: Bot, title: 'Robototexnika', desc: 'LEGO va Arduino asosida robotlar yasash, dasturlash va musobaqalarga tayyorlash.', color: 'from-cyan-500 to-blue-500' },
-  { icon: Code2, title: 'Dasturlash', desc: 'Scratch, Python va veb-dasturlash — bolalar va o\'smirlar uchun bosqichma-bosqich.', color: 'from-violet-500 to-fuchsia-500' },
-  { icon: Cpu, title: 'Sun\'iy intellekt (AI)', desc: 'AI asoslari, mashinali o\'qitish va amaliy loyihalar bilan tanishish.', color: 'from-emerald-500 to-teal-500' },
-  { icon: Rocket, title: 'STEM & Ijodkorlik', desc: 'Muhandislik, matematika va ijodiy fikrlashни rivojlantiruvchi mashg\'ulotlar.', color: 'from-amber-500 to-orange-500' },
-];
-
-const STATS = [
-  { icon: Users, value: '500+', label: 'O\'quvchilar' },
-  { icon: GraduationCap, value: '20+', label: 'Tajribali ustozlar' },
-  { icon: Trophy, value: '50+', label: 'Musobaqa g\'oliblari' },
-  { icon: Star, value: '4.9', label: 'O\'rtacha baho' },
+  { icon: Bot, title: 'Robototexnika', desc: 'LEGO va Arduino asosida robotlar yasash, dasturlash va boshqarish.', color: 'from-cyan-500 to-blue-500' },
+  { icon: Code2, title: 'Dasturlash', desc: 'Scratch, Python va veb-dasturlash — bosqichma-bosqich, amaliy loyihalar bilan.', color: 'from-violet-500 to-fuchsia-500' },
+  { icon: Cpu, title: "Sun'iy intellekt (AI)", desc: 'AI asoslari va amaliy loyihalar bilan tanishish.', color: 'from-emerald-500 to-teal-500' },
+  { icon: Plane, title: 'FPV Dronlar', desc: 'Dron yig\'ish, sozlash va uchirish ko\'nikmalari.', color: 'from-amber-500 to-orange-500' },
 ];
 
 const WHY = [
-  'Zamonaviy jihozlangan laboratoriyalar',
-  'Kichik guruhlar — har bir o\'quvchiga e\'tibor',
-  'Xalqaro standartdagi o\'quv dasturi',
-  'Musobaqa va loyihalarда qatnashish',
-  'Har oy ochiq dars va ota-onalar bilan uchrashuv',
-  'Bitiruvchilarga sertifikat va portfolio',
+  { icon: Wrench, text: 'Amaliy mashg\'ulotlar — nazariya emas, yasab o\'rganish' },
+  { icon: Users, text: 'Kichik guruhlar — har bir o\'quvchiga e\'tibor' },
+  { icon: GraduationCap, text: 'Tajribali ustozlar rahbarligida' },
+  { icon: Trophy, text: 'Loyiha va musobaqalarда qatnashish imkoni' },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Diyor, 12 yosh', text: 'Robot yasashни o\'rgandim va shahar musobaqasида 1-o\'rinni egalladim!', course: 'Robototexnika' },
-  { name: 'Madina, 14 yosh', text: 'Python o\'rganib, birinchi o\'yinimni yozdim. Ustozlar juda yaxshi tushuntiradi.', course: 'Dasturlash' },
-  { name: 'Ota-ona — Jasur aka', text: 'Farzandim bu yerda o\'zgardi — mantiqiy fikrlashi va ishonchi oshdi.', course: 'STEM' },
-];
+// public/landing/1.jpg ... 6.jpg qo'yilса shu joyда chiqadi. Bo'lmasa — gradient ko'rinadi.
+const GALLERY = [1, 2, 3, 4, 5, 6];
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,10 +49,9 @@ export default function LandingPage() {
           </a>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-300">
-            <a href="#courses" className="hover:text-white">Kurslar</a>
+            <a href="#courses" className="hover:text-white">Yo'nalishlar</a>
             <a href="#why" className="hover:text-white">Nega biz?</a>
-            <a href="#results" className="hover:text-white">Yutuqlar</a>
-            <a href="#contact" className="hover:text-white">Aloqa</a>
+            <a href="#gallery" className="hover:text-white">Galereya</a>
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
@@ -74,7 +65,7 @@ export default function LandingPage() {
         </div>
         {menuOpen && (
           <div className="md:hidden border-t border-white/10 bg-slate-950/95 px-4 py-3 space-y-2">
-            {['courses:Kurslar', 'why:Nega biz?', 'results:Yutuqlar', 'contact:Aloqa'].map(x => {
+            {['courses:Yo\'nalishlar', 'why:Nega biz?', 'gallery:Galereya'].map(x => {
               const [id, label] = x.split(':');
               return <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)} className="block py-1.5 text-slate-300">{label}</a>;
             })}
@@ -88,51 +79,44 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section id="top" className="relative">
-        <div className="absolute inset-0 opacity-50" style={{
+        <div className="absolute inset-0 opacity-60" style={{
           backgroundImage: 'linear-gradient(to right, rgba(34,211,238,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(139,92,246,0.07) 1px, transparent 1px)',
           backgroundSize: '44px 44px',
           maskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)',
           WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)',
         }} />
+        {/* Mehmon rasmi (ixtiyoriy): public/landing/hero.jpg */}
+        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('/landing/hero.jpg')" }} />
         <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-violet-500/20 blur-3xl pointer-events-none" />
+        <RoboDecor />
 
         <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-28 text-center">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 ring-1 ring-cyan-400/30 text-xs text-cyan-300 mb-6">
             <Sparkles className="w-3.5 h-3.5" /> Kelajak kasblari — bugundan boshlab
           </span>
           <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight">
-            Bolangizni <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">robototexnika</span> va <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">AI</span> olamiga olib kiring
+            Bolangizni <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">robototexnika</span>,
+            <br className="hidden sm:block" /> <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">AI</span> va <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">dronlar</span> olamiga olib kiring
           </h1>
           <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto">
-            Robotic Edu — bolalar va o'smirlar uchun zamonaviy ta'lim markazi. Robototexnika, dasturlash va sun'iy intellekt bo'yicha amaliy mashg'ulotlar.
+            Robotic Edu — bolalar va o'smirlar uchun ta'lim markazi. Robototexnika, dasturlash, sun'iy intellekt va FPV dronlar bo'yicha amaliy mashg'ulotlar.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/register" className="group inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:opacity-90 transition">
               Ro'yxatdan o'tish <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
             </Link>
-            <a href="#courses" className="px-6 py-3 rounded-2xl font-medium bg-white/5 ring-1 ring-white/15 hover:bg-white/10 transition">Kurslar bilan tanishish</a>
+            <a href={IG_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-medium bg-white/5 ring-1 ring-white/15 hover:bg-white/10 transition">
+              <Instagram className="w-4 h-4" /> Instagram'da ko'rish
+            </a>
           </div>
-        </div>
-      </section>
-
-      {/* ── Stats ── */}
-      <section id="results" className="max-w-6xl mx-auto px-4 -mt-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {STATS.map(s => (
-            <div key={s.label} className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-5 text-center">
-              <s.icon className="w-6 h-6 mx-auto text-cyan-400 mb-2" />
-              <div className="text-2xl sm:text-3xl font-extrabold">{s.value}</div>
-              <div className="text-xs text-slate-400 mt-1">{s.label}</div>
-            </div>
-          ))}
         </div>
       </section>
 
       {/* ── Courses ── */}
       <section id="courses" className="max-w-6xl mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center">Kurslarimiz</h2>
-        <p className="text-center text-slate-400 mt-2">Har bir yosh va daraja uchun yo'nalish</p>
+        <h2 className="text-3xl font-bold text-center">Yo'nalishlar</h2>
+        <p className="text-center text-slate-400 mt-2">Har bir qiziqish uchun yo'nalish</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
           {COURSES.map(c => (
             <div key={c.title} className="group rounded-2xl bg-white/5 ring-1 ring-white/10 p-6 hover:ring-cyan-400/40 hover:-translate-y-1 transition">
@@ -148,62 +132,79 @@ export default function LandingPage() {
 
       {/* ── Why us ── */}
       <section id="why" className="max-w-6xl mx-auto px-4 py-10">
-        <div className="rounded-3xl bg-gradient-to-br from-white/5 to-transparent ring-1 ring-white/10 p-8 sm:p-10">
-          <h2 className="text-3xl font-bold">Nega Robotic Edu?</h2>
-          <div className="grid sm:grid-cols-2 gap-3 mt-6">
-            {WHY.map(w => (
-              <div key={w} className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-300">{w}</span>
-              </div>
-            ))}
+        <div className="relative rounded-3xl bg-gradient-to-br from-white/5 to-transparent ring-1 ring-white/10 p-8 sm:p-10 overflow-hidden">
+          <RoboDecor />
+          <div className="relative">
+            <h2 className="text-3xl font-bold">Nega Robotic Edu?</h2>
+            <div className="grid sm:grid-cols-2 gap-4 mt-6">
+              {WHY.map(w => (
+                <div key={w.text} className="flex items-start gap-3">
+                  <span className="w-9 h-9 rounded-xl bg-cyan-500/15 ring-1 ring-cyan-400/30 flex items-center justify-center flex-shrink-0">
+                    <w.icon className="w-4.5 h-4.5 text-cyan-300" />
+                  </span>
+                  <span className="text-slate-300 pt-1.5">{w.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center">O'quvchilarimiz</h2>
-        <div className="grid sm:grid-cols-3 gap-4 mt-10">
-          {TESTIMONIALS.map(t => (
-            <div key={t.name} className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
-              <div className="flex gap-0.5 text-amber-400 mb-3">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
-              <p className="text-slate-200">"{t.text}"</p>
-              <div className="mt-4 text-sm"><span className="font-semibold">{t.name}</span> <span className="text-slate-500">· {t.course}</span></div>
+      {/* ── Gallery / Instagram ── */}
+      <section id="gallery" className="max-w-6xl mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-center">Mashg'ulotlardan lavhalar</h2>
+        <p className="text-center text-slate-400 mt-2">
+          Ko'proq rasm va natijalar — <a href={IG_URL} target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">@robotic_edu</a>
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-10">
+          {GALLERY.map(n => (
+            <div key={n} className="relative aspect-[4/3] rounded-2xl ring-1 ring-white/10 overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900">
+              {/* public/landing/<n>.jpg qo'yilса shu joyda chiqadi */}
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('/landing/${n}.jpg')` }} />
+              <div className="absolute inset-0 flex items-center justify-center text-slate-600">
+                <Bot className="w-8 h-8 opacity-40" />
+              </div>
             </div>
           ))}
+        </div>
+        <div className="text-center mt-8">
+          <a href={IG_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white hover:opacity-90 transition">
+            <Instagram className="w-4 h-4" /> Instagram sahifamiz
+          </a>
         </div>
       </section>
 
       {/* ── CTA ── */}
       <section className="max-w-6xl mx-auto px-4 py-10">
-        <div className="rounded-3xl bg-gradient-to-r from-cyan-600/30 to-violet-600/30 ring-1 ring-cyan-400/30 p-10 text-center">
-          <h2 className="text-3xl font-bold">Bugun boshlang!</h2>
-          <p className="text-slate-300 mt-2">Bepul sinov darsiga yoziling — bolangizning qiziqishини kashf eting.</p>
-          <Link to="/register" className="inline-flex items-center gap-2 mt-6 px-7 py-3 rounded-2xl font-semibold bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:opacity-90 transition">
-            Ro'yxatdan o'tish <ArrowRight className="w-4 h-4" />
-          </Link>
+        <div className="relative rounded-3xl bg-gradient-to-r from-cyan-600/30 to-violet-600/30 ring-1 ring-cyan-400/30 p-10 text-center overflow-hidden">
+          <RoboDecor />
+          <div className="relative">
+            <h2 className="text-3xl font-bold">Bugun boshlang!</h2>
+            <p className="text-slate-300 mt-2">Ro'yxatdan o'ting — biz siz bilan bog'lanamiz va sinov darsiga taklif qilamiz.</p>
+            <Link to="/register" className="inline-flex items-center gap-2 mt-6 px-7 py-3 rounded-2xl font-semibold bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:opacity-90 transition">
+              Ro'yxatdan o'tish <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer id="contact" className="border-t border-white/10 mt-10">
+      <footer className="border-t border-white/10 mt-10">
         <div className="max-w-6xl mx-auto px-4 py-10 grid sm:grid-cols-3 gap-6 text-sm">
           <div>
             <div className="flex items-center gap-2 font-bold text-lg"><Bot className="w-5 h-5 text-cyan-400" /> Robotic Edu</div>
-            <p className="text-slate-400 mt-2">Bolalar va o'smirlar uchun robototexnika, dasturlash va AI ta'lim markazi.</p>
+            <p className="text-slate-400 mt-2">Bolalar va o'smirlar uchun robototexnika, dasturlash, AI va dron ta'lim markazi.</p>
           </div>
           <div className="space-y-2 text-slate-300">
-            <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-cyan-400" /> +998 90 000 00 00</div>
-            <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-cyan-400" /> Toshkent sh.</div>
-            <div className="flex items-center gap-2"><Send className="w-4 h-4 text-cyan-400" /> @roboticedu</div>
+            <a href={IG_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-white"><Instagram className="w-4 h-4 text-cyan-400" /> @robotic_edu</a>
+            <a href="https://t.me/robotic_edu" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-white"><Send className="w-4 h-4 text-cyan-400" /> Telegram</a>
           </div>
           <div className="flex sm:justify-end items-start gap-2">
             <Link to="/login" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 transition">Kirish</Link>
             <Link to="/register" className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 font-semibold">Ro'yxatdan o'tish</Link>
           </div>
         </div>
-        <div className="text-center text-xs text-slate-500 pb-6">© {new Date().getFullYear()} Robotic Edu. Barcha huquqlar himoyalangan.</div>
+        <div className="text-center text-xs text-slate-500 pb-6">© {new Date().getFullYear()} Robotic Edu.</div>
       </footer>
     </div>
   );

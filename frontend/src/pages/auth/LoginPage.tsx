@@ -9,6 +9,7 @@ import { User } from '../../types';
 import LanguageSwitcher from '../../components/ui/LanguageSwitcher';
 import ThemeToggle from '../../components/ui/ThemeToggle';
 import PhoneInput from '../../components/ui/PhoneInput';
+import RoboDecor from '../../components/ui/RoboDecor';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -64,6 +65,7 @@ const LoginPage = () => {
         <div className="glow-orb animate-float-soft" style={{ width: 380, height: 380, top: -100, left: -80, background: '#22D3EE' }} />
         <div className="glow-orb animate-float-soft" style={{ width: 340, height: 340, bottom: -90, right: -70, background: '#8B5CF6', animationDelay: '1.8s' }} />
       </div>
+      <RoboDecor />
 
       {/* Top controls */}
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">

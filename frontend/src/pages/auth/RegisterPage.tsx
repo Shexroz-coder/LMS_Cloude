@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bot, Phone, User, ArrowRight, Loader2, MapPin, Gift, ChevronRight } from 'lucide-react';
+import RoboDecor from '../../components/ui/RoboDecor';
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth.store';
@@ -98,17 +99,18 @@ const SuccessScreen = ({ onContinue }: { onContinue: () => void }) => {
   return (
     <>
       <ConfettiCanvas />
-      <div className={`min-h-screen bg-gradient-to-br from-indigo-950 via-violet-900 to-purple-900 flex flex-col items-center justify-center p-4 transition-all duration-700 ${show ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`relative overflow-hidden min-h-screen bg-gradient-to-br from-indigo-950 via-violet-900 to-purple-900 flex flex-col items-center justify-center p-4 transition-all duration-700 ${show ? 'opacity-100' : 'opacity-0'}`}>
+        <RoboDecor />
 
         {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-8">
+        <div className="relative z-10 flex items-center gap-2.5 mb-8">
           <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
             <Bot className="w-6 h-6 text-white" />
           </div>
           <span className="text-white font-bold text-xl tracking-tight">Robotic Edu</span>
         </div>
 
-        <div className={`w-full max-w-sm transition-all duration-700 delay-200 ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <div className={`relative z-10 w-full max-w-sm transition-all duration-700 delay-200 ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
           <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden">
 
             {/* Top celebration band */}
