@@ -159,13 +159,19 @@ export const getFinanceOverview = async (req: AuthRequest, res: Response): Promi
       }),
     ]);
 
+    // REJA = SOF undiriladigan summa = brutto oylik − avans (oldindan to'langan).
+    // Shunda Reja ≈ Kirim + Qarzdorlik bo'ladi (chalkashlik bo'lmaydi).
+    const advance = finance.totalBalance;              // o'quvchilardаги avans (oldindan to'langan)
+    const planGross = plan;
+    const planNet = Math.max(0, planGross - advance);
+
     sendSuccess(res, {
-      plan,                                    // o'sha oy rejasi
+      plan: planNet,                           // SOF undiriladigan reja (avanssiz)
+      planGross,                               // brutto oylik reja (ma'lumot uchun)
+      advance,                                 // avans (oldindan to'langan)
       income,                                  // o'sha oy kirimi
       expenses,                                // o'sha oy xarajati
       balance: income - expenses,              // o'sha oy qoldig'i (kirim − xarajat)
-      monthDebt: Math.max(0, plan - income),   // o'sha oydan qolgan qarz (reja − kirim)
-      monthRemaining: Math.max(0, plan - income),
       debt: finance.totalDebt,                 // umumiy real qarz (jami, hozirgi)
       debtorsCount,
     });

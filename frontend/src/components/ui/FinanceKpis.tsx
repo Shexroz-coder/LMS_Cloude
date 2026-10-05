@@ -22,7 +22,7 @@ export default function FinanceKpis({ month }: { month?: string }) {
     () => api.get('/dashboard/finance-overview', { params: { month } }).then(r => r.data?.data), { staleTime: 30_000 });
 
   const cards = [
-    { key: 'plan',     label: 'Reja',       hint: 'Shu oy kutilgan',    value: o?.plan,    icon: CalendarClock, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20', drill: 'plan' as Drill },
+    { key: 'plan',     label: 'Reja',       hint: 'Sof undiriladigan',  value: o?.plan,    icon: CalendarClock, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20', drill: 'plan' as Drill },
     { key: 'income',   label: 'Kirim',      hint: 'Shu oy tushgan',     value: o?.income,  icon: TrendingUp,    color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', drill: 'income' as Drill },
     { key: 'expenses', label: 'Xarajatlar', hint: 'Shu oy sarflangan',  value: o?.expenses, icon: Receipt,     color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20', drill: 'expenses' as Drill },
     { key: 'balance',  label: 'Qoldiq',     hint: 'Kirim − Xarajat',    value: o?.balance, icon: Wallet,       color: (o?.balance ?? 0) >= 0 ? 'text-teal-600' : 'text-red-600', bg: 'bg-teal-50 dark:bg-teal-900/20', drill: null as Drill },
